@@ -41,6 +41,7 @@
     }
   },
   "scripts": {
-    "test": "phpunit"
+    "test": "phpunit",
+    "bench:metadata-l2": "php benchmarks/metadata-l2-cache.php"
   }
 }

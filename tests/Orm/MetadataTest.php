@@ -264,6 +264,30 @@ class MetadataTest extends TestCase
         $this->assertEquals($a, $b, 'recompiled metadata equals the original');
     }
 
+    public function testClearL1DropsProcessTierButKeepsL2Warm(): void
+    {
+        $backend = new ArrayCache();
+        Metadata::useCache($backend);
+        Metadata::for(Article::class); // populate L1 + L2
+
+        Metadata::clearL1();
+
+        // L1 is gone → the next read must come from L2 (no fresh compile
+        // writes a NEW payload shape). Prove it by poisoning L2 after the
+        // clear: if the entry survived and is served, L1 was truly reset.
+        $key    = self::metaKey(Article::class);
+        $poison = $backend->get($key);
+        $poison['source'] = 'from_l2_after_clearl1';
+        $backend->set($key, $poison);
+
+        $meta = Metadata::for(Article::class);
+        $this->assertSame('from_l2_after_clearl1', $meta['source'], 'L2 survives clearL1() and is served');
+
+        // A fresh compile would have overwritten the poisoned payload —
+        // its survival proves the read came from L2, not a recompile.
+        $this->assertSame('from_l2_after_clearl1', $backend->get($key)['source']);
+    }
+
     /* -------------------------------------------- L2 (opt-in PSR-16 backend) */
 
     /** Mirrors Metadata::cacheKey(): 'azera_orm_meta_' . md5(v5\0salt\0class). */
@@ -315,7 +339,7 @@ class MetadataTest extends TestCase
         $backend->set($key, $poison);
 
         // Simulate a new worker process: L1 empty, L2 warm.
-        (new \ReflectionProperty(Metadata::class, 'l1'))->setValue(null, []);
+        Metadata::clearL1();
 
         $this->assertSame('poisoned_from_l2', Metadata::for(Article::class)['source']);
     }
@@ -345,7 +369,7 @@ class MetadataTest extends TestCase
         // A new deploy hash changes the key → old entries are never
         // requested again (they expire via TTL or backend eviction).
         Metadata::cacheSalt('deploy-42:build/abc?x=y'); // deliberately key-unsafe chars
-        (new \ReflectionProperty(Metadata::class, 'l1'))->setValue(null, []);
+        Metadata::clearL1();
         Metadata::for(InventoryItem::class);
 
         $keySalted = self::metaKey(InventoryItem::class, 'deploy-42:build/abc?x=y');
@@ -369,7 +393,7 @@ class MetadataTest extends TestCase
         // New backend + fresh L1 → forces a fresh compile/write to L2.
         $backend = new ArrayCache();
         Metadata::useCache($backend); // no ttl
-        (new \ReflectionProperty(Metadata::class, 'l1'))->setValue(null, []);
+        Metadata::clearL1();
         Metadata::for(Article::class);
 
         $data = (new \ReflectionClass($backend))->getProperty('data')->getValue($backend);

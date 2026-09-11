@@ -56,11 +56,11 @@ class AdminUser
 }
 ```
 
-| Attribute                                                | Applies to           | Purpose                         |
-| -------------------------------------------------------- | -------------------- | ------------------------------- |
-| `#[Entity(name:, store:, schema:)]`                      | Any persistent class | Data location + store routing   |
+| Attribute                                                | Applies to             | Purpose                       |
+| -------------------------------------------------------- | ---------------------- | ----------------------------- |
+| `#[Entity(name:, store:, schema:)]`                      | Any persistent class   | Data location + store routing |
 | `#[Connection(role:)]` or `#[Connection(read:, write:)]` | Borrowing stores (SQL) | Read/write connection roles   |
-| `#[Column(type:, name:, nullable:, transient:, pk:)]`    | Any persistent class | Column configuration            |
+| `#[Column(type:, name:, nullable:, transient:, pk:)]`    | Any persistent class   | Column configuration          |
 
 `#[Entity(store: …)]` routes the class to the registered store of that
 name (`$em->setStore('mongo', …)`) — `'sql'` is the zero-config default.
@@ -86,14 +86,14 @@ class AdminUser extends Model
 }
 ```
 
-| PHP type                          | Inferred column type |
-| --------------------------------- | -------------------- |
-| `int`                             | `int`                |
-| `float`                           | `float`              |
-| `bool`                            | `bool`               |
-| `array`                           | `json`               |
-| `DateTime` / `DateTimeImmutable`  | `datetime`           |
-| anything else / untyped           | `string`             |
+| PHP type                         | Inferred column type |
+| -------------------------------- | -------------------- |
+| `int`                            | `int`                |
+| `float`                          | `float`              |
+| `bool`                           | `bool`               |
+| `array`                          | `json`               |
+| `DateTime` / `DateTimeImmutable` | `datetime`           |
+| anything else / untyped          | `string`             |
 
 Pass `type:` explicitly to override the inference (e.g. `'pgarray'` for a
 native pg array column, or a custom registered cast).
@@ -116,14 +116,14 @@ class Article extends Model
 }
 ```
 
-| Type      | Decode (read)                                     | Encode (write)                                |
-| --------- | ------------------------------------------------- | --------------------------------------------- |
-| `int`     | `"5"` → `5` (stringifying drivers return strings) | passthrough                                   |
-| `float`   | `"4.5"` → `4.5`                                   | passthrough                                   |
-| `bool`    | `'1'`/`'t'`/`'true'` → `true`, unknown → throw    | passthrough                                   |
-| `json`    | JSON text → array (assoc), invalid → throw        | `json_encode`, scalars pass through           |
-| `pgarray` | pg array literal → scalar array (nested → nested) | pg literal, nested supported, >6 dims → throw |
-| `datetime`| datetime text → `DateTimeImmutable`, unparsable → throw | `DateTimeInterface` → `'Y-m-d H:i:s'`, strings pass through |
+| Type       | Decode (read)                                           | Encode (write)                                              |
+| ---------- | ------------------------------------------------------- | ----------------------------------------------------------- |
+| `int`      | `"5"` → `5` (stringifying drivers return strings)       | passthrough                                                 |
+| `float`    | `"4.5"` → `4.5`                                         | passthrough                                                 |
+| `bool`     | `'1'`/`'t'`/`'true'` → `true`, unknown → throw          | passthrough                                                 |
+| `json`     | JSON text → array (assoc), invalid → throw              | `json_encode`, scalars pass through                         |
+| `pgarray`  | pg array literal → scalar array (nested → nested)       | pg literal, nested supported, >6 dims → throw               |
+| `datetime` | datetime text → `DateTimeImmutable`, unparsable → throw | `DateTimeInterface` → `'Y-m-d H:i:s'`, strings pass through |
 
 Why the scalar casts exist: `pdo_mysql` (emulated prepares) and
 `pdo_pgsql` return numerics as strings. Without them the typed property
@@ -196,6 +196,7 @@ every type whose registered cast your wire format makes redundant.
 ### Mongo Documents (MongoStore)
 
 `#[Entity(store: 'mongo')]` classes always route to MongoDB. The stack is two layers:
+
 - **ext-mongodb** (PECL) is the driver (wire protocol, BSON) and
 - **mongodb/mongodb** (composer) is the PHP API on top of it.
 
@@ -231,13 +232,13 @@ $found->save();                   // $set diff UPDATE (only changed fields)
 $found->delete();                 // deleteOne by _id
 ```
 
-| Piece           | Contract                                                                                |
-| --------------- | --------------------------------------------------------------------------------------- |
-| Collection name | `#[Entity(name:)]` (the generic `source`) — falls back to the snake/plural convention   |
-| Primary key     | `_id`; omitted at insert = driver-generated ObjectId, backfilled as string              |
-| `_id` filters   | the store casts 24-hex-char string `_id`s back to ObjectId automatically                |
+| Piece           | Contract                                                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Collection name | `#[Entity(name:)]` (the generic `source`) — falls back to the snake/plural convention                                                    |
+| Primary key     | `_id`; omitted at insert = driver-generated ObjectId, backfilled as string                                                               |
+| `_id` filters   | the store casts 24-hex-char string `_id`s back to ObjectId automatically                                                                 |
 | Values          | `json`/`datetime`/`pgarray` excluded by default (BSON owns encoding) — `#[Column(cast: true)]` forces, `cast: false` suppresses anywhere |
-| Transactions    | begin/commit/rollback are no-ops (multi-doc ACID needs replica-set sessions — deferred) |
+| Transactions    | begin/commit/rollback are no-ops (multi-doc ACID needs replica-set sessions — deferred)                                                  |
 
 Store routing is keyed **per type name** (one axis, no roles): a document
 resolves only the store registered under its `#[Entity(store:)]` name, so
@@ -296,7 +297,7 @@ request-per-process runtimes (PHP-FPM) you can wire an **opt-in second
 tier** (L2) backed by any PSR-16 cache:
 
 ```php
-use Azera\Cache\Backend\ApcuCache;   // azera-cache (Redis, File, … also work)
+use Azera\Cache\Backend\ApcuCache;   // azera-cache — APCu is THE backend for L2
 use Azera\Orm\Metadata;
 
 Metadata::useCache(new ApcuCache(), ttl: 86400);
@@ -307,6 +308,7 @@ Metadata::useCache(new ApcuCache(), ttl: 86400);
 | `Metadata::useCache($psr16, ?int $ttl)` | Enable/disable the L2 backend; `$ttl` in seconds (`null` = backend default)             |
 | `Metadata::cacheSalt(?string $salt)`    | Mix a value (e.g. deploy hash) into the cache key — changing it forces a full recompile |
 | `Metadata::clear()`                     | Reset L1 + delete **only** Azera's L2 keys (never the whole shared segment)             |
+| `Metadata::clearL1()`                   | Reset only the per-process tier — any wired L2 stays warm (fresh-worker simulation)     |
 
 ```php
 // Recommended: tie entries to a deploy so changed model code recompiles
@@ -318,6 +320,26 @@ Metadata::cacheSalt($_ENV['DEPLOY_HASH']);
 > `cacheSalt()` deploy hash, a TTL, or `Metadata::clear()` on deploy.
 > Without a backend there is no L2 at all, and metadata is always
 > compiled fresh per process (always correct, microsecond cost).
+>
+> Measured cost on PHP 8.3, localhost (per compiled model, see
+> `benchmarks/metadata-l2-cache.php` — run with `composer bench:metadata-l2`):
+>
+> | Path | µs/model | vs recompile |
+> |---|---|---|
+> | warm L1 (no L2) | 0.10 | — |
+> | APCu L2 hit | 2.9 | **2.8× faster** |
+> | Redis L2 hit (localhost) | 262 | 31.6× slower |
+> | File L2 hit | 122 | 14.7× slower |
+> | fresh reflection compile | 8.3 | baseline |
+>
+> **L2 is an APCu-only feature in practice.** A networked or disk
+> backend loses to a reflection recompile by an order of magnitude or
+> more — the metadata payload is tiny (a few hundred bytes), so the
+> round-trip cost dwarfs the compile. Reflection reads attributes from
+> the already-resident class tables; it never touches the network. Only
+> wire a networked backend if per-class compile cost is irrelevant but
+> you must share metadata across many hosts (rare — models are
+> per-deploy code, not shared state).
 
 ---
 
@@ -559,13 +581,13 @@ whole scheduled set across EVERY target:
 $em->flushAll();   // Model: AppContext::instance()->entityManager()->flushAll()
 ```
 
-| Piece           | `flush()`                                  | `flushAll()`                                                |
-| --------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| Transactions    | ONE tx, ONE connection target              | one tx per store/connection target, begun lazily            |
-| Execution order | single topological pass                    | single topological pass ACROSS all targets (FK backfill crosses groups) |
-| Commits         | at the end of the pass                     | deferred until every node executed                          |
-| Failure         | full rollback                              | all txs begun SO FAR roll back; already-committed groups stay (best-effort all-or-nothing) |
-| Multi-target    | throws                                     | works                                                       |
+| Piece           | `flush()`                     | `flushAll()`                                                                               |
+| --------------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
+| Transactions    | ONE tx, ONE connection target | one tx per store/connection target, begun lazily                                           |
+| Execution order | single topological pass       | single topological pass ACROSS all targets (FK backfill crosses groups)                    |
+| Commits         | at the end of the pass        | deferred until every node executed                                                         |
+| Failure         | full rollback                 | all txs begun SO FAR roll back; already-committed groups stay (best-effort all-or-nothing) |
+| Multi-target    | throws                        | works                                                                                      |
 
 Cross-connection atomicity does not exist anywhere (two-phase commit is
 not modeled) — `flushAll()` trades strict atomicity for reachability,
@@ -696,16 +718,16 @@ Flush semantics for these writes (single-connection atomicity and the
 
 ### Which style to use
 
-| Task                        | With `Model` / `Document`            | Plain class + EM                                       |
-| --------------------------- | ------------------------------------ | ------------------------------------------------------ |
-| Load by PK                  | `Session::find(7)`                   | `$em->find(Session::class, ['id' => 7])`               |
-| Load by conditions          | `Session::findOne([...])`            | `$em->findBy(Session::class, [...])[0]`                |
-| Insert / update             | `$session->save()`                   | `$em->persist($s)->flush()`                            |
-| Upsert                      | `Session::upsert([...])`             | `$em->upsert($s)->flush()`                             |
-| Delete                      | `$session->delete()`                 | `$em->remove($s)->flush()`                             |
-| Dirty check / revert        | `hasChanged()` / `loadState()`       | `$em->isDirty($s)` / `$em->revert($s)`                 |
-| Re-read in place            | `Session::find(7, fresh: true)`      | `$em->refresh($s)`                                     |
-| Query builder → entities    | `Session::query()->entities()`       | not available — read via `$em->find()` / `findBy()`    |
+| Task                     | With `Model` / `Document`       | Plain class + EM                                    |
+| ------------------------ | ------------------------------- | --------------------------------------------------- |
+| Load by PK               | `Session::find(7)`              | `$em->find(Session::class, ['id' => 7])`            |
+| Load by conditions       | `Session::findOne([...])`       | `$em->findBy(Session::class, [...])[0]`             |
+| Insert / update          | `$session->save()`              | `$em->persist($s)->flush()`                         |
+| Upsert                   | `Session::upsert([...])`        | `$em->upsert($s)->flush()`                          |
+| Delete                   | `$session->delete()`            | `$em->remove($s)->flush()`                          |
+| Dirty check / revert     | `hasChanged()` / `loadState()`  | `$em->isDirty($s)` / `$em->revert($s)`              |
+| Re-read in place         | `Session::find(7, fresh: true)` | `$em->refresh($s)`                                  |
+| Query builder → entities | `Session::query()->entities()`  | not available — read via `$em->find()` / `findBy()` |
 
 Guidance:
 

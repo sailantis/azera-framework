@@ -175,6 +175,15 @@ final class Metadata
     }
 
     /**
+     * Forget only the L1 (per-process) tier — any wired L2 stays warm.
+     */
+    public static function clearL1(): void
+    {
+        self::$l1 = [];
+        self::$compiling = [];
+    }
+
+    /**
      * True while the class's metadata is being compiled. Model's
      * metadata-backed accessors check this and fall back to the raw
      * convention, so an override calling parent::source()/idFields()
