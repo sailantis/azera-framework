@@ -27,6 +27,17 @@ final class MongoLiveTest extends TestCase
 
     protected function setUp(): void
     {
+        // Package-presence guard BEFORE any MongoDB\Client autoload: this is
+        // the only test that needs the real mongodb/mongodb package (all
+        // other Mongo tests use the in-memory fake via the resolver seam).
+        // The package lives in `suggest`, not `require-dev`, so machines
+        // without it must skip here instead of erroring on the autoload.
+        if (!class_exists(\MongoDB\Client::class)) {
+            $this->markTestSkipped(
+                'mongodb/mongodb package not installed (composer require mongodb/mongodb + ext-mongodb)'
+            );
+        }
+
         try {
             $client = new Client('mongodb://localhost:27017');
             $client->azera_live_test->command(['ping' => 1]);
@@ -48,6 +59,12 @@ final class MongoLiveTest extends TestCase
     protected function tearDown(): void
     {
         AppContext::reset();
+        // Same package guard as setUp — if the live test never ran (skip),
+        // there is nothing to drop; also avoids a pointless autoload error
+        // on machines without the package.
+        if (!class_exists(\MongoDB\Client::class)) {
+            return;
+        }
         try {
             (new Client('mongodb://localhost:27017'))->dropDatabase('azera_live_test');
         } catch (\Throwable) {}
