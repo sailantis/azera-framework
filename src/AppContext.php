@@ -15,14 +15,14 @@ use Azera\Core\ViewEngine;
 use Azera\Db\DatabaseManager;
 use Azera\Db\Resolver\ModelResolver;
 use Azera\Db\Resolver\TableResolver;
-use Azera\Orm\EntityManager;
-use Azera\Orm\Heap;
 use Azera\Event\NullEventDispatcher;
 use Azera\Http\Cookies;
 use Azera\Http\Request as HttpRequest;
 use Azera\Http\Session;
 use Azera\Lifecycle\RequestScoped;
 use Azera\Log\NullLogger;
+use Azera\Orm\EntityManager;
+use Azera\Orm\Heap;
 use Azera\Orm\Storage\Stores;
 use Azera\Queue\QueueInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -35,18 +35,23 @@ class AppContext
     public function __construct()
     {
         $this->serviceDefinitions = [
-            AppContext::class      => fn() => $this,
-            Cookies::class         => fn() => $this->cookies(),
-            DatabaseManager::class => fn() => $this->dbManager(),
-            Dispatcher::class      => fn() => $this->dispatcher(),
-            EntityManager::class   => fn() => $this->entityManager(),
-            Heap::class            => fn() => $this->heap(),
-            HttpRequest::class     => fn() => $this->request(),
-            Router::class          => fn() => $this->router(),
-            Session::class         => fn() => $this->session(),
-            Stores::class          => fn() => new Stores(),
-            TableResolver::class   => fn() => new ModelResolver(),
-            ViewEngine::class      => fn() => $this->view(),
+            AppContext::class               => fn() => $this,
+            CacheInterface::class           => fn() => new NullCache(),
+            Config::class                   => fn() => new Config(),
+            Cookies::class                  => fn() => new Cookies(),
+            DatabaseManager::class          => fn() => new DatabaseManager(),
+            Dispatcher::class               => fn() => new Dispatcher(),
+            EventDispatcherInterface::class => fn() => new NullEventDispatcher(),
+            EntityManager::class            => fn() => new EntityManager($this->heap()),
+            Heap::class                     => fn() => new Heap(),
+            HttpRequest::class              => fn() => new HttpRequest(),
+            LoggerInterface::class          => fn() => new NullLogger(),
+            Router::class                   => fn() => new Router(),
+            // Opt-in per request: resolves to null until setSession() binds one.
+            Session::class       => fn() => null,
+            Stores::class        => fn() => new Stores(),
+            TableResolver::class => fn() => new ModelResolver(),
+            ViewEngine::class    => fn() => new ClarityEngine(),
         ];
     }
 
@@ -54,39 +59,7 @@ class AppContext
 
     protected array $serviceInstances = [];
 
-    protected ?HttpRequest $request = null;
-
-    protected ?ViewEngine $view = null;
-
-    protected ?Session $session = null;
-
-    protected ?Cookies $cookies = null;
-
-    /** Lazily-created request-scoped ORM identity map (see heap()). */
-    protected ?Heap $heap = null;
-
-    /** Lazily-created request-scoped EntityManager (see entityManager()). */
-    protected ?EntityManager $entityManager = null;
-
-    protected ?Router $router = null;
-
-    protected ?Dispatcher $dispatcher = null;
-
-    protected ?ResolvedRoute $route = null;
-
-    protected DatabaseManager $dbManager;
-
-    protected ?LoggerInterface $logger = null;
-
-    protected ?EventDispatcherInterface $events = null;
-
-    protected ?CacheInterface $cache = null;
-
-    protected ?QueueInterface $queue = null;
-
-    protected ?Config $config = null;
-
-    /** @var array<class-string<Advice>, InterceptorInterface> Map of advice class => interceptor */
+    /** @var array<class-string<Advice>, InterceptorInterface|callable> Map of advice class => interceptor (or lazy factory returning one) */
     protected array $interceptors = [];
 
     protected ?ProxyFactory $proxyFactory = null;
@@ -132,47 +105,64 @@ class AppContext
     // --- Lazy Services ---
 
     /**
-     * Get the HttpRequest instance. If it doesn't exist, it will be created.
+     * Get the HttpRequest instance, resolved through the DI container.
      *
      * @return HttpRequest The HttpRequest instance.
      */
     public function request(): HttpRequest
     {
-        return $this->request ??= new HttpRequest();
+        return $this->serviceInstances[HttpRequest::class]
+            ?? $this->get(HttpRequest::class);
     }
 
     /**
-     * Get the active view engine instance. Defaults to ClarityEngine.
+     * Get the active view engine instance.
+     *
+     * Resolution is fully delegated to the DI container: the default definition
+     * builds a ClarityEngine, an app may register its own factory via
+     * `set(ViewEngine::class, $factory)` (deferred build, resolved on first
+     * use) or an instance via {@see setView()} (e.g. test doubles). view() and
+     * get(ViewEngine::class) always return the same instance — one resolution
+     * path, memoized by the container.
+     *
+     * Boot code must NOT call this method (or get(ViewEngine::class)) — that
+     * is what triggers the engine build and its class autoload cost.
      *
      * @return ViewEngine The active view engine instance.
      */
     public function view(): ViewEngine
     {
-        return $this->view ??= new ClarityEngine();
+        return $this->serviceInstances[ViewEngine::class]
+            ?? $this->get(ViewEngine::class);
     }
 
     /**
-     * Replace the active view engine (e.g. swap in ClarityEngine at bootstrap).
+     * Replace the active view engine instance (e.g. swap in a specific engine
+     * or a test double at bootstrap). Sugar over set(): the instance is bound
+     * as both the container definition and the memoized instance.
+     *
+     * To register a deferred factory instead, use
+     * `set(ViewEngine::class, $factory)` — registering a callable unsets the
+     * cached instance, so the factory applies on the next resolution.
      *
      * @param ViewEngine $engine The engine to use from this point on.
      * @return static
      */
     public function setView(ViewEngine $engine): static
     {
-        $this->view = $engine;
-        $this->serviceDefinitions[ViewEngine::class] = $engine;
-        $this->serviceInstances[ViewEngine::class]   = $engine;
+        $this->set(ViewEngine::class, $engine);
         return $this;
     }
 
     /**
-     * Get the Cookies instance. If it doesn't exist, it will be created.
+     * Get the Cookies instance, resolved through the DI container.
      *
      * @return Cookies The Cookies instance.
      */
     public function cookies(): Cookies
     {
-        return $this->cookies ??= new Cookies();
+        return $this->serviceInstances[Cookies::class]
+            ?? $this->get(Cookies::class);
     }
 
     /**
@@ -188,7 +178,8 @@ class AppContext
      */
     public function heap(): Heap
     {
-        return $this->heap ??= new Heap();
+        return $this->serviceInstances[Heap::class]
+            ?? $this->get(Heap::class);
     }
 
     /**
@@ -201,35 +192,39 @@ class AppContext
      */
     public function entityManager(): EntityManager
     {
-        return $this->entityManager ??= new EntityManager($this->heap());
+        return $this->serviceInstances[EntityManager::class]
+            ?? $this->get(EntityManager::class);
     }
 
     /**
-     * Get the DatabaseManager instance. If it doesn't exist, it will be created.
+     * Get the DatabaseManager instance, resolved through the DI container.
      */
     public function dbManager(): DatabaseManager
     {
-        return $this->dbManager ??= new DatabaseManager();
+        return $this->serviceInstances[DatabaseManager::class]
+            ?? $this->get(DatabaseManager::class);
     }
 
     /**
-     * Get the Router instance. If it doesn't exist, it will be created.
+     * Get the Router instance, resolved through the DI container.
      *
      * @return Router The Router instance.
      */
     public function router(): Router
     {
-        return $this->router ??= new Router();
+        return $this->serviceInstances[Router::class]
+            ?? $this->get(Router::class);
     }
 
     /**
-     * Get the Dispatcher instance. If it doesn't exist, it will be created.
+     * Get the Dispatcher instance, resolved through the DI container.
      *
      * @return Dispatcher The Dispatcher instance.
      */
     public function dispatcher(): Dispatcher
     {
-        return $this->dispatcher ??= new Dispatcher();
+        return $this->serviceInstances[Dispatcher::class]
+            ?? $this->get(Dispatcher::class);
     }
 
     /**
@@ -241,7 +236,8 @@ class AppContext
      */
     public function logger(): LoggerInterface
     {
-        return $this->logger ??= $this->getOrNull(LoggerInterface::class) ?? new NullLogger();
+        return $this->serviceInstances[LoggerInterface::class]
+            ?? $this->get(LoggerInterface::class);
     }
 
     /**
@@ -253,7 +249,8 @@ class AppContext
      */
     public function events(): EventDispatcherInterface
     {
-        return $this->events ??= $this->getOrNull(EventDispatcherInterface::class) ?? new NullEventDispatcher();
+        return $this->serviceInstances[EventDispatcherInterface::class]
+            ?? $this->get(EventDispatcherInterface::class);
     }
 
     /**
@@ -265,7 +262,8 @@ class AppContext
      */
     public function cache(): CacheInterface
     {
-        return $this->cache ??= $this->getOrNull(CacheInterface::class) ?? new NullCache();
+        return $this->serviceInstances[CacheInterface::class]
+            ?? $this->get(CacheInterface::class);
     }
 
     /**
@@ -281,19 +279,12 @@ class AppContext
      */
     public function queue(): QueueInterface
     {
-        if ($this->queue !== null) {
-            return $this->queue;
-        }
-
-        $q = $this->getOrNull(QueueInterface::class);
-        if ($q === null) {
-            throw new \LogicException(
+        return $this->getOrNull(QueueInterface::class)
+            ?? throw new \LogicException(
                 'No queue registered. Set one via '
                     . 'AppContext::set(QueueInterface::class, $queue). '
                     . 'For synchronous processing, use Azera\\Queue\\SyncQueue.'
             );
-        }
-        return $this->queue = $q;
     }
 
     /**
@@ -304,7 +295,8 @@ class AppContext
      */
     public function config(): Config
     {
-        return $this->config ??= $this->getOrNull(Config::class) ?? new Config();
+        return $this->serviceInstances[Config::class]
+            ?? $this->get(Config::class);
     }
 
     /**
@@ -337,11 +329,17 @@ class AppContext
      * will proxy classes marked with {@see Advised} that have methods
      * carrying the corresponding advice attribute.
      *
-     * @param class-string<Advice>   $adviceClass The advice attribute class.
-     * @param InterceptorInterface    $interceptor The interceptor to handle it.
+     * The interceptor may also be passed as a zero-argument factory
+     * (closure/invokable) returning an InterceptorInterface. Factories are
+     * resolved exactly once — when the ProxyFactory is first built — so boot
+     * can register lazy wiring (e.g. an interceptor depending on dbManager())
+     * without constructing anything during bootstrap.
+     *
+     * @param class-string<Advice>                          $adviceClass The advice attribute class.
+     * @param InterceptorInterface|callable                 $interceptor The interceptor to handle it (or a factory returning one).
      * @return void
      */
-    public function registerInterceptor(string $adviceClass, InterceptorInterface $interceptor): void
+    public function registerInterceptor(string $adviceClass, InterceptorInterface|callable $interceptor): void
     {
         $this->interceptors[$adviceClass] = $interceptor;
     }
@@ -361,7 +359,12 @@ class AppContext
                     ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera_aop'
             );
             foreach ($this->interceptors as $adviceClass => $interceptor) {
-                $this->proxyFactory->register($adviceClass, $interceptor);
+                // Resolve lazy factories exactly once, at ProxyFactory build
+                // time (first advised-class instantiation) — not at boot.
+                $this->proxyFactory->register(
+                    $adviceClass,
+                    $interceptor instanceof InterceptorInterface ? $interceptor : $interceptor()
+                );
             }
             ProxyFactory::setCurrent($this->proxyFactory);
         }
@@ -434,11 +437,12 @@ class AppContext
     // --- Critical Services ---
 
     /**
-     * Get the Session instance.
+     * Get the Session instance, or null until {@see setSession()} binds one.
      */
     public function session(): ?Session
     {
-        return $this->session;
+        return $this->serviceInstances[Session::class]
+            ?? $this->getOrNull(Session::class);
     }
 
     /**
@@ -448,9 +452,7 @@ class AppContext
      */
     public function setSession(Session $session): void
     {
-        $this->session                            = $session;
-        $this->serviceDefinitions[Session::class] = $session;
-        $this->serviceInstances[Session::class]   = $session;
+        $this->set(Session::class, $session);
     }
 
     /**
@@ -458,7 +460,7 @@ class AppContext
      */
     public function route(): ?ResolvedRoute
     {
-        return $this->route;
+        return $this->serviceInstances[ResolvedRoute::class] ?? null;
     }
 
     /**
@@ -468,7 +470,7 @@ class AppContext
      */
     public function setRoute(ResolvedRoute $route): void
     {
-        $this->route = $route;
+        $this->serviceInstances[ResolvedRoute::class] = $route;
     }
 
     /**
@@ -478,12 +480,14 @@ class AppContext
      * Octane, …) the AppContext survives across many requests. This method
      * resets the per-request services so the next request starts clean:
      *
-     *  - the built-in request-scoped properties ({@see Request}, {@see ResolvedRoute},
-     *    {@see Session}, {@see Cookies}) are dropped and lazily rebuilt on demand;
-     *  - the corresponding DI container entries are removed so accessors do not
-     *    return a stale instance;
+     *  - the request-scoped container entries (Request, Session, Cookies)
+     *    are removed so their accessors resolve fresh instances on demand;
+     *  - the current {@see ResolvedRoute} value is cleared;
      *  - every service registered on the container that implements
-     *    {@see RequestScoped} has its {@see RequestScoped::resetState()} hook called.
+     *    {@see RequestScoped} has its {@see RequestScoped::resetState()} hook
+     *    called — this covers the ORM Heap and EntityManager, whose identity
+     *    state is wiped in place while their instances stay registered
+     *    (persistent-worker contract: handles survive, state dies).
      *
      * Persistent infrastructure is deliberately left untouched — database
      * manager, cache/Redis backends, queue, logger and event dispatcher keep
@@ -493,17 +497,14 @@ class AppContext
      */
     public function clearRequestScope(): void
     {
-        // Drop the built-in request-scoped properties and the corresponding
-        // container entries so lazy accessors rebuild fresh instances instead
-        // of returning a stale one.
+        // Drop the request-scoped container entries so the accessors resolve
+        // fresh instances on the next request. The RequestScoped loop below
+        // also covers the ORM Heap and EntityManager: both implement
+        // RequestScoped and live in serviceInstances like every other service.
         unset($this->serviceInstances[HttpRequest::class]);
-        $this->request = null;
-        unset($this->serviceInstances[ResolvedRoute::class]);
-        $this->route = null;
         unset($this->serviceInstances[Session::class]);
-        $this->session = null;
         unset($this->serviceInstances[Cookies::class]);
-        $this->cookies = null;
+        unset($this->serviceInstances[ResolvedRoute::class]);
 
         // Drop any service that must be re-instantiated per request by calling
         // its resetState() hook. Services that hold persistent handles keep
@@ -513,14 +514,6 @@ class AppContext
                 $service->resetState();
             }
         }
-
-        // The ORM identity map and EntityManager live in dedicated lazily
-        // created properties (NOT in serviceInstances), so the loop above
-        // cannot reach them. Wipe them explicitly — both carry per-request
-        // identity state, and a leaking heap would serve stale entities
-        // across requests/tenants in persistent workers.
-        $this->heap?->resetState();
-        $this->entityManager?->resetState();
     }
 
     // --- Service Container ---
@@ -540,7 +533,6 @@ class AppContext
         $this->serviceDefinitions[$id] = $service;
 
         if (is_object($service) && !is_callable($service)) {
-            $this->syncKnownServiceProperty($id, $service);
             $this->serviceInstances[$id] = $service;
         } else {
             unset($this->serviceInstances[$id]);
@@ -581,7 +573,6 @@ class AppContext
             $service = $this->build($id);
             $this->serviceDefinitions[$id] = $service;
             $this->serviceInstances[$id]   = $service;
-            $this->syncKnownServiceProperty($id, $service);
             return $service;
         }
 
@@ -612,7 +603,6 @@ class AppContext
             $service = $this->build($id);
             $this->serviceDefinitions[$id] = $service;
             $this->serviceInstances[$id]   = $service;
-            $this->syncKnownServiceProperty($id, $service);
             return $service;
         }
 
@@ -663,12 +653,10 @@ class AppContext
             $service = $this->build($definition);
             $this->serviceDefinitions[$id] = $service;
             $this->serviceInstances[$id]   = $service;
-            $this->syncKnownServiceProperty($id, $service);
             return $service;
         }
 
         if (!is_callable($definition)) {
-            $this->syncKnownServiceProperty($id, $definition);
             return $this->serviceInstances[$id] = $definition;
         }
 
@@ -686,55 +674,7 @@ class AppContext
             throw new RuntimeException("Service factory for $id did not return an object");
         }
 
-        $this->syncKnownServiceProperty($id, $service);
-
         return $this->serviceInstances[$id] = $service;
-    }
-
-    protected function syncKnownServiceProperty(string $id, object $service): void
-    {
-        if ($service !== null && !$service instanceof $id) {
-            return; // The service does not match the expected type, skip syncing
-        }
-
-        switch ($id) {
-            case Config::class:
-                $this->config = $service;
-                break;
-            case CacheInterface::class:
-                $this->cache = $service;
-                break;
-            case Cookies::class:
-                $this->cookies = $service;
-                break;
-            case DatabaseManager::class:
-                $this->dbManager = $service;
-                break;
-            case Dispatcher::class:
-                $this->dispatcher = $service;
-                break;
-            case EventDispatcherInterface::class:
-                $this->events = $service;
-                break;
-            case HttpRequest::class:
-                $this->request = $service;
-                break;
-            case LoggerInterface::class:
-                $this->logger = $service;
-                break;
-            case QueueInterface::class:
-                $this->queue = $service;
-                break;
-            case Router::class:
-                $this->router = $service;
-                break;
-            case Session::class:
-                $this->session = $service;
-                break;
-            case ViewEngine::class:
-                $this->view = $service;
-                break;
-        }
     }
 
     protected function build(string $class): object
