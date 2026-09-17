@@ -30,6 +30,14 @@ class Router
     protected bool $autoOptions = false;
 
     /**
+     * Buckets whose specificity order is still stale, i.e. routes were added
+     * after the last sort. Keyed "[method]\0[firstSegment]".
+     *
+     * @var array<string, true>
+     */
+    protected array $unsortedBuckets = [];
+
+    /**
      * Create a new Router instance.
      */
     public function __construct()
@@ -48,7 +56,7 @@ class Router
                 $hex = \str_replace('-', '', $v);
                 return \ctype_xdigit($hex);
             },
-            '*' => fn($v) => true,
+            '*' => fn() => true,
         ];
     }
 
@@ -349,8 +357,11 @@ class Router
 
         // Dynamic routes: [method][firstSegment][] => ['tokens', 'handler', 'specificity', 'groups']
         foreach ($this->groups as $method => $byFirst) {
-            foreach ($byFirst as $routesList) {
-                foreach ($routesList as $entry) {
+            foreach ($byFirst as $first => $routesList) {
+                // Materialise the deferred priority order, so the listing is
+                // stable regardless of whether match() ran first.
+                $this->sortBucket($method, $first);
+                foreach ($this->groups[$method][$first] as $entry) {
                     $tokens = $entry['tokens'];
                     $key    = serialize($tokens);
                     $routes[] = [
@@ -625,11 +636,30 @@ class Router
             'groups'      => $groups,
         ];
 
-        // Sort by specificity (highest first) for automatic priority
+        // Priority is "most specific first", but the sort is DEFERRED to the
+        // first match() that reads this bucket (see $unsortedBuckets). Sorting
+        // here would re-order the whole bucket after every single insert.
+        $this->unsortedBuckets[$method . "\0" . $first] = true;
+    }
+
+    /**
+     * Sort a bucket by specificity (highest first) if adds happened since the
+     * last sort. Idempotent and cheap once clean.
+     */
+    protected function sortBucket(string $method, string $first): void
+    {
+        $key = $method . "\0" . $first;
+
+        if (!isset($this->unsortedBuckets[$key]) || empty($this->groups[$method][$first])) {
+            return;
+        }
+
         usort(
             $this->groups[$method][$first],
             fn($a, $b) => $b['specificity'] <=> $a['specificity']
         );
+
+        unset($this->unsortedBuckets[$key]);
     }
 
     /**
@@ -853,9 +883,11 @@ class Router
         $candidates = [];
 
         if (isset($this->groups[$method][$first])) {
+            $this->sortBucket($method, $first);
             $candidates = array_merge($candidates, $this->groups[$method][$first]);
         }
         if (isset($this->groups[$method]['__DYNAMIC__'])) {
+            $this->sortBucket($method, '__DYNAMIC__');
             $candidates = array_merge($candidates, $this->groups[$method]['__DYNAMIC__']);
         }
 
