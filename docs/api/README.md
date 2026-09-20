@@ -170,6 +170,9 @@
 - [Cast](Orm_Casting_Cast.md) `Azera\Orm\Casting\Cast`
 - [Casts](Orm_Casting_Casts.md) `Azera\Orm\Casting\Casts`
 - [DateTimeCast](Orm_Casting_DateTimeCast.md) `Azera\Orm\Casting\DateTimeCast`
+- [EnumCast](Orm_Casting_EnumCast.md) `Azera\Orm\Casting\EnumCast`
+- [FastFloatCast](Orm_Casting_FastFloatCast.md) `Azera\Orm\Casting\FastFloatCast`
+- [FastIntCast](Orm_Casting_FastIntCast.md) `Azera\Orm\Casting\FastIntCast`
 - [FloatCast](Orm_Casting_FloatCast.md) `Azera\Orm\Casting\FloatCast`
 - [IntCast](Orm_Casting_IntCast.md) `Azera\Orm\Casting\IntCast`
 - [JsonCast](Orm_Casting_JsonCast.md) `Azera\Orm\Casting\JsonCast`

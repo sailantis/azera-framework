@@ -6,7 +6,7 @@ A simple and efficient router for mapping HTTP requests to handlers based on URI
 
 ## 🚀 Public methods
 
-### __construct() · [source](../../src/Core/Router.php#L35)
+### __construct() · [source](../../src/Core/Router.php#L43)
 
 `public function __construct(): mixed`
 
@@ -19,7 +19,7 @@ Create a new Router instance.
 
 ---
 
-### type() · [source](../../src/Core/Router.php#L67)
+### type() · [source](../../src/Core/Router.php#L75)
 
 `public function type(string $name, callable $validator): static`
 
@@ -49,7 +49,7 @@ $router->add('GET', '/blog/{slug:slug}', 'Blog::view');
 
 ---
 
-### autoOptions() · [source](../../src/Core/Router.php#L84)
+### autoOptions() · [source](../../src/Core/Router.php#L92)
 
 `public function autoOptions(bool $enabled = true): static`
 
@@ -75,7 +75,7 @@ CORS headers.
 
 ---
 
-### getAllowedMethods() · [source](../../src/Core/Router.php#L97)
+### getAllowedMethods() · [source](../../src/Core/Router.php#L105)
 
 `public function getAllowedMethods(string $uri): array`
 
@@ -97,7 +97,7 @@ Useful for generating Allow headers for OPTIONS requests or 405 responses.
 
 ---
 
-### add() · [source](../../src/Core/Router.php#L117)
+### add() · [source](../../src/Core/Router.php#L125)
 
 `public function add(array|string|null $method, string $pattern, array|string|null $handler = null): static`
 
@@ -119,7 +119,7 @@ Add a new route to the router. The route can be defined for specific HTTP method
 
 ---
 
-### get() · [source](../../src/Core/Router.php#L203)
+### get() · [source](../../src/Core/Router.php#L211)
 
 `public function get(string $pattern, array|string|null $handler = null): static`
 
@@ -140,7 +140,7 @@ Convenience method to add a GET route.
 
 ---
 
-### post() · [source](../../src/Core/Router.php#L215)
+### post() · [source](../../src/Core/Router.php#L223)
 
 `public function post(string $pattern, array|string|null $handler = null): static`
 
@@ -161,7 +161,7 @@ Convenience method to add a POST route.
 
 ---
 
-### put() · [source](../../src/Core/Router.php#L227)
+### put() · [source](../../src/Core/Router.php#L235)
 
 `public function put(string $pattern, array|string|null $handler = null): static`
 
@@ -182,7 +182,7 @@ Convenience method to add a PUT route.
 
 ---
 
-### delete() · [source](../../src/Core/Router.php#L239)
+### delete() · [source](../../src/Core/Router.php#L247)
 
 `public function delete(string $pattern, array|string|null $handler = null): static`
 
@@ -203,7 +203,7 @@ Convenience method to add a DELETE route.
 
 ---
 
-### patch() · [source](../../src/Core/Router.php#L251)
+### patch() · [source](../../src/Core/Router.php#L259)
 
 `public function patch(string $pattern, array|string|null $handler = null): static`
 
@@ -224,7 +224,7 @@ Convenience method to add a PATCH route.
 
 ---
 
-### setName() · [source](../../src/Core/Router.php#L263)
+### setName() · [source](../../src/Core/Router.php#L271)
 
 `public function setName(string $name): static`
 
@@ -248,7 +248,7 @@ Assign a name to the most recently added route. This allows you to generate URLs
 
 ---
 
-### hasNamedRoute() · [source](../../src/Core/Router.php#L282)
+### hasNamedRoute() · [source](../../src/Core/Router.php#L290)
 
 `public function hasNamedRoute(string $name): bool`
 
@@ -268,7 +268,7 @@ Check if a named route exists.
 
 ---
 
-### urlFor() · [source](../../src/Core/Router.php#L296)
+### urlFor() · [source](../../src/Core/Router.php#L304)
 
 `public function urlFor(string $name, array $params = [], array $query = []): string`
 
@@ -294,7 +294,7 @@ Generate a URL for a named route, substituting parameters as needed.
 
 ---
 
-### allRoutes() · [source](../../src/Core/Router.php#L323)
+### allRoutes() · [source](../../src/Core/Router.php#L331)
 
 `public function allRoutes(): array`
 
@@ -314,7 +314,7 @@ Each entry is an associative array with keys:
 
 ---
 
-### prefix() · [source](../../src/Core/Router.php#L462)
+### prefix() · [source](../../src/Core/Router.php#L473)
 
 `public function prefix(string $prefix, callable|null $callback = null): static`
 
@@ -342,7 +342,7 @@ $router->add('GET', '/dashboard', 'Admin::dashboard');
 
 ---
 
-### middleware() · [source](../../src/Core/Router.php#L496)
+### middleware() · [source](../../src/Core/Router.php#L507)
 
 `public function middleware(array|string $name, callable|null $callback = null): static`
 
@@ -370,7 +370,7 @@ $router->add('GET', '/admin/dashboard', 'Admin::dashboard');
 
 ---
 
-### namespace() · [source](../../src/Core/Router.php#L532)
+### namespace() · [source](../../src/Core/Router.php#L543)
 
 `public function namespace(string $namespace, callable|null $callback = null): static`
 
@@ -398,7 +398,7 @@ $router->add('GET', '/dashboard', 'Dashboard::view');
 
 ---
 
-### controller() · [source](../../src/Core/Router.php#L574)
+### controller() · [source](../../src/Core/Router.php#L585)
 
 `public function controller(string $controller, callable|null $callback = null): static`
 
@@ -426,7 +426,7 @@ $router->add('GET', '/dashboard', '::view');
 
 ---
 
-### match() · [source](../../src/Core/Router.php#L827)
+### match() · [source](../../src/Core/Router.php#L857)
 
 `public function match(string $uri, string $method = 'GET'): array|null`
 

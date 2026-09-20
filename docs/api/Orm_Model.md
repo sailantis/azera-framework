@@ -453,7 +453,7 @@ snapshot (the loadState() replacement). No-op for untracked entities.
 
 ---
 
-### setDefaultRole() · [source](../../src/Orm/Model.php#L507)
+### setDefaultRole() · [source](../../src/Orm/Model.php#L511)
 
 `public static function setDefaultRole(string $role): void`
 
@@ -472,7 +472,7 @@ Set both the read and write database role for this model class.
 
 ---
 
-### setDefaultReadRole() · [source](../../src/Orm/Model.php#L518)
+### setDefaultReadRole() · [source](../../src/Orm/Model.php#L522)
 
 `public static function setDefaultReadRole(string $role): void`
 
@@ -491,7 +491,7 @@ Set the database role used for SELECT queries on this model class.
 
 ---
 
-### setDefaultWriteRole() · [source](../../src/Orm/Model.php#L528)
+### setDefaultWriteRole() · [source](../../src/Orm/Model.php#L532)
 
 `public static function setDefaultWriteRole(string $role): void`
 
@@ -510,7 +510,7 @@ Set the database role used for INSERT/UPDATE/DELETE queries on this model class.
 
 ---
 
-### readRole() · [source](../../src/Orm/Model.php#L565)
+### readRole() · [source](../../src/Orm/Model.php#L569)
 
 `public function readRole(): string`
 
@@ -524,7 +524,7 @@ Return the database connection role used for read (SELECT) queries.
 
 ---
 
-### writeRole() · [source](../../src/Orm/Model.php#L575)
+### writeRole() · [source](../../src/Orm/Model.php#L579)
 
 `public function writeRole(): string`
 
@@ -538,7 +538,7 @@ Return the database connection role used for write (INSERT/UPDATE/DELETE) querie
 
 ---
 
-### readConnection() · [source](../../src/Orm/Model.php#L587)
+### readConnection() · [source](../../src/Orm/Model.php#L591)
 
 `public function readConnection(): Azera\Db\Database`
 
@@ -553,7 +553,7 @@ Resolves the configured read role via [`DatabaseManager::getOrDefault()`](Db_Dat
 
 ---
 
-### writeConnection() · [source](../../src/Orm/Model.php#L600)
+### writeConnection() · [source](../../src/Orm/Model.php#L604)
 
 `public function writeConnection(): Azera\Db\Database`
 

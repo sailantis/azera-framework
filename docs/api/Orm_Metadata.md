@@ -17,10 +17,20 @@ Compiled shape (all values JSON-serializable — required for the L2 cache):
   'pkFields'   => list<string>,        // resolved PK fields, declaration order (['id'] fallback)
   'castExclusions' => list<string>,    // types whose cast the STORE suppresses by default
                                        // (store-contributed during enrichment; absent = cast all)
-  'columns'    => [name => ['name' =>.., 'type' =>.., 'nullable' =>.., 'pk' => bool, 'cast' => bool]],
-                                       // 'cast': resolved AUTO/FORCE/SUPPRESS decision (#[Column(cast:)]
+  'columns'    => [name => ['name' =>.., 'type' =>.., 'nullable' => bool,
+                                      'typed' => bool, 'pk'                                            => bool, 'cast'                                          => bool]],
+                                       // 'cast': resolved AUTO/FORCE/SUPPRESS decision (#[Column(cast:)
                                        //   vs the store's castExclusions) — the ONE cast authority
                                        //   every write/read site consults
+                                       // 'nullable': column nullability, from ?type OR #[Column(nullable:)]
+                                       //   — and the COMPLETE hydration policy for the column: a
+                                       //   store NULL into a nullable column is always assignable
+                                       //   (resolveNullable upholds "nullable ⇒ the property accepts
+                                       //   null"), so no second gate flag is compiled
+                                       // 'typed': whether the property carries a PHP type declaration —
+                                       //   FastHydrator's all-raw fast path reads it: an untyped
+                                       //   property cannot be coerced on assignment, so the raw
+                                       //   store cell IS the snapshot value (no put() read-back)
   'relations'  => [name => ['type'=>.., 'target'=>.., 'foreignKey'=>.., 'ownerKey'=>.., 'strategy' => 'join'|'second_query']],
 ]
 ```
@@ -64,7 +74,7 @@ dynamic — they sit ABOVE the #[Connection] attribute in precedence.
 
 ## 🚀 Public methods
 
-### useCache() · [source](../../src/Orm/Metadata.php#L118)
+### useCache() · [source](../../src/Orm/Metadata.php#L128)
 
 `public static function useCache(Psr\SimpleCache\CacheInterface|null $cache, int|null $ttl = null): void`
 
@@ -92,7 +102,7 @@ typically `cacheSalt()` with a deploy hash, or a TTL:
 
 ---
 
-### cacheSalt() · [source](../../src/Orm/Metadata.php#L130)
+### cacheSalt() · [source](../../src/Orm/Metadata.php#L140)
 
 `public static function cacheSalt(string|null $salt): void`
 
@@ -115,7 +125,7 @@ requested again (TTL or backend eviction reclaims their space).
 
 ---
 
-### for() · [source](../../src/Orm/Metadata.php#L140)
+### for() · [source](../../src/Orm/Metadata.php#L150)
 
 `public static function for(string $class): array`
 
@@ -134,7 +144,7 @@ Compile (or fetch from cache) metadata for a class.
 
 ---
 
-### clear() · [source](../../src/Orm/Metadata.php#L161)
+### clear() · [source](../../src/Orm/Metadata.php#L171)
 
 `public static function clear(): void`
 
@@ -152,7 +162,20 @@ application may be using for unrelated data.
 
 ---
 
-### isCompiling() · [source](../../src/Orm/Metadata.php#L183)
+### clearL1() · [source](../../src/Orm/Metadata.php#L190)
+
+`public static function clearL1(): void`
+
+Forget only the L1 (per-process) tier — any wired L2 stays warm.
+
+**➡️ Return value**
+
+- Type: void
+
+
+---
+
+### isCompiling() · [source](../../src/Orm/Metadata.php#L202)
 
 `public static function isCompiling(string $class): bool`
 

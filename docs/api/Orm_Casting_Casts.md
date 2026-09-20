@@ -21,6 +21,15 @@ Registered built-ins (registered in [`Casts::boot()`](Orm_Casting_Casts.md#boot)
              DateTimeImmutable; replace the registration for a
              custom shape)
 
+ENUM CLASS-STRINGS are keys too, with no registration step: metadata
+records `columns[].type = MyEnum::class` (inferred from the property
+type, or declared via #[Column(type: MyEnum::class)]) and the lookup
+derives the [`EnumCast`](Orm_Casting_EnumCast.md) lazily. Deriving at LOOKUP time — rather
+than registering during the metadata compile — is deliberate: compile()
+runs only on a cache MISS, so a registration performed as a compile
+side effect would silently disappear as soon as the L2 metadata cache
+was warm, and the enum would start binding its case object to PDO.
+
 Semantics:
 
 - Registered casts apply on BOTH read and write paths; scalar casts
@@ -38,7 +47,7 @@ Semantics:
 
 ## 🚀 Public methods
 
-### register() · [source](../../src/Orm/Casting/Casts.php#L51)
+### register() · [source](../../src/Orm/Casting/Casts.php#L72)
 
 `public static function register(string $type, Azera\Orm\Casting\Cast $cast): void`
 
@@ -58,12 +67,16 @@ Register (or replace) a cast for a column type.
 
 ---
 
-### for() · [source](../../src/Orm/Casting/Casts.php#L62)
+### for() · [source](../../src/Orm/Casting/Casts.php#L91)
 
 `public static function for(string $type): Azera\Orm\Casting\Cast|null`
 
 The cast for a column type, or null when the type has no
 transformation (values pass through raw in both directions).
+
+Resolution order: an explicit registration, then the memoized
+derived answer, then — for a BACKED ENUM class-string — the cast
+derived from the type itself. Everything else is cast-free.
 
 **🧭 Parameters**
 
@@ -78,7 +91,7 @@ transformation (values pass through raw in both directions).
 
 ---
 
-### forColumn() · [source](../../src/Orm/Casting/Casts.php#L80)
+### forColumn() · [source](../../src/Orm/Casting/Casts.php#L126)
 
 `public static function forColumn(array $col): Azera\Orm\Casting\Cast|null`
 
@@ -103,11 +116,12 @@ through this, so encode/decode always agree on what is shaped.
 
 ---
 
-### types() · [source](../../src/Orm/Casting/Casts.php#L94)
+### types() · [source](../../src/Orm/Casting/Casts.php#L141)
 
 `public static function types(): array`
 
-Registered type names (tests).
+Registered type names (tests). DERIVED enum casts are absent by
+design — they are resolved on demand, not registered.
 
 **➡️ Return value**
 
@@ -116,7 +130,7 @@ Registered type names (tests).
 
 ---
 
-### clear() · [source](../../src/Orm/Casting/Casts.php#L104)
+### clear() · [source](../../src/Orm/Casting/Casts.php#L151)
 
 `public static function clear(): void`
 

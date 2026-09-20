@@ -29,7 +29,7 @@ All reads bypass ResultSet entirely: raw assoc rows in, entities out.
 
 ---
 
-### split() · [source](../../src/Orm/RowSplitter.php#L29)
+### split() · [source](../../src/Orm/RowSplitter.php#L27)
 
 `public function split(array $row, array $plan): array`
 

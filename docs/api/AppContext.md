@@ -15,7 +15,7 @@
 
 ---
 
-### instance() · [source](../../src/AppContext.php#L105)
+### instance() · [source](../../src/AppContext.php#L78)
 
 `public static function instance(): static`
 
@@ -28,7 +28,7 @@ Get/create shared singleton instance
 
 ---
 
-### setInstance() · [source](../../src/AppContext.php#L114)
+### setInstance() · [source](../../src/AppContext.php#L87)
 
 `public static function setInstance(self $instance): void`
 
@@ -47,7 +47,7 @@ Set the shared singleton instance (e.g. for testing or multi-context scenarios).
 
 ---
 
-### reset() · [source](../../src/AppContext.php#L127)
+### reset() · [source](../../src/AppContext.php#L100)
 
 `public static function reset(): void`
 
@@ -65,11 +65,11 @@ a previous test having called `setInstance()`. After this, the next
 
 ---
 
-### request() · [source](../../src/AppContext.php#L139)
+### request() · [source](../../src/AppContext.php#L112)
 
 `public function request(): Azera\Http\Request`
 
-Get the HttpRequest instance. If it doesn't exist, it will be created.
+Get the HttpRequest instance, resolved through the DI container.
 
 **➡️ Return value**
 
@@ -79,11 +79,21 @@ Get the HttpRequest instance. If it doesn't exist, it will be created.
 
 ---
 
-### view() · [source](../../src/AppContext.php#L149)
+### view() · [source](../../src/AppContext.php#L133)
 
 `public function view(): Azera\Core\ViewEngine`
 
-Get the active view engine instance. Defaults to ClarityEngine.
+Get the active view engine instance.
+
+Resolution is fully delegated to the DI container: the default definition
+builds a ClarityEngine, an app may register its own factory via
+`set(ViewEngine::class, $factory)` (deferred build, resolved on first
+use) or an instance via `setView()` (e.g. test doubles). view() and
+get(ViewEngine::class) always return the same instance — one resolution
+path, memoized by the container.
+
+Boot code must NOT call this method (or get(ViewEngine::class)) — that
+is what triggers the engine build and its class autoload cost.
 
 **➡️ Return value**
 
@@ -93,11 +103,17 @@ Get the active view engine instance. Defaults to ClarityEngine.
 
 ---
 
-### setView() · [source](../../src/AppContext.php#L160)
+### setView() · [source](../../src/AppContext.php#L151)
 
 `public function setView(Azera\Core\ViewEngine $engine): static`
 
-Replace the active view engine (e.g. swap in ClarityEngine at bootstrap).
+Replace the active view engine instance (e.g. swap in a specific engine
+or a test double at bootstrap). Sugar over set(): the instance is bound
+as both the container definition and the memoized instance.
+
+To register a deferred factory instead, use
+`set(ViewEngine::class, $factory)` — registering a callable unsets the
+cached instance, so the factory applies on the next resolution.
 
 **🧭 Parameters**
 
@@ -112,11 +128,11 @@ Replace the active view engine (e.g. swap in ClarityEngine at bootstrap).
 
 ---
 
-### cookies() · [source](../../src/AppContext.php#L173)
+### cookies() · [source](../../src/AppContext.php#L162)
 
 `public function cookies(): Azera\Http\Cookies`
 
-Get the Cookies instance. If it doesn't exist, it will be created.
+Get the Cookies instance, resolved through the DI container.
 
 **➡️ Return value**
 
@@ -126,7 +142,7 @@ Get the Cookies instance. If it doesn't exist, it will be created.
 
 ---
 
-### heap() · [source](../../src/AppContext.php#L189)
+### heap() · [source](../../src/AppContext.php#L179)
 
 `public function heap(): Azera\Orm\Heap`
 
@@ -147,7 +163,7 @@ across requests/tenants).
 
 ---
 
-### entityManager() · [source](../../src/AppContext.php#L202)
+### entityManager() · [source](../../src/AppContext.php#L193)
 
 `public function entityManager(): Azera\Orm\EntityManager`
 
@@ -165,11 +181,11 @@ persist() schedules, flush() executes in one transaction. Wiped by
 
 ---
 
-### dbManager() · [source](../../src/AppContext.php#L210)
+### dbManager() · [source](../../src/AppContext.php#L202)
 
 `public function dbManager(): Azera\Db\DatabaseManager`
 
-Get the DatabaseManager instance. If it doesn't exist, it will be created.
+Get the DatabaseManager instance, resolved through the DI container.
 
 **➡️ Return value**
 
@@ -178,11 +194,11 @@ Get the DatabaseManager instance. If it doesn't exist, it will be created.
 
 ---
 
-### router() · [source](../../src/AppContext.php#L220)
+### router() · [source](../../src/AppContext.php#L213)
 
 `public function router(): Azera\Core\Router`
 
-Get the Router instance. If it doesn't exist, it will be created.
+Get the Router instance, resolved through the DI container.
 
 **➡️ Return value**
 
@@ -192,11 +208,11 @@ Get the Router instance. If it doesn't exist, it will be created.
 
 ---
 
-### dispatcher() · [source](../../src/AppContext.php#L230)
+### dispatcher() · [source](../../src/AppContext.php#L224)
 
 `public function dispatcher(): Azera\Core\Dispatcher`
 
-Get the Dispatcher instance. If it doesn't exist, it will be created.
+Get the Dispatcher instance, resolved through the DI container.
 
 **➡️ Return value**
 
@@ -206,7 +222,7 @@ Get the Dispatcher instance. If it doesn't exist, it will be created.
 
 ---
 
-### logger() · [source](../../src/AppContext.php#L242)
+### logger() · [source](../../src/AppContext.php#L237)
 
 `public function logger(): Psr\Log\LoggerInterface`
 
@@ -221,7 +237,7 @@ null-checks. Register a real logger via `set(LoggerInterface::class, ...)`.
 
 ---
 
-### events() · [source](../../src/AppContext.php#L254)
+### events() · [source](../../src/AppContext.php#L250)
 
 `public function events(): Psr\EventDispatcher\EventDispatcherInterface`
 
@@ -236,7 +252,7 @@ a real dispatcher via `set(EventDispatcherInterface::class, ...)`.
 
 ---
 
-### cache() · [source](../../src/AppContext.php#L266)
+### cache() · [source](../../src/AppContext.php#L263)
 
 `public function cache(): Psr\SimpleCache\CacheInterface`
 
@@ -251,7 +267,7 @@ registered (always reports a miss). Register a real cache via
 
 ---
 
-### queue() · [source](../../src/AppContext.php#L282)
+### queue() · [source](../../src/AppContext.php#L280)
 
 `public function queue(): Azera\Queue\QueueInterface`
 
@@ -273,7 +289,7 @@ Register a queue via `set(QueueInterface::class, ...)`.
 
 ---
 
-### config() · [source](../../src/AppContext.php#L305)
+### config() · [source](../../src/AppContext.php#L296)
 
 `public function config(): Azera\Config\Config`
 
@@ -287,7 +303,7 @@ if none has been registered.
 
 ---
 
-### pipeline() · [source](../../src/AppContext.php#L328)
+### pipeline() · [source](../../src/AppContext.php#L320)
 
 `public function pipeline(array $interceptors = []): Azera\Aop\Pipeline`
 
@@ -318,9 +334,9 @@ $result = $ctx->pipeline()
 
 ---
 
-### registerInterceptor() · [source](../../src/AppContext.php#L344)
+### registerInterceptor() · [source](../../src/AppContext.php#L342)
 
-`public function registerInterceptor(string $adviceClass, Azera\Aop\InterceptorInterface $interceptor): void`
+`public function registerInterceptor(string $adviceClass, Azera\Aop\InterceptorInterface|callable $interceptor): void`
 
 Register an interceptor for a specific advice type.
 
@@ -328,12 +344,18 @@ Once at least one interceptor is registered, the DI container
 will proxy classes marked with [`Advised`](Aop_Advised.md) that have methods
 carrying the corresponding advice attribute.
 
+The interceptor may also be passed as a zero-argument factory
+(closure/invokable) returning an InterceptorInterface. Factories are
+resolved exactly once — when the ProxyFactory is first built — so boot
+can register lazy wiring (e.g. an interceptor depending on dbManager())
+without constructing anything during bootstrap.
+
 **🧭 Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$adviceClass` | string | - | The advice attribute class. |
-| `$interceptor` | [InterceptorInterface](Aop_InterceptorInterface.md) | - | The interceptor to handle it. |
+| `$interceptor` | [InterceptorInterface](Aop_InterceptorInterface.md)\|callable | - | The interceptor to handle it (or a factory returning one). |
 
 **➡️ Return value**
 
@@ -342,7 +364,7 @@ carrying the corresponding advice attribute.
 
 ---
 
-### setAopCacheDir() · [source](../../src/AppContext.php#L380)
+### setAopCacheDir() · [source](../../src/AppContext.php#L383)
 
 `public function setAopCacheDir(string|null $dir): void`
 
@@ -364,11 +386,11 @@ Pass null to use eval() (development, no cache files).
 
 ---
 
-### session() · [source](../../src/AppContext.php#L439)
+### session() · [source](../../src/AppContext.php#L442)
 
 `public function session(): Azera\Http\Session|null`
 
-Get the Session instance.
+Get the Session instance, or null until `setSession()` binds one.
 
 **➡️ Return value**
 
@@ -377,7 +399,7 @@ Get the Session instance.
 
 ---
 
-### setSession() · [source](../../src/AppContext.php#L449)
+### setSession() · [source](../../src/AppContext.php#L453)
 
 `public function setSession(Azera\Http\Session $session): void`
 
@@ -396,7 +418,7 @@ Set the Session instance.
 
 ---
 
-### route() · [source](../../src/AppContext.php#L459)
+### route() · [source](../../src/AppContext.php#L461)
 
 `public function route(): Azera\Core\ResolvedRoute|null`
 
@@ -409,7 +431,7 @@ Get the current resolved route information.
 
 ---
 
-### setRoute() · [source](../../src/AppContext.php#L469)
+### setRoute() · [source](../../src/AppContext.php#L471)
 
 `public function setRoute(Azera\Core\ResolvedRoute $route): void`
 
@@ -428,7 +450,7 @@ Set the current resolved route information.
 
 ---
 
-### clearRequestScope() · [source](../../src/AppContext.php#L494)
+### clearRequestScope() · [source](../../src/AppContext.php#L498)
 
 `public function clearRequestScope(): void`
 
@@ -438,12 +460,14 @@ Under a persistent application server (RoadRunner, Swoole, FrankenPHP,
 Octane, …) the AppContext survives across many requests. This method
 resets the per-request services so the next request starts clean:
 
- - the built-in request-scoped properties ([`Request`](Http_Request.md), [`ResolvedRoute`](Core_ResolvedRoute.md),
-   [`Session`](Http_Session.md), [`Cookies`](Http_Cookies.md)) are dropped and lazily rebuilt on demand;
- - the corresponding DI container entries are removed so accessors do not
-   return a stale instance;
+ - the request-scoped container entries (Request, Session, Cookies)
+   are removed so their accessors resolve fresh instances on demand;
+ - the current [`ResolvedRoute`](Core_ResolvedRoute.md) value is cleared;
  - every service registered on the container that implements
-   [`RequestScoped`](Lifecycle_RequestScoped.md) has its [`RequestScoped::resetState()`](Lifecycle_RequestScoped.md#resetstate) hook called.
+   [`RequestScoped`](Lifecycle_RequestScoped.md) has its [`RequestScoped::resetState()`](Lifecycle_RequestScoped.md#resetstate) hook
+   called — this covers the ORM Heap and EntityManager, whose identity
+   state is wiped in place while their instances stay registered
+   (persistent-worker contract: handles survive, state dies).
 
 Persistent infrastructure is deliberately left untouched — database
 manager, cache/Redis backends, queue, logger and event dispatcher keep
@@ -458,7 +482,7 @@ Safe to call repeatedly; a no-op when no request has been processed yet.
 
 ---
 
-### set() · [source](../../src/AppContext.php#L537)
+### set() · [source](../../src/AppContext.php#L530)
 
 `public function set(string $id, callable|object|null $service = null): void`
 
@@ -481,7 +505,7 @@ first resolution and their returned object is cached for subsequent lookups.
 
 ---
 
-### has() · [source](../../src/AppContext.php#L556)
+### has() · [source](../../src/AppContext.php#L548)
 
 `public function has(string $id): bool`
 
@@ -501,7 +525,7 @@ Check if a service is registered in the context.
 
 ---
 
-### get() · [source](../../src/AppContext.php#L574)
+### get() · [source](../../src/AppContext.php#L566)
 
 `public function get(string $id): object`
 
@@ -530,7 +554,7 @@ auto-wire and instantiate it.
 
 ---
 
-### tryGet() · [source](../../src/AppContext.php#L604)
+### tryGet() · [source](../../src/AppContext.php#L595)
 
 `public function tryGet(string $id): object|null`
 
@@ -556,7 +580,7 @@ or if a registered factory currently resolves to null.
 
 ---
 
-### getOrNull() · [source](../../src/AppContext.php#L633)
+### getOrNull() · [source](../../src/AppContext.php#L623)
 
 `public function getOrNull(string $id): object|null`
 

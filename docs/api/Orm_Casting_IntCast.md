@@ -4,7 +4,7 @@
 
 ## 🚀 Public methods
 
-### encode() · [source](../../src/Orm/Casting/IntCast.php#L22)
+### encode() · [source](../../src/Orm/Casting/IntCast.php#L33)
 
 `public function encode(mixed $value): mixed`
 
@@ -21,9 +21,9 @@
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/IntCast.php#L27)
+### decode() · [source](../../src/Orm/Casting/IntCast.php#L38)
 
-`public function decode(mixed $value): mixed`
+`public function decode(mixed $value): int|null`
 
 **🧭 Parameters**
 
@@ -33,7 +33,7 @@
 
 **➡️ Return value**
 
-- Type: mixed
+- Type: int|null
 
 
 

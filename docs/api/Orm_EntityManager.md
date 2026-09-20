@@ -10,7 +10,7 @@ The Active-Record facades ([`Model`](Orm_Model.md),
 EM-direct use share ONE write pipeline: diff -> topological order ->
 transaction -> ID backfill.
 
-Reads probe the identity map first — find() hit = the same instance,
+Reads probe the identity map first - find() hit = the same instance,
 miss = one Store read + FastHydrator onto the shared heap. Works for
 SQL models (PdoStore) and Mongo documents.
 
@@ -25,14 +25,14 @@ scheduling overhead, and no tx when one is already open (joins the
 caller's tx).
 
 Storage-agnostic: writes execute through the [`Store`](Orm_Storage_Store.md) seam resolved
-from class metadata (#[Entity(store: …)] — an opaque registry key). The
+from class metadata (#[Entity(store: ???)] - an opaque registry key). The
 SQL shapes and the RETURNING matrix (pk_set / returning_id /
 returning_all / last_insert_id) live in each Store backend; flush
 consumes their normalized ['row' => ?array, 'id' => ?scalar] results
 for identity backfill.
 
 RequestScoped: `resetState()` wipes the heap and drops scheduled
-writes between requests in persistent workers (non-negotiable — same
+writes between requests in persistent workers (non-negotiable - same
 contract as Heap).
 
 ## 🚀 Public methods
@@ -76,13 +76,13 @@ Load one entity by PK values: heap probe first, Store read on miss,
 hydration onto the shared heap.
 
 $fresh=false (default): a heap hit returns the tracked instance
-WITHOUT touching the store — the identity-map behavior.
+WITHOUT touching the store - the identity-map behavior.
 
 $fresh=true: the row is RE-READ from the Store and applied onto the
-tracked instance in place (`refresh()`) — same object, current
+tracked instance in place (`refresh()`) - same object, current
 values. Use this for stale-read-sensitive work (polling tasks,
 cross-request workers between resetState() boundaries). Entities
-with scheduled (unflushed) writes must NOT be fresh-read — refresh()
+with scheduled (unflushed) writes must NOT be fresh-read - refresh()
 throws instead of silently discarding pending work.
 
 **🧭 Parameters**
@@ -131,18 +131,18 @@ scheduled writes keep their in-request state.
 
 Re-read an entity's row from the Store and refresh the tracked
 instance IN PLACE: current row values onto the entity, node snapshot
-synced as the new diff baseline. Identity is preserved — the caller
+synced as the new diff baseline. Identity is preserved - the caller
 keeps its reference, the data is current. The escape hatch that
 keeps the identity-map's correctness (one row = one object, no lost
 in-request writes) while serving freshness-sensitive reads
 (polling, long-lived workers between request boundaries).
 
 Returns the entity when refreshed. Returns NULL when the row is
-GONE in storage — the entity is detached (the identity map mirrors
+GONE in storage - the entity is detached (the identity map mirrors
 the store; a tracked ghost would keep coming back on heap-hit
 reads). Guards: untracked entities throw (nothing to refresh
-against — find()/track() first); entities with scheduled unflushed
-writes throw (a re-read would clobber queued work — flush() first).
+against - find()/track() first); entities with scheduled unflushed
+writes throw (a re-read would clobber queued work - flush() first).
 
 **🧭 Parameters**
 
@@ -163,7 +163,7 @@ writes throw (a re-read would clobber queued work — flush() first).
 
 Queue an entity for INSERT (or UPDATE when already managed).
 
-Explicit intent — flush() sees ONLY what was persisted here
+Explicit intent - flush() sees ONLY what was persisted here
 (the deliberate no-implicit-dirty-checking doctrine contrast).
 
 **🧭 Parameters**
@@ -185,12 +185,12 @@ Explicit intent — flush() sees ONLY what was persisted here
 
 Queue a single-statement UPSERT (INSERT ... ON CONFLICT DO UPDATE /
 mongo updateOne upsert:true): the DATABASE resolves insert-vs-update
-at write time — no prior SELECT, no insert-or-update guess, no
+at write time - no prior SELECT, no insert-or-update guess, no
 unique-violation race. Deliberately intent-based like persist(): the
 caller asserts "row with this PK should exist afterwards", and the
 store makes it so atomically.
 
-Requires a full identity (every PK field set) — the PK is the
+Requires a full identity (every PK field set) - the PK is the
 conflict target. Anything less is an ordinary insert.
 
 **🧭 Parameters**
@@ -235,7 +235,7 @@ Execute all scheduled writes in ONE transaction
 
 Transaction control follows the SCHEDULED WORK's (store, txTarget)
 grouping: all scheduled classes must resolve to ONE store instance
-AND one connection target on it — otherwise the flush spans two
+AND one connection target on it - otherwise the flush spans two
 connections and cannot be atomic, which throws (stores may relax
 this with per-instance semantics via txTarget(); e.g. a mongo
 store's no-op txs group under its single instance token). Use
@@ -259,13 +259,13 @@ The escape hatch for write sets that legitimately span multiple
 stores/connections (e.g. SQL + mongo, or several #[Connection]
 write roles): ONE global topological pass executes every node (an
 owner in one group can feed its PK into a dependent in another),
-and each store/connection target commits its own tx — begun lazily
+and each store/connection target commits its own tx - begun lazily
 when its first node executes.
 
 Failure semantics are best-effort all-or-nothing, mirroring
 flush()'s shape: if any write (or a commit) throws mid-pass, every
 tx begun SO FAR is rolled back; groups whose commit already ran
-stay committed. Cross-connection atomicity does not exist — use
+stay committed. Cross-connection atomicity does not exist - use
 flush() when the whole write set shares one connection target.
 
 **➡️ Return value**
@@ -304,12 +304,12 @@ with an EMPTY baseline.
 Reads that bypass the EM pipeline (FETCH_CLASS ResultSet, Paginator)
 produce instances that are not in the heap. The facade calls adopt()
 before persisting. Empty baseline means the next flush writes every
-set non-PK column — the legacy blind-UPDATE parity for manually
+set non-PK column - the legacy blind-UPDATE parity for manually
 built ID'd entities (and the correct semantic: the EM cannot know
 what the DB already holds for an entity it never loaded).
 
 Entities loaded through EM reads (find/findBy/entities) do NOT need
-adopt() — their heap node carries the store snapshot from hydration.
+adopt() - their heap node carries the store snapshot from hydration.
 The returned entity is the ADOPTED instance (heap re-attach replaces
 the node when the entity already sits under another identity).
 
@@ -332,7 +332,7 @@ the node when the entity already sits under another identity).
 
 Register an externally-loaded entity as MANAGED with its CURRENT
 values as the baseline (the "already in sync" adoption for entities
-loaded by reads the EM does not hydrate — FETCH_CLASS ResultSet,
+loaded by reads the EM does not hydrate - FETCH_CLASS ResultSet,
 Paginator). Unlike adopt(), persist() on a tracked() entity emits
 SQL only for fields changed after the track() call.
 
@@ -391,13 +391,13 @@ Whether the entity has scheduled work in the current flush cycle.
 
 `public function dirtyData(object $entity): array`
 
-Dirty state backed by the heap node snapshot (the ONE diff engine —
+Dirty state backed by the heap node snapshot (the ONE diff engine ???
 Stateful's clone snapshot is gone).
 
 Untracked entity: every metadata column with a set value counts as
 changed (the same "everything set is pending" semantic the old
 no-snapshot Stateful path had). Tracked entity: current values vs
-the node snapshot, field-name-keyed — PK columns EXCLUDED there:
+the node snapshot, field-name-keyed - PK columns EXCLUDED there:
 identity, not data (the pipeline never puts a PK into an UPDATE
 SET, so isDirty()/hasChanged() must match what flush() would
 actually write; a mutated PK on a tracked entity is the identity
@@ -422,7 +422,7 @@ guard's problem, not a data diff).
 `public function isDirty(object $entity): bool`
 
 Whether the entity differs from its heap baseline (untracked entity:
-true — it has pending state that adopt+flush would write).
+true - it has pending state that adopt+flush would write).
 
 **🧭 Parameters**
 
@@ -443,7 +443,7 @@ true — it has pending state that adopt+flush would write).
 
 Revert the entity's properties to the values recorded in its heap
 node snapshot (the loadState() replacement). No-op for untracked
-entities — nothing to revert to.
+entities - nothing to revert to.
 
 **🧭 Parameters**
 
@@ -458,12 +458,12 @@ entities — nothing to revert to.
 
 ---
 
-### clear() · [source](../../src/Orm/EntityManager.php#L589)
+### clear() · [source](../../src/Orm/EntityManager.php#L591)
 
 `public function clear(): void`
 
 Wipe ALL tracked state (identity + scheduled writes). Scheduled
-work is dropped, NOT flushed — explicit clear means "forget".
+work is dropped, NOT flushed - explicit clear means "forget".
 
 **➡️ Return value**
 
@@ -472,13 +472,13 @@ work is dropped, NOT flushed — explicit clear means "forget".
 
 ---
 
-### resetState() · [source](../../src/Orm/EntityManager.php#L601)
+### resetState() · [source](../../src/Orm/EntityManager.php#L603)
 
 `public function resetState(): void`
 
 Request-scoped hook: wipe the identity map + any scheduled writes
 between requests in persistent workers. Also drops the memoized
-fallback store — a worker re-pointing DatabaseManager roles (tenant
+fallback store - a worker re-pointing DatabaseManager roles (tenant
 swap) must not keep a stale-borrowed store; the next storeFor()
 rebuilds it from the then-current manager.
 
@@ -493,12 +493,12 @@ rebuilds it from the then-current manager.
 
 `public function setStore(string $type, Azera\Orm\Storage\Store $store): static`
 
-Register a Store under a TYPE NAME — the single routing axis.
+Register a Store under a TYPE NAME - the single routing axis.
 
 Metadata `store` (#[Entity(store: ...)]) selects it per class.
 A connection-owning backend with multiple clients registers one
 type per client ('mongo-eu', 'mongo-us'): the type name IS the
-discriminator — there is no role level.
+discriminator - there is no role level.
 
 **🧭 Parameters**
 

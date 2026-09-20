@@ -778,7 +778,7 @@ Execute SELECT query and return ResultSet or return SQL string if returnSql is e
 
 ---
 
-### entities() · [source](../../src/Db/Query.php#L938)
+### entities() · [source](../../src/Db/Query.php#L939)
 
 `public function entities(): array`
 
@@ -806,7 +806,7 @@ while known-but-aliased columns hydrate what they provide.
 
 ---
 
-### firstEntity() · [source](../../src/Db/Query.php#L970)
+### firstEntity() · [source](../../src/Db/Query.php#L971)
 
 `public function firstEntity(): object|null`
 
@@ -825,7 +825,7 @@ extra terminal methods on the builder.
 
 ---
 
-### fresh() · [source](../../src/Db/Query.php#L995)
+### fresh() · [source](../../src/Db/Query.php#L996)
 
 `public function fresh(bool $fresh = true): static`
 
@@ -852,7 +852,7 @@ Model::find($id, fresh: true); fresh() serves criteria reads.
 
 ---
 
-### first() · [source](../../src/Db/Query.php#L1079)
+### first() · [source](../../src/Db/Query.php#L1080)
 
 `public function first(): Azera\Orm\Model|string|null`
 
@@ -874,7 +874,7 @@ metadata-mapped columns, bound parameters.
 
 ---
 
-### insert() · [source](../../src/Db/Query.php#L1099)
+### insert() · [source](../../src/Db/Query.php#L1100)
 
 `public function insert(array|null $data = null): Azera\Db\ResultSet|array|string|bool`
 
@@ -898,7 +898,7 @@ Execute INSERT or UPSERT query or return SQL string if returnSql is enabled
 
 ---
 
-### upsert() · [source](../../src/Db/Query.php#L1110)
+### upsert() · [source](../../src/Db/Query.php#L1111)
 
 `public function upsert(array|null $data = null): Azera\Db\ResultSet|array|string|bool`
 
@@ -922,7 +922,7 @@ Execute UPSERT query (INSERT with ON CONFLICT/ON DUPLICATE KEY UPDATE) or return
 
 ---
 
-### update() · [source](../../src/Db/Query.php#L1149)
+### update() · [source](../../src/Db/Query.php#L1150)
 
 `public function update(array|null $data = null): Azera\Db\ResultSet|array|string|int`
 
@@ -946,7 +946,7 @@ Execute UPDATE query or return SQL string if returnSql is enabled
 
 ---
 
-### delete() · [source](../../src/Db/Query.php#L1179)
+### delete() · [source](../../src/Db/Query.php#L1180)
 
 `public function delete(): Azera\Db\ResultSet|array|string|int`
 
@@ -964,7 +964,7 @@ Execute DELETE query
 
 ---
 
-### truncate() · [source](../../src/Db/Query.php#L1204)
+### truncate() · [source](../../src/Db/Query.php#L1205)
 
 `public function truncate(): string|int`
 
@@ -982,7 +982,7 @@ Execute TRUNCATE query or return SQL string if returnSql is enabled
 
 ---
 
-### exists() · [source](../../src/Db/Query.php#L1225)
+### exists() · [source](../../src/Db/Query.php#L1226)
 
 `public function exists(): string|bool`
 
@@ -999,7 +999,7 @@ Check if any rows exist matching the query
 
 ---
 
-### count() · [source](../../src/Db/Query.php#L1252)
+### count() · [source](../../src/Db/Query.php#L1253)
 
 `public function count(): string|int`
 
@@ -1017,7 +1017,7 @@ Count rows matching the query
 
 ---
 
-### getBindings() · [source](../../src/Db/Query.php#L1999)
+### getBindings() · [source](../../src/Db/Query.php#L2000)
 
 `public function getBindings(): array`
 
@@ -1030,7 +1030,7 @@ Get bind parameters
 
 ---
 
-### paginate() · [source](../../src/Db/Query.php#L2011)
+### paginate() · [source](../../src/Db/Query.php#L2012)
 
 `public function paginate(int $page = 1, int $pageSize = 30, bool $reverse = false): Azera\Db\Paginator`
 
@@ -1051,7 +1051,7 @@ Create a paginator for the current query
 
 ---
 
-### getRowCount() · [source](../../src/Db/Query.php#L2050)
+### getRowCount() · [source](../../src/Db/Query.php#L2051)
 
 `public function getRowCount(): int`
 

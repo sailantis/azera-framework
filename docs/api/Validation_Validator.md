@@ -45,7 +45,7 @@ Or in a single call (throws ValidationException on failure):
 
 ---
 
-### setTranslator() · [source](../../src/Validation/Validator.php#L78)
+### setTranslator() · [source](../../src/Validation/Validator.php#L76)
 
 `public function setTranslator(callable $fn): static`
 
@@ -84,7 +84,7 @@ Error codes and their $params keys / types:
 
 ---
 
-### field() · [source](../../src/Validation/Validator.php#L90)
+### field() · [source](../../src/Validation/Validator.php#L88)
 
 `public function field(string $name): Azera\Validation\FieldValidator`
 
@@ -106,7 +106,7 @@ to make the field optional.
 
 ---
 
-### fails() · [source](../../src/Validation/Validator.php#L101)
+### fails() · [source](../../src/Validation/Validator.php#L99)
 
 `public function fails(): bool`
 
@@ -119,7 +119,7 @@ Run all rules. Returns true when at least one rule failed.
 
 ---
 
-### errors() · [source](../../src/Validation/Validator.php#L113)
+### errors() · [source](../../src/Validation/Validator.php#L111)
 
 `public function errors(): array`
 
@@ -134,7 +134,7 @@ Empty when validation has not been run yet or all rules passed.
 
 ---
 
-### validated() · [source](../../src/Validation/Validator.php#L144)
+### validated() · [source](../../src/Validation/Validator.php#L142)
 
 `public function validated(): array`
 
@@ -148,7 +148,7 @@ their declared types. Fields that failed are excluded.
 
 ---
 
-### validate() · [source](../../src/Validation/Validator.php#L156)
+### validate() · [source](../../src/Validation/Validator.php#L154)
 
 `public function validate(): array`
 

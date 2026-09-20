@@ -15,6 +15,11 @@ Same contract as HydrationMap::build() + RowSplitter::split() for the
 single-root (no relations) case, which is the hot path for list reads.
 Relations keep using the generic path (they are per-row by nature).
 
+REFLECTION-FREE: every decision this class needs (column names, PK,
+cast policy, nullability) is compiled into metadata by
+Metadata::compile() — the ONE place properties are reflected. This
+class only reshapes those arrays into paired lists.
+
 L1-cached per class like Metadata; nothing else to configure.
 
 ## 🌍 Public Properties
@@ -27,7 +32,7 @@ L1-cached per class like Metadata; nothing else to configure.
 
 ## 🚀 Public methods
 
-### for() · [source](../../src/Orm/FastHydrator.php#L75)
+### for() · [source](../../src/Orm/FastHydrator.php#L122)
 
 `public static function for(string $class): self`
 
@@ -46,7 +51,7 @@ Per-class singleton plan (mirrors Metadata::for semantics).
 
 ---
 
-### hydrate() · [source](../../src/Orm/FastHydrator.php#L104)
+### hydrate() · [source](../../src/Orm/FastHydrator.php#L151)
 
 `public function hydrate(Azera\Orm\Heap $heap, array $row, bool $fresh = false): array`
 
@@ -81,7 +86,7 @@ attach once.
 
 ---
 
-### apply() · [source](../../src/Orm/FastHydrator.php#L192)
+### apply() · [source](../../src/Orm/FastHydrator.php#L262)
 
 `public function apply(object $entity, Azera\Orm\Node $node, array $row): void`
 
@@ -90,9 +95,9 @@ Refresh an EXISTING tracked entity in place from a fresh store row.
 Where the identity-map contract (one row = one object) meets the
 freshness requirement: instead of materializing a second instance,
 the row values are applied onto the live entity and the node
-snapshot is updated to match — the new diff baseline. Coded columns
-decode() onto the entity and encode(decode(raw)) into the snapshot,
-exactly like the cold hydration path.
+snapshot is updated to match — the new diff baseline. Values go
+through the same `put()` gate as cold hydration, so the
+refresh path cannot drift from the read path.
 
 Only columns present in $row are touched; entity and snapshot keep
 their previous values for the rest (partial rows — explicit
@@ -114,7 +119,7 @@ guarantee the entity is not scheduled.
 
 ---
 
-### attach() · [source](../../src/Orm/FastHydrator.php#L223)
+### attach() · [source](../../src/Orm/FastHydrator.php#L301)
 
 `public function attach(Azera\Orm\Heap $heap, object $entity, array $id, array $data): Azera\Orm\Node`
 
@@ -136,7 +141,57 @@ Attach a hydrated entity to the heap as MANAGED.
 
 ---
 
-### clear() · [source](../../src/Orm/FastHydrator.php#L233)
+### put() · [source](../../src/Orm/FastHydrator.php#L340)
+
+`public function put(object $entity, string $field, mixed $raw): mixed`
+
+Decode one raw store value and put it on the entity, honoring the
+compiled plan; returns the value the caller should record in the
+node SNAPSHOT (the store representation).
+
+This is the ONE place store values become property values, used by
+hydration AND every write-back path (fresh refresh, RETURNING rows,
+id backfill, revert, joins) — the mirror of
+EntityManager::extractData()'s single encode point. Centralizing it
+is what keeps a snapshot diff-clean by construction: the snapshot is
+read back OFF the property, so it always matches what extractData()
+will produce for that entity. A `cast: false` typed column (PHP
+coerces the driver's string on assignment) therefore cannot pick up
+a phantom UPDATE, and a NULL cannot slip past the nullability
+contract.
+
+The cast and the null gate come from THIS hydrator's compiled tables
+(resolved once from metadata in the constructor), so callers pass no
+metadata and this method never consults Metadata or reflection.
+
+NULL handling, from the compiled `nullable` flag ALONE:
+
+- column NOT nullable → throw a diagnosable LogicException. The raw
+  TypeError this replaces fires at the assignment with no hint of
+  which column, row, or remedy is at fault.
+- column nullable → assign the null. Safe with no second check:
+  resolveNullable() already rejected the one shape whose property
+  could not hold it, so the flag implies the property accepts null.
+
+A non-null value is always assigned; PHP's weak mode coerces a
+numeric string, and the cast has already decoded what needed it.
+
+**🧭 Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$entity` | object | - |  |
+| `$field` | string | - |  |
+| `$raw` | mixed | - |  |
+
+**➡️ Return value**
+
+- Type: mixed
+
+
+---
+
+### clear() · [source](../../src/Orm/FastHydrator.php#L367)
 
 `public static function clear(): void`
 
