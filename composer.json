@@ -2,6 +2,7 @@
   "name": "sailantis/azera-framework",
   "description": "A lightweight, fast PHP framework for building modern web and cli applications. Azera combines the best ideas from frameworks like Phalcon, CodeIgniter, Laravel and Twig into a minimal yet powerful toolkit.",
   "type": "library",
+  "version": "0.1.0",
   "repositories": [
     {
       "type": "path",

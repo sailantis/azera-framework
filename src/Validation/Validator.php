@@ -46,9 +46,7 @@ class Validator
     /**
      * @param array<string, mixed> $data Raw input array (e.g. from Request::post()).
      */
-    public function __construct(private array $data)
-    {
-    }
+    public function __construct(private array $data) {}
 
     /**
      * Set a translator callback invoked for each error when rendering messages.
@@ -91,7 +89,7 @@ class Validator
     {
         $fv = new FieldValidator();
         $this->fields[$name] = $fv;
-        $this->ran = false; // invalidate any previous run
+        $this->ran           = false; // invalidate any previous run
         return $fv;
     }
 
@@ -169,8 +167,8 @@ class Validator
             return;
         }
 
-        $this->ran = true;
-        $this->errors = [];
+        $this->ran           = true;
+        $this->errors        = [];
         $this->validatedData = [];
 
         foreach ($this->fields as $name => $fv) {
@@ -186,7 +184,7 @@ class Validator
             }
 
             $errorsBefore = \count($this->errors);
-            $coerced = $fv->validate($this->data[$name], $name, $this->errors);
+            $coerced      = $fv->validate($this->data[$name], $name, $this->errors);
 
             if (\count($this->errors) === $errorsBefore) {
                 $this->validatedData[$name] = $coerced;
