@@ -53,3 +53,25 @@ straight into the area you need.
   delete, transactions, subqueries, and more.
 - [API Documentation](api/) — Auto-generated reference for every public
   class in the framework.
+
+## Benchmarks
+
+Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4 and
+CakePHP 5 on an identical full-stack workload — routing, controller, ORM
+query (SQLite), template render, response — and on a real server, not a
+simulated one. Two summaries are reproduced here, one per deployment
+model:
+
+- [RoadRunner](19-BENCHMARKS-SUMMARY-ROADRUNNER.md) — a resident worker,
+  where the framework boots once and serves every request.
+- [PHP-FPM](19-BENCHMARKS-SUMMARY-FPM.md) — nginx + PHP-FPM, where the
+  framework boots again for every request, as PHP usually runs in
+  production.
+
+The complete report — every framework's feature races, endpoint by
+endpoint, with the resident-worker memory charts — is published at
+<https://sailantis.github.io/azera-competition/benchmarks/>.
+
+The numbers on these pages are generated from the benchmark's own result
+JSON, never transcribed, so a chart and the table beside it cannot
+disagree.

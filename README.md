@@ -65,6 +65,20 @@ A lightweight, fast PHP framework for building modern Web applications and CLI t
 - **Exception Handling** - Structured exception hierarchy
 - **AppContext** - Centralized service container for shared resources
 
+## Benchmarks
+
+Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5 on an identical full-stack workload — routing → controller → ORM query (SQLite) → template render → response — running on a real server. Two summaries are published beside the docs, one per deployment model:
+
+**As nginx + PHP-FPM** — the framework boots again for every request, as PHP usually runs in production:
+
+![Total response times, PHP-FPM](docs/images/benchmarks/summary-fpm/speedup.svg)
+
+**As a resident worker (RoadRunner)** — the framework boots once and serves every request:
+
+![Total response times, RoadRunner](docs/images/benchmarks/summary-roadrunner/speedup.svg)
+
+Each chart sums one pass over all 21 benchmarked endpoints. The full per-endpoint tables, the per-feature races and the memory charts are in the [PHP-FPM](docs/19-BENCHMARKS-SUMMARY-FPM.md) and [RoadRunner](docs/19-BENCHMARKS-SUMMARY-ROADRUNNER.md) summaries, and the [complete report](https://sailantis.github.io/azera-competition/benchmarks/) covers all six frameworks.
+
 ## Requirements
 
 - PHP >= 8.2
@@ -461,9 +475,9 @@ Comprehensive guides and references:
 
 - **[Getting Started](docs/00-GETTING-STARTED.md)** - Set up your first Azera project
 - **[Architecture](docs/01-ARCHITECTURE.md)** - Understand core components and design principles
-- **[MVC Routing](docs/02-MVC-ROUTING.md)** - Define routes, patterns, and middleware
+- **[MVC Routing](docs/02-CORE-ROUTING.md)** - Define routes, patterns, and middleware
 - **[Controllers & Views](docs/03-CONTROLLERS-VIEWS.md)** - Build controllers and render views
-- **[Clarity Templates](docs/03b-CLARITY-TEMPLATES.md)** - Sandboxed template engine with auto-escaping and inheritance
+- **[Clarity Templates](docs/03b-CLARITY-ENGINE.md)** - Sandboxed template engine with auto-escaping and inheritance
 - **[Models & ORM](docs/04-MODELS-ORM.md)** - Work with Active Record models
 - **[Database Queries](docs/05-DATABASE-QUERIES.md)** - Master the query builder
 - **[HTTP Request](docs/06-HTTP-REQUEST.md)** - Handle requests, uploads, and headers
@@ -472,6 +486,7 @@ Comprehensive guides and references:
 - **[Security](docs/09-SECURITY.md)** - Best practices and security features
 - **[Logging](docs/10-LOGGING.md)** - Application and database logging
 - **[Cookbook](docs/11-COOKBOOK.md)** - Practical recipes and examples
+- **[Benchmarks](docs/README.md#benchmarks)** - How Azera compares to Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5
 - **[API Reference](docs/api/README.md)** - Complete API documentation
 
 ## Key Concepts
