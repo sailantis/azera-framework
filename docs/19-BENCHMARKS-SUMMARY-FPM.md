@@ -53,27 +53,27 @@ Trimmed mean in milliseconds, lower is better. **Bold** = fastest for that endpo
 
 | Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP |
 |---|---|---:|---:|---:|---:|---:|---:|
-| `GET /` | no DB — routing + template only | **0.821** | 4.50 | 2.05 | 7.96 | 1.95 | 1.48 |
-| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **1.58** | 5.73 | 3.74 | 9.03 | 2.69 | 2.83 |
-| `GET /items/1` | 1 item by id | **1.44** | 5.38 | 3.00 | 8.93 | 2.57 | 2.62 |
-| `POST /items` | 1 row upserted (sentinel #999999) | **1.64** | 5.41 | 3.90 | 9.05 | 2.68 | 2.80 |
+| `GET /` | no DB — routing + template only | **0.818** | 4.50 | 2.05 | 7.96 | 1.95 | 1.48 |
+| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **1.57** | 5.73 | 3.74 | 9.03 | 2.69 | 2.83 |
+| `GET /items/1` | 1 item by id | **1.45** | 5.38 | 3.00 | 8.93 | 2.57 | 2.62 |
+| `POST /items` | 1 row upserted (sentinel #999999) | **1.63** | 5.41 | 3.90 | 9.05 | 2.68 | 2.80 |
 | `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **1.40** | 5.22 | 2.62 | 8.57 | 2.66 | 2.26 |
-| `GET /items-qb/1` | 1 item by id | **1.35** | 5.07 | 2.57 | 8.52 | 2.56 | 2.17 |
-| `POST /items-qb` | 1 row upserted (sentinel #999997) | **1.46** | 5.14 | 3.45 | 8.64 | 2.81 | 2.26 |
-| `GET /api/items` | 20 of 1000 items as JSON | **1.37** | 6.04 | 3.03 | 8.13 | 2.54 | 2.52 |
-| `GET /api/items/1` | 1 item by id as JSON | **1.40** | 5.82 | 2.72 | 8.06 | 2.49 | 2.49 |
+| `GET /items-qb/1` | 1 item by id | **1.34** | 5.07 | 2.57 | 8.52 | 2.56 | 2.17 |
+| `POST /items-qb` | 1 row upserted (sentinel #999997) | **1.44** | 5.14 | 3.45 | 8.64 | 2.81 | 2.26 |
+| `GET /api/items` | 20 of 1000 items as JSON | **1.35** | 6.04 | 3.03 | 8.13 | 2.54 | 2.52 |
+| `GET /api/items/1` | 1 item by id as JSON | **1.39** | 5.82 | 2.72 | 8.06 | 2.49 | 2.49 |
 | `POST /api/items` | 1 row upserted (sentinel #999998) | **1.47** | 5.21 | 3.65 | 8.12 | 2.62 | 2.66 |
-| `GET /features/aop` | no DB — interceptor pipeline | **2.57** | 5.99 | 3.26 | 9.92 | — | — |
-| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **1.65** | 5.32 | 2.95 | 8.88 | 2.48 | 2.39 |
-| `GET /features/log` | no DB — buffered log handlers | **1.23** | 4.47 | 1.93 | 8.25 | — | — |
-| `GET /features/retry` | no DB — retry policy | **1.22** | 4.50 | 1.96 | 8.11 | — | — |
-| `GET /features/pipeline` | no DB — middleware pipeline | **0.814** | 4.51 | 1.95 | 8.15 | — | — |
-| `GET /features/db-events` | 1 event row INSERTed per request | **1.77** | 5.36 | 3.14 | 9.03 | 2.75 | 2.59 |
-| `GET /features/events` | no DB — in-process listeners | **1.73** | 5.06 | 2.38 | 8.79 | 2.67 | 1.92 |
-| `GET /features/validation` | no DB — validator run | **0.821** | 5.58 | 2.31 | 8.25 | 2.28 | 1.83 |
-| `GET /features/config` | no DB — config lookup | **0.767** | 4.52 | 1.93 | 8.10 | 1.94 | 1.38 |
-| `GET /features/request-scoped` | no DB — scoped service resolve | **0.773** | 4.50 | 1.96 | 8.10 | 1.91 | 1.35 |
-| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.784** | 4.68 | 1.98 | 8.22 | 1.92 | 1.47 |
+| `GET /features/aop` | no DB — interceptor pipeline | **2.54** | 5.99 | 3.26 | 9.92 | — | — |
+| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **1.62** | 5.32 | 2.95 | 8.88 | 2.48 | 2.39 |
+| `GET /features/log` | no DB — buffered log handlers | **1.22** | 4.47 | 1.93 | 8.25 | — | — |
+| `GET /features/retry` | no DB — retry policy | **1.23** | 4.50 | 1.96 | 8.11 | — | — |
+| `GET /features/pipeline` | no DB — middleware pipeline | **0.815** | 4.51 | 1.95 | 8.15 | — | — |
+| `GET /features/db-events` | 1 event row INSERTed per request | **1.74** | 5.36 | 3.14 | 9.03 | 2.75 | 2.59 |
+| `GET /features/events` | no DB — in-process listeners | **1.71** | 5.06 | 2.38 | 8.79 | 2.67 | 1.92 |
+| `GET /features/validation` | no DB — validator run | **0.815** | 5.58 | 2.31 | 8.25 | 2.28 | 1.83 |
+| `GET /features/config` | no DB — config lookup | **0.761** | 4.52 | 1.93 | 8.10 | 1.94 | 1.38 |
+| `GET /features/request-scoped` | no DB — scoped service resolve | **0.765** | 4.50 | 1.96 | 8.10 | 1.91 | 1.35 |
+| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.779** | 4.68 | 1.98 | 8.22 | 1.92 | 1.47 |
 
 **Full comparison** — this page is a summary. The complete report, with every feature chart and the endpoint table for all six frameworks, is published at:
 
