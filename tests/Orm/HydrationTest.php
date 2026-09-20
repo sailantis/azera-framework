@@ -41,7 +41,9 @@ class HydrationTest extends TestCase
         $joined = $plan['entries'][1];
 
         $this->assertSame('comment', $root['alias']);
-        $this->assertSame('comment__id', $root['fields']['id']);
+        // fields: field => [generated alias, raw column name]. The raw
+        // name keys the heap snapshot so joins diff like find() reads.
+        $this->assertSame(['comment__id', 'id'], $root['fields']['id']);
         $this->assertSame('comment_author', $joined['alias']);
         $this->assertSame(Author::class, $joined['class']);
         // belongsTo: parent FK = child ownerKey

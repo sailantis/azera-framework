@@ -493,7 +493,11 @@ abstract class Model
      *  CONNECTIONS
      * ------------------------------------------------------------- */
 
-    /** @var array<string, string> */
+    /**
+     * Per-class read/write role overrides.
+     *
+     * @var array<string, string>
+     */
     protected static array $__defaultReadRoles = [];
 
     /** @var array<string, string> */

@@ -19,7 +19,7 @@ use Azera\Orm\Storage\Stores;
  * EM-direct use share ONE write pipeline: diff -> topological order ->
  * transaction -> ID backfill.
  *
- * Reads probe the identity map first — find() hit = the same instance,
+ * Reads probe the identity map first - find() hit = the same instance,
  * miss = one Store read + FastHydrator onto the shared heap. Works for
  * SQL models (PdoStore) and Mongo documents.
  *
@@ -34,14 +34,14 @@ use Azera\Orm\Storage\Stores;
  * caller's tx).
  *
  * Storage-agnostic: writes execute through the {@see Store} seam resolved
- * from class metadata (#[Entity(store: …)] — an opaque registry key). The
+ * from class metadata (#[Entity(store: ???)] - an opaque registry key). The
  * SQL shapes and the RETURNING matrix (pk_set / returning_id /
  * returning_all / last_insert_id) live in each Store backend; flush
  * consumes their normalized ['row' => ?array, 'id' => ?scalar] results
  * for identity backfill.
  *
  * RequestScoped: {@see resetState()} wipes the heap and drops scheduled
- * writes between requests in persistent workers (non-negotiable — same
+ * writes between requests in persistent workers (non-negotiable - same
  * contract as Heap).
  */
 final class EntityManager implements RequestScoped
@@ -68,13 +68,13 @@ final class EntityManager implements RequestScoped
      * hydration onto the shared heap.
      *
      * $fresh=false (default): a heap hit returns the tracked instance
-     * WITHOUT touching the store — the identity-map behavior.
+     * WITHOUT touching the store - the identity-map behavior.
      *
      * $fresh=true: the row is RE-READ from the Store and applied onto the
-     * tracked instance in place ({@see refresh()}) — same object, current
+     * tracked instance in place ({@see refresh()}) - same object, current
      * values. Use this for stale-read-sensitive work (polling tasks,
      * cross-request workers between resetState() boundaries). Entities
-     * with scheduled (unflushed) writes must NOT be fresh-read — refresh()
+     * with scheduled (unflushed) writes must NOT be fresh-read - refresh()
      * throws instead of silently discarding pending work.
      *
      * @param class-string         $class
@@ -130,18 +130,18 @@ final class EntityManager implements RequestScoped
     /**
      * Re-read an entity's row from the Store and refresh the tracked
      * instance IN PLACE: current row values onto the entity, node snapshot
-     * synced as the new diff baseline. Identity is preserved — the caller
+     * synced as the new diff baseline. Identity is preserved - the caller
      * keeps its reference, the data is current. The escape hatch that
      * keeps the identity-map's correctness (one row = one object, no lost
      * in-request writes) while serving freshness-sensitive reads
      * (polling, long-lived workers between request boundaries).
      *
      * Returns the entity when refreshed. Returns NULL when the row is
-     * GONE in storage — the entity is detached (the identity map mirrors
+     * GONE in storage - the entity is detached (the identity map mirrors
      * the store; a tracked ghost would keep coming back on heap-hit
      * reads). Guards: untracked entities throw (nothing to refresh
-     * against — find()/track() first); entities with scheduled unflushed
-     * writes throw (a re-read would clobber queued work — flush() first).
+     * against - find()/track() first); entities with scheduled unflushed
+     * writes throw (a re-read would clobber queued work - flush() first).
      */
     public function refresh(object $entity): ?object
     {
@@ -149,13 +149,13 @@ final class EntityManager implements RequestScoped
 
         if ($node === null) {
             throw new \LogicException(
-                'refresh() requires a tracked entity — load it through find()/findBy()/entities(), or track() it first'
+                'refresh() requires a tracked entity - load it through find()/findBy()/entities(), or track() it first'
             );
         }
 
         if ($node->isScheduled()) {
             throw new \LogicException(
-                'refresh() on an entity with scheduled (unflushed) writes would discard pending work — flush() first'
+                'refresh() on an entity with scheduled (unflushed) writes would discard pending work - flush() first'
             );
         }
 
@@ -176,7 +176,7 @@ final class EntityManager implements RequestScoped
 
     /**
      * Queue an entity for INSERT (or UPDATE when already managed).
-     * Explicit intent — flush() sees ONLY what was persisted here
+     * Explicit intent - flush() sees ONLY what was persisted here
      * (the deliberate no-implicit-dirty-checking doctrine contrast).
      */
     public function persist(object $entity): static
@@ -196,12 +196,12 @@ final class EntityManager implements RequestScoped
     /**
      * Queue a single-statement UPSERT (INSERT ... ON CONFLICT DO UPDATE /
      * mongo updateOne upsert:true): the DATABASE resolves insert-vs-update
-     * at write time — no prior SELECT, no insert-or-update guess, no
+     * at write time - no prior SELECT, no insert-or-update guess, no
      * unique-violation race. Deliberately intent-based like persist(): the
      * caller asserts "row with this PK should exist afterwards", and the
      * store makes it so atomically.
      *
-     * Requires a full identity (every PK field set) — the PK is the
+     * Requires a full identity (every PK field set) - the PK is the
      * conflict target. Anything less is an ordinary insert.
      */
     public function upsert(object $entity): static
@@ -255,7 +255,7 @@ final class EntityManager implements RequestScoped
      *
      * Transaction control follows the SCHEDULED WORK's (store, txTarget)
      * grouping: all scheduled classes must resolve to ONE store instance
-     * AND one connection target on it — otherwise the flush spans two
+     * AND one connection target on it - otherwise the flush spans two
      * connections and cannot be atomic, which throws (stores may relax
      * this with per-instance semantics via txTarget(); e.g. a mongo
      * store's no-op txs group under its single instance token). Use
@@ -269,7 +269,7 @@ final class EntityManager implements RequestScoped
             return; // fast path: nothing to do
         }
 
-        // Resolve every scheduled class's store UP FRONT — a missing or
+        // Resolve every scheduled class's store UP FRONT - a missing or
         // misconfigured store must fail the flush before ANY write runs,
         // not mid-flush after earlier nodes already executed.
         $groups = $this->partitionScheduled($scheduled);
@@ -278,7 +278,7 @@ final class EntityManager implements RequestScoped
             $targetList = implode(', ', array_column($groups, 'target'));
             throw new \RuntimeException(
                 'flush() spans multiple connections (store type change or '
-                    . "different write targets: {$targetList}) — not atomic, "
+                    . "different write targets: {$targetList}) - not atomic, "
                     . 'split it into separate flushes, use flushAll() for per-target transactions, '
                     . 'or persist through separate EntityManagers.'
             );
@@ -316,13 +316,13 @@ final class EntityManager implements RequestScoped
      * stores/connections (e.g. SQL + mongo, or several #[Connection]
      * write roles): ONE global topological pass executes every node (an
      * owner in one group can feed its PK into a dependent in another),
-     * and each store/connection target commits its own tx — begun lazily
+     * and each store/connection target commits its own tx - begun lazily
      * when its first node executes.
      *
      * Failure semantics are best-effort all-or-nothing, mirroring
      * flush()'s shape: if any write (or a commit) throws mid-pass, every
      * tx begun SO FAR is rolled back; groups whose commit already ran
-     * stay committed. Cross-connection atomicity does not exist — use
+     * stay committed. Cross-connection atomicity does not exist - use
      * flush() when the whole write set shares one connection target.
      */
     public function flushAll(): void
@@ -365,7 +365,7 @@ final class EntityManager implements RequestScoped
      * Group scheduled nodes by (store instance, txTarget): the tx-partition
      * of the write set, shared by flush() (atomic single group) and
      * flushAll() (independent per-group txs). Each entry carries the store,
-     * its target token, and the FIRST node's meta — the tx control calls
+     * its target token, and the FIRST node's meta - the tx control calls
      * are addressed through it.
      *
      * @return list<array{store: Store, target: string, firstMeta: array<string, mixed>}>
@@ -409,12 +409,12 @@ final class EntityManager implements RequestScoped
      * Reads that bypass the EM pipeline (FETCH_CLASS ResultSet, Paginator)
      * produce instances that are not in the heap. The facade calls adopt()
      * before persisting. Empty baseline means the next flush writes every
-     * set non-PK column — the legacy blind-UPDATE parity for manually
+     * set non-PK column - the legacy blind-UPDATE parity for manually
      * built ID'd entities (and the correct semantic: the EM cannot know
      * what the DB already holds for an entity it never loaded).
      *
      * Entities loaded through EM reads (find/findBy/entities) do NOT need
-     * adopt() — their heap node carries the store snapshot from hydration.
+     * adopt() - their heap node carries the store snapshot from hydration.
      * The returned entity is the ADOPTED instance (heap re-attach replaces
      * the node when the entity already sits under another identity).
      */
@@ -431,7 +431,7 @@ final class EntityManager implements RequestScoped
             }
         }
 
-        // Empty baseline: data=[] — diff sees every set column as changed.
+        // Empty baseline: data=[] - diff sees every set column as changed.
         $node = new Node($meta['class'], $id, [], Node::MANAGED);
         $this->heap->attach($entity, $node);
 
@@ -441,7 +441,7 @@ final class EntityManager implements RequestScoped
     /**
      * Register an externally-loaded entity as MANAGED with its CURRENT
      * values as the baseline (the "already in sync" adoption for entities
-     * loaded by reads the EM does not hydrate — FETCH_CLASS ResultSet,
+     * loaded by reads the EM does not hydrate - FETCH_CLASS ResultSet,
      * Paginator). Unlike adopt(), persist() on a tracked() entity emits
      * SQL only for fields changed after the track() call.
      */
@@ -485,13 +485,13 @@ final class EntityManager implements RequestScoped
     /* --------------------------------------------------- dirty-state API */
 
     /**
-     * Dirty state backed by the heap node snapshot (the ONE diff engine —
+     * Dirty state backed by the heap node snapshot (the ONE diff engine ???
      * Stateful's clone snapshot is gone).
      *
      * Untracked entity: every metadata column with a set value counts as
      * changed (the same "everything set is pending" semantic the old
      * no-snapshot Stateful path had). Tracked entity: current values vs
-     * the node snapshot, field-name-keyed — PK columns EXCLUDED there:
+     * the node snapshot, field-name-keyed - PK columns EXCLUDED there:
      * identity, not data (the pipeline never puts a PK into an UPDATE
      * SET, so isDirty()/hasChanged() must match what flush() would
      * actually write; a mutated PK on a tracked entity is the identity
@@ -516,7 +516,7 @@ final class EntityManager implements RequestScoped
         if ($node === null) {
             $data = $this->extractData($entity, $meta);
             // Mirror Stateful's no-snapshot semantic: all set fields
-            // changed. extractData is COLUMN-keyed — remap to field names
+            // changed. extractData is COLUMN-keyed - remap to field names
             // so the untracked branch is field-name-keyed like the
             // tracked branch (the documented contract of this method).
             $out = [];
@@ -545,7 +545,7 @@ final class EntityManager implements RequestScoped
 
     /**
      * Whether the entity differs from its heap baseline (untracked entity:
-     * true — it has pending state that adopt+flush would write).
+     * true - it has pending state that adopt+flush would write).
      */
     public function isDirty(object $entity): bool
     {
@@ -555,7 +555,7 @@ final class EntityManager implements RequestScoped
     /**
      * Revert the entity's properties to the values recorded in its heap
      * node snapshot (the loadState() replacement). No-op for untracked
-     * entities — nothing to revert to.
+     * entities - nothing to revert to.
      */
     public function revert(object $entity): void
     {
@@ -570,21 +570,23 @@ final class EntityManager implements RequestScoped
             $byCol[$col['name']] = $field;
         }
 
+        $hydrator = FastHydrator::for($entity::class);
+
         foreach ($node->data as $colName => $value) {
             $field = $byCol[$colName] ?? null;
             if ($field !== null) {
-                // node->data holds the raw store representation — decode
-                // casted columns before assigning onto the entity (the
-                // column's resolved cast policy gates the cast).
-                $cast = Casts::forColumn($meta['columns'][$field]);
-                $entity->{$field} = $cast === null ? $value : $cast->decode($value);
+                // node->data holds the raw store representation - decode
+                // casted columns before assigning onto the entity through
+                // the shared write-back gate (the column's resolved cast
+                // policy plus the nullability contract).
+                $hydrator->put($entity, $field, $value);
             }
         }
     }
 
     /**
      * Wipe ALL tracked state (identity + scheduled writes). Scheduled
-     * work is dropped, NOT flushed — explicit clear means "forget".
+     * work is dropped, NOT flushed - explicit clear means "forget".
      */
     public function clear(): void
     {
@@ -594,7 +596,7 @@ final class EntityManager implements RequestScoped
     /**
      * Request-scoped hook: wipe the identity map + any scheduled writes
      * between requests in persistent workers. Also drops the memoized
-     * fallback store — a worker re-pointing DatabaseManager roles (tenant
+     * fallback store - a worker re-pointing DatabaseManager roles (tenant
      * swap) must not keep a stale-borrowed store; the next storeFor()
      * rebuilds it from the then-current manager.
      */
@@ -666,7 +668,7 @@ final class EntityManager implements RequestScoped
     /**
      * Entity vs node snapshot diff, restricted to metadata columns.
      * Scalar-only comparison (the heap stores scalar row values).
-     * PK columns are identity — never part of an UPDATE SET (changing a
+     * PK columns are identity - never part of an UPDATE SET (changing a
      * PK is delete+insert semantics, and legacy saves never wrote them;
      * PK mutations on tracked entities throw in scheduleUpdate()'s
      * identity guard, so they never reach here as data).
@@ -758,7 +760,7 @@ final class EntityManager implements RequestScoped
         $meta   = Metadata::for($node->class);
         $entity = $this->entityFor($node);
 
-        // Columns the caller actually set (null = not set → omitted from
+        // Columns the caller actually set (null = not set - omitted from
         // INSERT so DB defaults apply).
         $data = $this->extractData($entity, $meta);
         $set  = array_filter($data, fn($v) => $v !== null);
@@ -768,9 +770,9 @@ final class EntityManager implements RequestScoped
         $result = $this->storeFor($node->class)->insertOne($node->class, $set);
 
         // Mark MANAGED BEFORE applyRow/backfill: both re-attach a NEW node
-        // to the heap carrying $node->state — setting the state after that
+        // to the heap carrying $node->state - setting the state after that
         // would only flip the ORPHANED old node, leaving the heap entry
-        // stuck in SCHEDULED_INSERT forever (next persist → duplicate
+        // stuck in SCHEDULED_INSERT forever (next persist - duplicate
         // INSERT; exposed by the mongo live round-trip, latent for SQL
         // id-backfill inserts as well).
         $node->state = Node::MANAGED;
@@ -819,7 +821,7 @@ final class EntityManager implements RequestScoped
         $meta = Metadata::for($node->class);
 
         // scheduleUpdate() set changedFields (COLUMN names) and merged the
-        // diff into node->data — the UPDATE writes exactly those columns.
+        // diff into node->data - the UPDATE writes exactly those columns.
         $changed = array_intersect_key($node->data, array_flip($node->changedFields));
         if ($changed === []) {
             $node->state = Node::MANAGED;
@@ -871,7 +873,7 @@ final class EntityManager implements RequestScoped
      * pg array -> literal; scalar casts are encode no-ops); null stays null;
      * isset() (never a bare read) so uninitialized typed properties don't
      * throw. The cast policy is per-column METADATA (resolved at compile
-     * time from #[Column(cast:)] vs the store's castExclusions — e.g. mongo
+     * time from #[Column(cast:)] vs the store's castExclusions - e.g. mongo
      * excludes 'json'/'datetime' because BSON owns those wire formats):
      * excluded columns pass values through RAW, the driver owns the mapping.
      *
@@ -898,7 +900,7 @@ final class EntityManager implements RequestScoped
 
     /**
      * The entity's CURRENT PK values, decoded to the PHP representation
-     * hydration puts on the entity (cast decode applied) — so the
+     * hydration puts on the entity (cast decode applied) - so the
      * identity guard compares like with like even when the node snapshot
      * captured driver-stringified numerics (entity holds int 7, snapshot
      * '7').
@@ -946,27 +948,25 @@ final class EntityManager implements RequestScoped
 
     /**
      * Write values back onto the entity + node. Casted columns DECODE for
-     * the entity (hydration's PHP representation — the id backfill of a
+     * the entity (hydration's PHP representation - the id backfill of a
      * casted PK and RETURNING * columns land as PHP values, not raw store
-     * strings); the snapshot keeps the canonical store form
-     * (encode(decode(raw)), the same normalization hydration applies) so
-     * diff() compares like with like.
+     * strings); the snapshot keeps the canonical store form, computed from
+     * the property's ACTUAL value so it matches extractData() exactly.
+     *
+     * The decode + null gate + canonicalization is delegated to
+     * {@see FastHydrator::put()} - the ONE write-back entry
+     * point, so this path cannot drift from hydration (it is where a
+     * `cast: false` typed column used to pick up a phantom UPDATE).
      */
     private function backfill(Node $node, object $entity, array $values): void
     {
-        $meta = Metadata::for($node->class);
+        $meta     = Metadata::for($node->class);
+        $hydrator = FastHydrator::for($node->class);
 
         foreach ($values as $colName => $value) {
             foreach ($meta['columns'] as $field => $col) {
                 if ($col['name'] === $colName) {
-                    $cast = Casts::forColumn($col);
-                    if ($cast !== null) {
-                        $decoded = $cast->decode($value);
-                        $entity->{$field} = $decoded;
-                        $values[$colName] = $cast->encode($decoded);
-                    } else {
-                        $entity->{$field} = $value;
-                    }
+                    $values[$colName] = $hydrator->put($entity, $field, $value);
                     $node->data[$colName] = $values[$colName];
                 }
             }
@@ -1004,7 +1004,7 @@ final class EntityManager implements RequestScoped
             }
         }
 
-        // Assignment + snapshot sync happen in backfill() — it decodes
+        // Assignment + snapshot sync happen in backfill() - it decodes
         // casted columns for the entity and canonicalizes the snapshot.
         $this->backfill($node, $entity, $row);
     }
@@ -1033,22 +1033,22 @@ final class EntityManager implements RequestScoped
     /* ----------------------------------------------------- store seam */
 
     /**
-     * Resolve the Store for a class by metadata `store` type — a plain
+     * Resolve the Store for a class by metadata `store` type - a plain
      * registry lookup in the context-attached Stores holder (setStore()).
-     * The type comes from metadata (#[Entity(store: 'name')]) — the hard
+     * The type comes from metadata (#[Entity(store: 'name')]) - the hard
      * routing guarantee: a class NEVER falls into another type's store
      * regardless of what is registered, because lookup is keyed by the
      * type alone.
      *
-     * Fallback (direct construction — tests, scripts, holder-less
+     * Fallback (direct construction - tests, scripts, holder-less
      * contexts): ONE PdoStore per EntityManager, memoized, for the
      * default 'sql' type ONLY. Safe to cache because PdoStore owns NO
-     * connections — it resolves the live Database from its
+     * connections - it resolves the live Database from its
      * DatabaseManager per operation. Without an injected Database it
      * shares the context's DatabaseManager directly (getOrDefault on the
      * read/write roles falls back to the manager's default role, so role
-     * re-registrations — tenant swaps in workers — are picked up like
-     * Model::readConnection()). Any OTHER unregistered type throws — a
+     * re-registrations - tenant swaps in workers - are picked up like
+     * Model::readConnection()). Any OTHER unregistered type throws - a
      * SQL fallback would silently write the wrong backend. The db param
      * keeps positional compatibility with pre-seam callers.
      */
@@ -1067,17 +1067,17 @@ final class EntityManager implements RequestScoped
         // fallback (zero-config path); anything else must be registered.
         throw new \RuntimeException(
             "No store registered for type '{$type}' (class {$class}). " .
-                'Register it via EntityManager::setStore(\'' . $type . '\', $store) — ' .
-                'or annotate the class with #[Entity(store: …)] pointing at a registered type.'
+                'Register it via EntityManager::setStore(\'' . $type . '\', $store) - ' .
+                'or annotate the class with #[Entity(store: ???)] pointing at a registered type.'
         );
     }
 
     /**
-     * Register a Store under a TYPE NAME — the single routing axis.
+     * Register a Store under a TYPE NAME - the single routing axis.
      * Metadata `store` (#[Entity(store: ...)]) selects it per class.
      * A connection-owning backend with multiple clients registers one
      * type per client ('mongo-eu', 'mongo-us'): the type name IS the
-     * discriminator — there is no role level.
+     * discriminator - there is no role level.
      */
     public function setStore(string $type, Store $store): static
     {

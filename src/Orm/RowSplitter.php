@@ -15,9 +15,7 @@ final class RowSplitter
 {
     public function __construct(
         private Heap $heap,
-    )
-    {
-    }
+    ) {}
 
     /**
      * Hydrate root + joined to-one entities from one flat row.
@@ -29,7 +27,7 @@ final class RowSplitter
     public function split(array $row, array $plan): array
     {
         $entries = $plan['entries'];
-        $root = $entries[0];
+        $root    = $entries[0];
 
         $rootEntity = $this->hydrateEntry($root, $row);
         if ($rootEntity === null) {
@@ -40,7 +38,7 @@ final class RowSplitter
 
         for ($i = 1, $n = \count($entries); $i < $n; $i++) {
             $entry = $entries[$i];
-            $obj = $this->hydrateEntry($entry, $row);
+            $obj   = $this->hydrateEntry($entry, $row);
             $related[$entry['relation']] = $obj;
         }
 
@@ -48,13 +46,25 @@ final class RowSplitter
     }
 
     /**
-     * Hydrate one entry from a flat row: orphan guard, heap dedup,
-     * field copy via generated aliases.
+     * Hydrate one entry from a flat row: orphan guard, heap dedup, field
+     * copy via generated aliases.
+     *
+     * Values go through {@see FastHydrator::put()} — the same entry point
+     * cold hydration uses — so joins get the column's cast, the compiled
+     * null gate, and a snapshot read BACK off the entity. Bypassing it
+     * (the pre-2026-09-19 behavior) skipped every cast AND left
+     * driver-stringified values in the snapshot, which made the next
+     * flush schedule a phantom UPDATE for every numeric column.
+     *
+     * The snapshot is keyed by RAW COLUMN name, matching the FastHydrator
+     * path, so an entity loaded via a join diffs correctly against one
+     * loaded by find() — the diff engine compares `extractData()` output,
+     * which is column-name-keyed.
      */
     private function hydrateEntry(array $entry, array $row): ?object
     {
         $fields = $entry['fields'];
-        $pk = $entry['pk'];
+        $pk     = $entry['pk'];
 
         // Orphan guard: any PK column NULL -> no object (LEFT JOIN miss).
         $id = [];
@@ -72,17 +82,23 @@ final class RowSplitter
             return $this->heap->entityFor($node);
         }
 
+        $put = FastHydrator::for($entry['class']);
+
         $entity = $this->instantiate($entry['class']);
-        foreach ($fields as $field => $colAlias) {
-            if (array_key_exists($colAlias, $row)) {
-                $entity->{$field} = $row[$colAlias];
+        $data   = [];
+
+        foreach ($fields as $field => [$colAlias, $colName]) {
+            if (!array_key_exists($colAlias, $row)) {
+                continue;
             }
+            $data[$colName] = $put->put($entity, $field, $row[$colAlias]);
         }
 
-        // Attach to heap as MANAGED with the row as snapshot.
-        $data = [];
-        foreach ($entry['fields'] as $field => $colAlias) {
-            $data[$field] = $row[$colAlias] ?? null;
+        // Columns the joined row did not alias still need a snapshot entry.
+        foreach ($fields as $field => [, $colName]) {
+            if (!array_key_exists($colName, $data)) {
+                $data[$colName] = isset($entity->{$field}) ? $entity->{$field} : null;
+            }
         }
 
         $this->heap->attach($entity, new Node($entry['class'], $id, $data, Node::MANAGED));

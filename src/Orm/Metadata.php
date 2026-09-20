@@ -31,10 +31,20 @@ use ReflectionProperty;
  *   'pkFields'   => list<string>,        // resolved PK fields, declaration order (['id'] fallback)
  *   'castExclusions' => list<string>,    // types whose cast the STORE suppresses by default
  *                                        // (store-contributed during enrichment; absent = cast all)
- *   'columns'    => [name => ['name' =>.., 'type' =>.., 'nullable' =>.., 'pk' => bool, 'cast' => bool]],
- *                                        // 'cast': resolved AUTO/FORCE/SUPPRESS decision (#[Column(cast:)]
+ *   'columns'    => [name => ['name' =>.., 'type' =>.., 'nullable' => bool,
+ *                                       'typed' => bool, 'pk'                                            => bool, 'cast'                                          => bool]],
+ *                                        // 'cast': resolved AUTO/FORCE/SUPPRESS decision (#[Column(cast:)
  *                                        //   vs the store's castExclusions) — the ONE cast authority
  *                                        //   every write/read site consults
+ *                                        // 'nullable': column nullability, from ?type OR #[Column(nullable:)]
+ *                                        //   — and the COMPLETE hydration policy for the column: a
+ *                                        //   store NULL into a nullable column is always assignable
+ *                                        //   (resolveNullable upholds "nullable ⇒ the property accepts
+ *                                        //   null"), so no second gate flag is compiled
+ *                                        // 'typed': whether the property carries a PHP type declaration —
+ *                                        //   FastHydrator's all-raw fast path reads it: an untyped
+ *                                        //   property cannot be coerced on assignment, so the raw
+ *                                        //   store cell IS the snapshot value (no put() read-back)
  *   'relations'  => [name => ['type'=>.., 'target'=>.., 'foreignKey'=>.., 'ownerKey'=>.., 'strategy' => 'join'|'second_query']],
  * ]
  * ```
@@ -79,7 +89,7 @@ use ReflectionProperty;
 final class Metadata
 {
     /** Bump when compiler output changes shape — invalidates L2 entries. */
-    private const VERSION = 'v6';
+    private const VERSION = 'v10';
 
     /** @var array<class-string, array> */
     private static array $l1 = [];
@@ -349,8 +359,13 @@ final class Metadata
         $explicitPk = [];
 
         foreach ($reflect->getProperties() as $prop) {
-            // Internal properties are never persisted.
-            if (str_starts_with($prop->name, '__')) {
+            // Non-instance, write-once, or non-public properties are never persisted.
+            if ($prop->isStatic() || $prop->isReadOnly() || !$prop->isPublic()) {
+                continue;
+            }
+
+            $column = self::columnAttribute($prop);
+            if ($column !== null && !$column->persist) {
                 continue;
             }
 
@@ -360,31 +375,84 @@ final class Metadata
                 continue;
             }
 
-            $column = self::columnAttribute($prop);
-            if ($column !== null && $column->transient) {
-                continue;
-            }
-
             // Effective type: explicit #[Column(type:)] or the PHP-type
             // inference — needed by BOTH the metadata entry and the cast
             // policy resolution below.
             $type = $column?->type ?? self::inferType($prop);
 
+            // A PURE (non-backed) enum has no scalar representation, so it
+            // cannot round-trip through any store: encoding it would ship
+            // the case object to the driver and decoding would have to
+            // invent a value. Reject it here, where the property is still
+            // identifiable, instead of failing later at the bind site.
+            if (\enum_exists($type) && !\is_subclass_of($type, \BackedEnum::class)) {
+                throw new \LogicException(
+                    "Cannot persist {$class}::\${$prop->name}: {$type} is a pure enum with no scalar representation. "
+                        . 'Give it a backing type (enum ' . $type . ': string), '
+                        . 'or declare #[Column(type: ...)] with an explicit scalar column type.'
+                );
+            }
+
+            // Resolved cast policy (explicit #[Column(cast:)] vs the
+            // store's castExclusions) — computed here because the guard
+            // below needs it and the metadata entry records it.
+            $castPolicy = $column?->cast ?? !\in_array($type, $meta['castExclusions'] ?? [], true);
+
+            // An ENUM-typed property REQUIRES an active cast: the cast is
+            // the only thing that turns the store's scalar into a case.
+            // Without it hydration assigns the raw scalar onto the
+            // property (TypeError) and the write path binds the case
+            // object. Same refusal shape as resolveNullable()'s: the
+            // combination is unrepresentable, so it fails at compile time
+            // with the property named, rather than deep inside hydration.
+            if ($castPolicy === false) {
+                $propType = $prop->getType();
+                if (
+                    $propType instanceof ReflectionNamedType
+                        && !$propType->isBuiltin()
+                        && \enum_exists($propType->getName())
+                ) {
+                    throw new \LogicException(
+                        "Cannot persist {$class}::\${$prop->name}: the property is enum-typed ({$propType->getName()}) "
+                            . 'but the column\'s cast is SUPPRESSED, and the cast is what converts between the enum case '
+                            . 'and the stored scalar. Drop #[Column(cast: false)], or declare the property untyped/scalar '
+                            . 'if you really want the raw representation.'
+                    );
+                }
+            }
+
+            $nullable = self::resolveNullable($class, $prop, $column);
+
             $meta['columns'][$prop->name] = [
-                'name'     => $column?->name ?? $prop->name,
-                'type'     => $type,
-                'nullable' => $column?->nullable ?? false,
+                'name' => $column?->name ?? $prop->name,
+                'type' => $type,
+                // The COMPLETE null policy for this column — it is the DDL
+                // answer AND the hydration answer (see resolveNullable()'s
+                // "nullable ⇒ the property accepts null" invariant), so
+                // hydration reads this flag alone.
+                'nullable' => $nullable,
+                // Whether the property carries a PHP type declaration.
+                // A typed property is assigned in WEAK mode: PHP coerces
+                // a driver string ('5') to the declared type on write, so
+                // hydration MUST read the value back OFF the property for
+                // the heap snapshot (weak-mode coercion is the phantom
+                // UPDATE's root). An UNTYPED property cannot coerce — the
+                // assigned value IS the stored value — so hydration can
+                // skip the read-back and keep the raw cell in the
+                // snapshot. This flag is what arms that fast path.
+                'typed' => $prop->getType() !== null,
                 // Baseline: convention guess (id / *_id) for unnamed
                 // columns; renamed columns are no longer convention-matched.
                 // Finalized per store/model kind below.
                 'pk' => $column?->name === null
                     ? ($prop->name === 'id' || str_ends_with($prop->name, '_id'))
                     : false,
-                // Cast policy, resolved HERE (compile time) against the
+                // Cast policy, resolved above (compile time) against the
                 // store-contributed castExclusions: true/false = explicit
-                // #[Column(cast:)] override; null = AUTO (cast unless the
-                // store excluded this type — its native wire format).
-                'cast' => $column?->cast ?? !in_array($type, $meta['castExclusions'] ?? [], true),
+                // #[Column(cast:)] override; the fallback = AUTO (cast
+                // unless the store excluded this type — its native wire
+                // format).
+                'cast' => $castPolicy,
             ];
 
             if ($column?->pk !== null) {
@@ -595,7 +663,18 @@ final class Metadata
         $type = $prop->getType();
 
         if ($type instanceof ReflectionNamedType) {
-            return match ($type->getName()) {
+            $name = $type->getName();
+
+            // A backed enum IS its own column type: the class-string is the
+            // cast registry key ({@see \Azera\Orm\Casting\Casts}), which
+            // resolves to an EnumCast for that enum — so an enum-typed
+            // property round-trips with zero configuration. Pure enums are
+            // rejected by the caller (they reach the 'string' fallback).
+            if (!$type->isBuiltin() && \enum_exists($name)) {
+                return $name;
+            }
+
+            return match ($name) {
                 'int'                                                => 'int',
                 'float'                                              => 'float',
                 'bool'                                               => 'bool',
@@ -606,5 +685,59 @@ final class Metadata
         }
 
         return 'string';
+    }
+
+    /**
+     * Resolve the column's nullability from its TWO possible declarations
+     * — the PHP type (`?int`) and `#[Column(nullable:)]`.
+     *
+     * The attribute is TRI-STATE and the PHP type supplies the default:
+     *
+     * - null (default): the PHP type decides — `?T` or untyped → nullable,
+     *   `T` → NOT nullable. The zero-config path.
+     * - false (explicit downgrade): NOT nullable, even on a `?T` or
+     *   untyped property. That is a REQUEST, not a contradiction: the
+     *   column is NOT NULL in the DDL while the property could hold a
+     *   null it will never receive (a store NULL is rejected on
+     *   hydration). Honored.
+     * - true (explicit upgrade): nullable — legal only where the property
+     *   ALREADY accepts null (`?T`, untyped), where it is a redundant
+     *   confirmation of the resolved default.
+     *
+     * WHY `T` + `nullable: true` is rejected: the column would allow NULL
+     * while the property cannot represent it, and there is no third
+     * option left to honor it — hydration may only assign null or throw,
+     * and "leave the property uninitialized" is indistinguishable from
+     * "never loaded". Failing at compile time is the honest answer; the
+     * fix is to make the property nullable (`?T`) or drop the attribute.
+     *
+     * WHY `?T` + `nullable: false` is NOT rejected: nothing is
+     * unrepresentable. The column is simply NOT NULL and a store NULL is
+     * rejected on hydration — the same treatment an untyped property gets.
+     *
+     * INVARIANT upheld for the rest of the ORM:
+     *     nullable === true  ⇒  the property accepts null
+     * Both `true` paths require it — the explicit upgrade is rejected
+     * otherwise, and the type-derived default only yields true when the
+     * property allows null. Hydration therefore reads `nullable` ALONE:
+     * a null is assignable exactly when the column is nullable, and
+     * otherwise it is rejected. That is why no second gate flag exists.
+     *
+     * @param class-string $class the owning class, for the error message
+     */
+    private static function resolveNullable(string $class, ReflectionProperty $prop, ?Column $column): bool
+    {
+        $type = $prop->getType();
+
+        $phpNullable = $type === null || $type->allowsNull();
+        $colNullable = $column?->nullable;
+
+        if (!$phpNullable && $colNullable) {
+            throw new \LogicException(
+                "Contradictory nullability on {$class}::\${$prop->name}: the PHP type does not allow NULL, but #[Column(nullable: true)] declares the column NULLABLE."
+            );
+        }
+
+        return $colNullable ?? $phpNullable;
     }
 }

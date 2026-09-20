@@ -56,11 +56,11 @@ class AdminUser
 }
 ```
 
-| Attribute                                                | Applies to             | Purpose                       |
-| -------------------------------------------------------- | ---------------------- | ----------------------------- |
-| `#[Entity(name:, store:, schema:)]`                      | Any persistent class   | Data location + store routing |
-| `#[Connection(role:)]` or `#[Connection(read:, write:)]` | Borrowing stores (SQL) | Read/write connection roles   |
-| `#[Column(type:, name:, nullable:, transient:, pk:)]`    | Any persistent class   | Column configuration          |
+| Attribute                                                  | Applies to             | Purpose                       |
+| ---------------------------------------------------------- | ---------------------- | ----------------------------- |
+| `#[Entity(name:, store:, schema:)]`                        | Any persistent class   | Data location + store routing |
+| `#[Connection(role:)]` or `#[Connection(read:, write:)]`   | Borrowing stores (SQL) | Read/write connection roles   |
+| `#[Column(type:, name:, nullable:, persist:, pk:, cast:)]` | Any persistent class   | Column configuration          |
 
 `#[Entity(store: …)]` routes the class to the registered store of that
 name (`$em->setStore('mongo', …)`) — `'sql'` is the zero-config default.
@@ -68,6 +68,51 @@ Attribute validity is decided per STORE: e.g. `#[Connection]` on a mongo
 document throws during metadata compile (MongoStore owns its connections
 — multiple clients = multiple store types, selected via `store:`), while
 SQL stores honor it as per-class read/write routing.
+
+### Which properties become columns
+
+Every `public`, non-static, non-readonly instance property is a column
+by default. Four kinds are **never** compiled into the column set:
+
+| Declaration                 | Why it is excluded                                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `static`                    | Process-global state, not per-entity data.                                                                                                                     |
+| `readonly`                  | PHP permits exactly ONE write per readonly property. The pipeline re-applies row values onto the entity, so a readonly column would throw on the second write. |
+| `protected` / `private`     | The pipeline assigns through plain instance syntax, which PHP forbids outside the declaring class.                                                             |
+| `#[Column(persist: false)]` | The explicit escape hatch — opt any property out of persistence.                                                                                               |
+
+`readonly` and `static` are excluded on their own — no attribute needed:
+
+```php
+class Article extends Model
+{
+    public $id;
+    public $title;
+
+    /** Derived, never persisted, immutable for the object's lifetime. */
+    public readonly string $slug;
+
+    /** Process-wide counter — never a column. */
+    public static int $instances = 0;
+}
+```
+
+Use `#[Column(persist: false)]` to exclude a mutable property from
+persistence. The property leaves the column set entirely — like every
+non-column property it is also outside change tracking, so it never
+appears in `hasChanged()` / `changedData()`.
+
+```php
+class Article extends Model
+{
+    public $id;
+    public $body;
+
+    /** Runtime-only state accumulated while the request runs. */
+    #[Column(persist: false)]
+    public array $warnings = [];       // excluded by attribute
+}
+```
 
 ### Column Type Inference
 
@@ -81,8 +126,8 @@ class AdminUser extends Model
     #[Column(pk: true)]
     public int $tenant_id;   // type inferred → 'int'
 
-    #[Column(name: 'status_code', pk: false)]
-    public int $status;      // renamed + excluded from key, type still 'int'
+    #[Column(name: 'status_code')]
+    public int $status;      // renamed, also type 'int'
 }
 ```
 
@@ -95,8 +140,58 @@ class AdminUser extends Model
 | `DateTime` / `DateTimeImmutable` | `datetime`           |
 | anything else / untyped          | `string`             |
 
-Pass `type:` explicitly to override the inference (e.g. `'pgarray'` for a
-native pg array column, or a custom registered cast).
+### Column Nullability
+
+The PHP type is the primary declaration; the attribute overrides it:
+
+```php
+class Article extends Model
+{
+    public ?int $views;                       // nullable: the type says so
+    public int $edition;                      // not nullable
+    public $note;                             // untyped → nullable by default
+
+    #[Column(nullable: false)]
+    public $slug;                             // untyped, explicitly NOT nullable
+
+    #[Column(nullable: false)]
+    public ?int $legacy_views;                // ?int, but the column is NOT NULL
+}
+```
+
+`nullable` is a **tri-state**, so the two spellings never silently
+disagree:
+
+| `#[Column(nullable:)]` | `?int $x`    | `int $x`               | untyped `$x` |
+| ---------------------- | ------------ | ---------------------- | ------------ |
+| omitted                | nullable     | **not** nullable       | nullable     |
+| `true`                 | nullable     | **compile-time error** | nullable     |
+| `false`                | not nullable | not nullable (no-op)   | not nullable |
+
+`?T` + `nullable: false` is **legal**: the column is `NOT NULL` in the
+DDL while the property simply never receives a `null` — a stored `NULL`
+is rejected on hydration. That is the same treatment an untyped property
+with `nullable: false` gets, and it is the informative direction of the
+flag.
+
+`T` + `nullable: true` is **refused at compile time**. A nullable column
+needs a property that can receive the null: with a `T` property the
+hydrator may only assign `null` (a `TypeError`) or throw — and throwing
+would make the attribute meaningless, since "leave the property
+uninitialized" is indistinguishable from "never loaded". Use `?T`, or
+drop the attribute.
+
+How a `NULL` from the store is handled follows from the resolved flag
+alone, so no second gate is compiled:
+
+| Resolved shape      | A stored `NULL` does                                            |
+| ------------------- | --------------------------------------------------------------- |
+| nullable column     | assigned (`null`) — the flag implies the property accepts null  |
+| not-nullable column | throws a `LogicException` naming the class, property and remedy |
+
+That implication is an invariant the compiler upholds: the only way
+`nullable` resolves to `true` with a non-null-capable property is the
+refused `T` + `nullable: true` shape, so it cannot reach hydration.
 
 ### Column Casts (value transformation)
 
@@ -113,24 +208,52 @@ class Article extends Model
     /** pg native array column — declared, because inference can't know the schema. */
     #[Column(type: 'pgarray')]
     public array $labels;
+
+    /** Backed enum — zero-config: the enum CLASS is the column type. */
+    public ArticleStatus $status;
+
+    /** Int-backed enum; drivers return its scalar as a STRING. */
+    public ?ArticleLevel $level = null;
 }
 ```
 
-| Type       | Decode (read)                                           | Encode (write)                                              |
-| ---------- | ------------------------------------------------------- | ----------------------------------------------------------- |
-| `int`      | `"5"` → `5` (stringifying drivers return strings)       | passthrough                                                 |
-| `float`    | `"4.5"` → `4.5`                                         | passthrough                                                 |
-| `bool`     | `'1'`/`'t'`/`'true'` → `true`, unknown → throw          | passthrough                                                 |
-| `json`     | JSON text → array (assoc), invalid → throw              | `json_encode`, scalars pass through                         |
-| `pgarray`  | pg array literal → scalar array (nested → nested)       | pg literal, nested supported, >6 dims → throw               |
-| `datetime` | datetime text → `DateTimeImmutable`, unparsable → throw | `DateTimeInterface` → `'Y-m-d H:i:s'`, strings pass through |
+| Type         | Decode (read)                                           | Encode (write)                                              |
+| ------------ | ------------------------------------------------------- | ----------------------------------------------------------- |
+| `int`        | `"5"` → `5`; non-numeric / fractional → throw           | passthrough                                                 |
+| `float`      | `"4.5"` → `4.5`; non-numeric → throw                    | passthrough                                                 |
+| `bool`       | `'1'`/`'t'`/`'true'` → `true`, unknown → throw          | passthrough                                                 |
+| `json`       | JSON text → array (assoc), invalid → throw              | `json_encode`, scalars pass through                         |
+| `pgarray`    | pg array literal → scalar array (nested → nested)       | pg literal, nested supported, >6 dims → throw               |
+| `datetime`   | datetime text → `DateTimeImmutable`, unparsable → throw | `DateTimeInterface` → `'Y-m-d H:i:s'`, strings pass through |
+| _enum class_ | backing scalar → the case (a driver's `'2'` too)        | case → its `->value`                                        |
 
-Why the scalar casts exist: `pdo_mysql` (emulated prepares) and
-`pdo_pgsql` return numerics as strings. Without them the typed property
-coerces to `int` while the heap snapshot keeps `"5"` — diffing compares
-`int(5) !== "5"` and the first persist of an unchanged entity schedules a
-phantom UPDATE per numeric column. The casts coerce **both** the property
-and the snapshot so diff compares like with like.
+Scalar decode is **strict**: `"abc"` is rejected instead of silently
+becoming `0` / `0.0`, because a coerced zero is indistinguishable from a
+real zero and would be written back over the original value. Only the
+shapes the drivers actually emit are accepted (`"42"`, `"-7"`, `"1e3"`,
+`.5`, integral floats). A column that is not numeric should be declared
+`string`, or `cast: false`.
+
+### Snapshot semantics (`cast: false` and diffing)
+
+Hydration records the node snapshot by reading the property **back** and
+re-encoding it, so the snapshot is by construction identical to what
+`extractData()` will produce on the next flush. That matters most where
+a cast is suppressed on a typed numeric property:
+
+```php
+#[Column(cast: false)]
+public int $raw;      // driver returns "1200"
+```
+
+PHP coerces `"1200"` to `int(1200)` on assignment, so the snapshot holds
+`int(1200)` too — not the raw string. A raw-string snapshot would differ
+from the entity forever and schedule a phantom `UPDATE` on **every**
+flush of an unchanged entity.
+
+The same rule runs in reverse on write-back paths (`RETURNING` rows, id
+backfill, `revert()`): all of them route through one entry point
+(`FastHydrator::put()`), so no path can drift from hydration.
 
 Custom types — implement `Azera\Orm\Casting\Cast` (encode/decode) and
 register before first use:
@@ -141,6 +264,58 @@ Azera\Orm\Casting\Casts::register('encrypted', new EncryptedCast());
 
 Register before the first `Metadata::for()` of the affected class (or call
 `Metadata::clear()` after) — the decode plan is compiled per class.
+
+### Enum columns
+
+A **backed enum** property needs no configuration at all: inference uses
+the enum CLASS as the column type, and that class-string is also the cast
+registry key, so the matching cast is derived on demand. The property
+holds the case; storage holds the backing scalar.
+
+```php
+enum ArticleStatus: string
+{
+    case Draft  = 'draft';
+    case Public = 'published';
+}
+
+class Article extends Model
+{
+    public ArticleStatus $status;                  // infers ArticleStatus::class
+    public ?ArticleLevel $level = null;            // int-backed, nullable
+
+    #[Column(type: LegacyStatus::class)]           // explicit — same key
+    public LegacyStatus $legacy;
+}
+```
+
+There is deliberately NO registration call: the cast is derived at LOOKUP
+time. Registering as a side effect of the metadata compile would be
+dropped the moment the L2 metadata cache was warm (`compile()` is skipped
+on a cache hit), and the enum would quietly start binding its case object
+to PDO.
+
+Two shapes are **refused at compile time**, both naming the property:
+
+- a **pure enum** (`enum State { case On; }`) — it has no scalar
+  representation, so nothing can round-trip;
+- an **enum-typed property with `cast: false`** — the cast is the only
+  conversion between the case and the stored scalar, so suppressing it
+  leaves the property unassignable on read. Declare the property untyped
+  if you really want the raw representation.
+
+An invalid backing value THROWS on decode rather than yielding `null` — a
+silent null would be indistinguishable from a real one and would be
+written back over the original value.
+
+Known limitations (pass `->value` in these cases):
+
+- **array-style facades and criteria** — `Model::upsert(array $values)`,
+  `findBy(['status' => ...])` and the query builder bind values directly,
+  without the cast, so pass `ArticleStatus::Draft->value`;
+- **schema sync** — `SchemaDiff` maps a non-builtin PHP type to
+  `VARCHAR(255)` and does not read `#[Column(type:)]`, so an int-backed
+  enum column is not mapped to an integer column automatically.
 
 Semantics: the snapshot (`node->data`) always holds the **store
 representation** (encoded strings) so the diff engine compares stable
@@ -324,13 +499,13 @@ Metadata::cacheSalt($_ENV['DEPLOY_HASH']);
 > Measured cost on PHP 8.3, localhost (per compiled model, see
 > `benchmarks/metadata-l2-cache.php` — run with `composer bench:metadata-l2`):
 >
-> | Path | µs/model | vs recompile |
-> |---|---|---|
-> | warm L1 (no L2) | 0.10 | — |
-> | APCu L2 hit | 2.9 | **2.8× faster** |
-> | Redis L2 hit (localhost) | 262 | 31.6× slower |
-> | File L2 hit | 122 | 14.7× slower |
-> | fresh reflection compile | 8.3 | baseline |
+> | Path                     | µs/model | vs recompile    |
+> | ------------------------ | -------- | --------------- |
+> | warm L1 (no L2)          | 0.10     | —               |
+> | APCu L2 hit              | 2.9      | **2.8× faster** |
+> | Redis L2 hit (localhost) | 262      | 31.6× slower    |
+> | File L2 hit              | 122      | 14.7× slower    |
+> | fresh reflection compile | 8.3      | baseline        |
 >
 > **L2 is an APCu-only feature in practice.** A networked or disk
 > backend loses to a reflection recompile by an order of magnitude or

@@ -9,6 +9,9 @@ require_once __DIR__ . '/Fixtures/ArticleDocument.php';
 require_once __DIR__ . '/Fixtures/CastSuppressedArticle.php';
 require_once __DIR__ . '/Fixtures/InventoryItem.php';
 require_once __DIR__ . '/Fixtures/TypedColumns.php';
+require_once __DIR__ . '/Fixtures/InternalProperties.php';
+require_once __DIR__ . '/Fixtures/NullabilityShapes.php';
+require_once __DIR__ . '/Fixtures/EnumColumns.php';
 
 use Azera\Cache\ArrayCache;
 use Azera\AppContext;
@@ -21,7 +24,11 @@ use Azera\Tests\Orm\Fixtures\ArticleWithRelations;
 use Azera\Tests\Orm\Fixtures\CastForcedDocument;
 use Azera\Tests\Orm\Fixtures\CastSuppressedArticle;
 use Azera\Tests\Orm\Fixtures\Comment;
+use Azera\Tests\Orm\Fixtures\EnumArticle;
+use Azera\Tests\Orm\Fixtures\ArticleStatus;
 use Azera\Tests\Orm\Fixtures\InventoryItem;
+use Azera\Tests\Orm\Fixtures\InternalProperties;
+use Azera\Tests\Orm\Fixtures\NullabilityShapes;
 use Azera\Tests\Orm\Fixtures\TypedColumns;
 use PHPUnit\Framework\TestCase;
 
@@ -67,7 +74,7 @@ class MetadataTest extends TestCase
 
         $this->assertSame('datetime', $meta['columns']['created_at']['type']);
 
-        // transient property excluded entirely
+        // persist:false property excluded entirely
         $this->assertArrayNotHasKey('computed', $meta['columns']);
     }
 
@@ -99,6 +106,131 @@ class MetadataTest extends TestCase
         // name/pk overrides still honored alongside inferred type.
         $this->assertSame('status_code', $meta['columns']['status']['name']);
         $this->assertFalse($meta['columns']['status']['pk']);
+    }
+
+    public function testEnumPropertyTypeInfersTheEnumClass(): void
+    {
+        $meta = Metadata::for(EnumArticle::class);
+
+        // A backed enum IS its own column type: the class-string is the
+        // cast registry key, so no registration step is needed.
+        $this->assertSame(ArticleStatus::class, $meta['columns']['status']['type']);
+        $this->assertSame(ArticleStatus::class, $meta['columns']['explicit']['type']);
+        $this->assertTrue($meta['columns']['status']['cast']);
+    }
+
+    /* ------------------------------------------------------ nullability */
+
+    /**
+     * Nullability has TWO spellings (`?T` and `#[Column(nullable:)]`) and
+     * the compiler folds them into ONE resolved flag, which doubles as the
+     * complete hydration policy — resolved HERE, so the hydrator never
+     * reflects the property.
+     */
+    public function testNullableResolvedFromPhpTypeOrAttribute(): void
+    {
+        $cols = Metadata::for(NullabilityShapes::class)['columns'];
+
+        // `?int` alone.
+        $this->assertTrue($cols['from_php_type']['nullable']);
+
+        // Untyped defaults to nullable (no PHP answer to contradict).
+        $this->assertTrue($cols['untyped']['nullable']);
+
+        // Untyped + explicit downgrade is honored.
+        $this->assertFalse($cols['untyped_not_nullable']['nullable']);
+
+        // Non-nullable both ways.
+        $this->assertFalse($cols['plain']['nullable']);
+    }
+
+    /**
+     * The resolved `nullable` flag is the ONLY null policy the hydrator
+     * reads — there is no second gate flag, so this IS the whole compiled
+     * answer for every column.
+     */
+    public function testNullableIsTheOnlyCompiledNullPolicy(): void
+    {
+        $cols = Metadata::for(NullabilityShapes::class)['columns'];
+
+        foreach ($cols as $field => $col) {
+            $this->assertArrayHasKey('nullable', $col, "column {$field} lacks a compiled nullable flag");
+            $this->assertIsBool($col['nullable'], "column {$field} nullable flag is not a bool");
+            $this->assertArrayNotHasKey('nullGate', $col, "column {$field} still carries a nullGate");
+        }
+    }
+
+    /**
+     * The `typed` flag mirrors the property's PHP type declaration — it
+     * arms FastHydrator's all-raw fast path (an untyped property cannot
+     * be coerced on assignment, so the raw cell IS the snapshot value).
+     * A typed property (even nullable) DISARMS it: weak-mode assignment
+     * may coerce, so the snapshot must be read back off the property.
+     */
+    public function testTypedFlagMirrorsPhpTypeDeclaration(): void
+    {
+        $cols = Metadata::for(NullabilityShapes::class)['columns'];
+
+        // Typed properties — nullable or not.
+        $this->assertTrue($cols['id']['typed']);
+        $this->assertTrue($cols['from_php_type']['typed']);
+        $this->assertTrue($cols['plain']['typed']);
+        $this->assertTrue($cols['raw_int']['typed']);
+
+        // Untyped properties.
+        $this->assertFalse($cols['untyped']['typed']);
+        $this->assertFalse($cols['untyped_not_nullable']['typed']);
+        $this->assertFalse($cols['raw_untyped_int']['typed']);
+
+        // Flag is a bool for EVERY column (the fast path reads it raw).
+        foreach ($cols as $field => $col) {
+            $this->assertIsBool($col['typed'], "column {$field} typed flag is not a bool");
+        }
+    }
+
+    /**
+     * `T` + `nullable: true` is REFUSED at compile time. A nullable column
+     * needs a property that can receive the null; with a `T` property the
+     * hydrator may only assign null (a TypeError) or throw — and throwing
+     * would make the attribute meaningless. So it is the one shape the
+     * compiler will not guess about.
+     */
+    public function testNullableAttrOnNonNullableTypedPropertyIsRefused(): void
+    {
+        eval('namespace Azera\Tests\Orm\Fixtures; class NullOnTyped extends \Azera\Orm\Model {
+            public int $id;
+            #[\Azera\Orm\Attribute\Column(nullable: true)]
+            public int $value;
+        }');
+
+        Metadata::clear();
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Contradictory nullability');
+
+        Metadata::for(\Azera\Tests\Orm\Fixtures\NullOnTyped::class);
+    }
+
+    /**
+     * The MIRROR case is ACCEPTED: `?T` + `nullable: false` is consistent,
+     * not contradictory. The column is NOT NULL in the DDL while the
+     * property simply never receives a null (a store NULL is rejected on
+     * hydration) — the same treatment an untyped property gets. Nothing is
+     * unrepresentable, so the compiler compiles it.
+     */
+    public function testNullableFalseOnNullableTypedPropertyCompilesToNotNull(): void
+    {
+        eval('namespace Azera\Tests\Orm\Fixtures; class NotNullOnNullable extends \Azera\Orm\Model {
+            public int $id;
+            #[\Azera\Orm\Attribute\Column(nullable: false)]
+            public ?int $value;
+        }');
+
+        Metadata::clear();
+
+        $cols = Metadata::for(\Azera\Tests\Orm\Fixtures\NotNullOnNullable::class)['columns'];
+
+        $this->assertFalse($cols['value']['nullable']);
     }
 
     public function testRelationsCompiled(): void
@@ -219,6 +351,103 @@ class MetadataTest extends TestCase
         $this->assertTrue($meta['columns']['tags']['cast']);
     }
 
+    public function testStaticPropertiesAreNeverColumns(): void
+    {
+        $meta = Metadata::for(InternalProperties::class);
+
+        // The pipeline reads/writes columns through instance syntax
+        // ($entity->{$field}); a compiled static would emit a PHP notice
+        // on EVERY extractData()/hydration and poison the snapshot.
+        $this->assertArrayNotHasKey('instances', $meta['columns']);
+        $this->assertArrayNotHasKey('registry', $meta['columns']);
+
+        // The ordinary columns around them are unaffected.
+        $this->assertArrayHasKey('id', $meta['columns']);
+        $this->assertArrayHasKey('title', $meta['columns']);
+    }
+
+    public function testReadonlyPropertiesAreNeverColumns(): void
+    {
+        $meta = Metadata::for(InternalProperties::class);
+
+        // PHP allows exactly ONE write to a readonly property. The pipeline
+        // re-applies row values onto the entity (hydration cold path,
+        // refresh-in-place, backfill, revert), so a readonly column would
+        // throw on the second write — reflection cannot help either.
+        $this->assertArrayNotHasKey('immutable', $meta['columns']);
+
+        // `immutable` (readonly alone) and `label` (readonly + the
+        // attribute) compile to the same excluded result — readonly is
+        // checked before persist is ever read, so the attribute is
+        // redundant here.
+        $this->assertArrayNotHasKey('label', $meta['columns']);
+    }
+
+    public function testNonPublicPropertiesAreNeverColumns(): void
+    {
+        $meta = Metadata::for(InternalProperties::class);
+
+        // Hydration/backfill assign via `$entity->{$field} = …`, which PHP
+        // forbids outside the declaring class — a non-public column would
+        // fatal with "Cannot access protected property ...". Private state
+        // is the class's own business, so these are excluded rather than
+        // written through reflection.
+        $this->assertArrayNotHasKey('protectedState', $meta['columns']);
+        $this->assertArrayNotHasKey('privateState', $meta['columns']);
+
+        // The class can still reach them itself.
+        $e = new InternalProperties();
+        $this->assertSame('p', $e->protectedState());
+    }
+
+    public function testPersistFalseIsRedundantOnReadonlyProperties(): void
+    {
+        // readonly alone (`immutable`) and readonly + the attribute
+        // (`label`) are excluded identically: the readonly guard runs
+        // before the persist flag is read, so the attribute is a no-op.
+        // Pinned because the docs promise it, and a reordering of the
+        // guards could silently change the answer.
+        $meta = Metadata::for(InternalProperties::class);
+
+        $this->assertArrayNotHasKey('immutable', $meta['columns']);
+        $this->assertArrayNotHasKey('label', $meta['columns']);
+
+        // The genuinely load-bearing case: `persist: false` on a MUTABLE
+        // property is required — without it the property is a column.
+        $this->assertArrayNotHasKey('derived', $meta['columns']);
+    }
+
+    public function testUnderscorePrefixedPropertiesStayPersistable(): void
+    {
+        $meta = Metadata::for(InternalProperties::class);
+
+        // The compiler no longer treats a leading '_'/'__' as "internal":
+        // real schemas do use single-underscore columns (Mongo/Couch style
+        // _id, _rev) and a '__' property name is a legitimate column too.
+        $this->assertArrayHasKey('_revision', $meta['columns']);
+        $this->assertSame('_revision', $meta['columns']['_revision']['name']);
+
+        $this->assertArrayHasKey('__cached', $meta['columns']);
+        $this->assertSame('__cached', $meta['columns']['__cached']['name']);
+    }
+
+    public function testPersistFalseRemainsTheExplicitEscapeHatch(): void
+    {
+        $meta = Metadata::for(InternalProperties::class);
+
+        // #[Column(persist: false)] on a writable property still excludes.
+        $this->assertArrayNotHasKey('derived', $meta['columns']);
+    }
+
+    public function testExcludedPropertyShapesDoNotBecomePkFields(): void
+    {
+        $meta = Metadata::for(InternalProperties::class);
+
+        // An excluded property must not leak into the PK either — the
+        // '_id'-suffixed static would otherwise have been convention-marked.
+        $this->assertSame(['id'], $meta['pkFields']);
+    }
+
     public function testCastFalseSuppressesCastOnSql(): void
     {
         $meta = Metadata::for(CastSuppressedArticle::class);
@@ -290,10 +519,16 @@ class MetadataTest extends TestCase
 
     /* -------------------------------------------- L2 (opt-in PSR-16 backend) */
 
-    /** Mirrors Metadata::cacheKey(): 'azera_orm_meta_' . md5(v5\0salt\0class). */
+    /** Mirrors Metadata::cacheKey(): 'azera_orm_meta_' . md5(VERSION\0salt\0class). */
     private static function metaKey(string $class, string $salt = ''): string
     {
-        return 'azera_orm_meta_' . md5("v6\0{$salt}\0{$class}");
+        // Read the compiler's VERSION instead of hardcoding it: the test
+        // pins the KEY SHAPE (prefix + digest inputs), not the current
+        // version string, so a VERSION bump never breaks the suite.
+        $version = (new \ReflectionClass(Metadata::class))
+            ->getConstant('VERSION');
+
+        return 'azera_orm_meta_' . md5($version . "\0{$salt}\0{$class}");
     }
 
     /** All azera_orm_meta_* keys currently present in an ArrayCache backend. */

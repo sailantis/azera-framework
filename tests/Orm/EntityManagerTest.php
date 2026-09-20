@@ -7,6 +7,7 @@ require_once __DIR__ . '/../Db/TestDatabase.php';
 require_once __DIR__ . '/Fixtures/Article.php';
 require_once __DIR__ . '/Fixtures/Relations.php';
 require_once __DIR__ . '/Fixtures/AuditEntry.php';
+require_once __DIR__ . '/Fixtures/InternalProperties.php';
 require_once __DIR__ . '/FakeMongoCollection.php';
 
 use Azera\AppContext;
@@ -25,6 +26,7 @@ use Azera\Tests\Orm\Fixtures\Article;
 use Azera\Tests\Orm\Fixtures\AuditEntry;
 use Azera\Tests\Orm\Fixtures\Author;
 use Azera\Tests\Orm\Fixtures\Comment;
+use Azera\Tests\Orm\Fixtures\InternalProperties;
 use PHPUnit\Framework\TestCase;
 
 /** Document base-class fixture: exercises the Document facade (not Model). */
@@ -297,6 +299,116 @@ class EntityManagerTest extends TestCase
         $this->em->flush();
 
         $this->assertStringContainsString('RETURNING *', $this->lastDataSql());
+    }
+
+    /**
+     * A class carrying static + readonly properties must round-trip
+     * without a single PHP notice/error: both shapes are excluded from
+     * the column set, so no instance-style read/write touches them.
+     *
+     * Regression guard: before the compiler guards, a static column made
+     * extractData() emit "Accessing static property ... as non static" on
+     * every write, a readonly column made backfill() throw
+     * "Cannot initialize readonly property ... from scope EntityManager"
+     * AFTER the row had already been inserted, and a non-public column
+     * threw "Cannot access protected property ..." during hydration.
+     */
+    public function testStaticAndReadonlyPropertiesAreIgnoredAcrossFullRoundTrip(): void
+    {
+        $notices = [];
+        set_error_handler(function (int $no, string $msg) use (&$notices): bool {
+            $notices[] = $msg;
+            return true; // swallow: we assert on it below
+        });
+
+        try {
+            InternalProperties::$instances = 7;
+
+            $e = new InternalProperties();
+            $e->title = 'Round Trip';
+            // Present on the entity but NOT a column — must never be written.
+            $e->__cached  = 'internal-only';
+            $e->_revision = 'r1';
+
+            // RETURNING * exercises applyRow()/backfill() — the site that
+            // previously threw on a readonly column.
+            $this->db->setMockResults([
+                [
+                    [
+                        'id'        => 5,
+                        'title'     => 'Round Trip',
+                        '_revision' => 'r1',
+                        '__cached'  => 'internal-only',
+                    ]
+                ],
+            ]);
+
+            $this->em->persist($e);
+            $this->em->flush();
+
+            // INSERT carries the real columns only — never the excluded
+            // shapes, never the opted-out ones.
+            $insert = $this->dataQueries()[0]['sql'];
+            $this->assertStringNotContainsString('instances', $insert);
+            $this->assertStringNotContainsString('immutable', $insert);
+            $this->assertStringNotContainsString('label', $insert);
+            $this->assertStringNotContainsString('derived', $insert);
+            $this->assertStringNotContainsString('protectedState', $insert);
+            $this->assertStringNotContainsString('privateState', $insert);
+
+            // Backfill landed the generated PK on the entity.
+            $this->assertSame(5, $e->id);
+
+            // Excluded properties kept their own values untouched.
+            $this->assertSame(7, InternalProperties::$instances);
+            $this->assertSame('internal-only', $e->__cached);
+            $this->assertSame('set-once', $e->immutable);
+            $this->assertSame('derived-label', $e->label);
+            $this->assertSame('p', $e->protectedState());
+
+            // Underscore-prefixed properties ARE columns, so they hydrate.
+            $this->assertSame('r1', $e->_revision);
+
+            $this->assertSame(
+                [],
+                array_values(array_filter(
+                    $notices,
+                    fn(string $m) =>
+                        str_contains($m, 'Static') || str_contains($m, 'static property')
+                )),
+                'no static-property notices during the round trip'
+            );
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    /**
+     * The fresh-read path re-applies a row onto a tracked instance
+     * (FastHydrator::apply) — the second-write that readonly cannot
+     * survive. Excluded shapes must stay out of it.
+     */
+    public function testRefreshInPlaceSkipsStaticsAndReadonly(): void
+    {
+        InternalProperties::$instances = 3;
+
+        $this->db->setMockResults([
+            [['id' => 5, 'title' => 'First', '_revision' => 'r1', '__cached' => 'a']],
+        ]);
+        $e = $this->em->find(InternalProperties::class, ['id' => 5]);
+
+        $this->assertSame('First', $e->title);
+
+        $this->db->setMockResults([
+            [['id' => 5, 'title' => 'Second', '_revision' => 'r2', '__cached' => 'b']],
+        ]);
+        $again = $this->em->find(InternalProperties::class, ['id' => 5], fresh: true);
+
+        $this->assertSame($e, $again, 'identity preserved');
+        $this->assertSame('Second', $e->title, 'ordinary columns refresh in place');
+        $this->assertSame('r2', $e->_revision, 'underscore columns refresh in place');
+        $this->assertSame(3, InternalProperties::$instances, 'static untouched');
+        $this->assertSame('set-once', $e->immutable, 'readonly untouched');
     }
 
     /**

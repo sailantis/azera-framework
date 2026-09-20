@@ -19,7 +19,7 @@ class Article extends Model
     #[Column(type: 'datetime')]
     public $created_at;
 
-    #[Column(transient: true)]
+    #[Column(persist: false)]
     public $computed;
 
     #[Column(name: 'status_code', type: 'int')]

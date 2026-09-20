@@ -22,6 +22,15 @@ namespace Azera\Orm\Casting;
  *              DateTimeImmutable; replace the registration for a
  *              custom shape)
  *
+ * ENUM CLASS-STRINGS are keys too, with no registration step: metadata
+ * records `columns[].type = MyEnum::class` (inferred from the property
+ * type, or declared via #[Column(type: MyEnum::class)]) and the lookup
+ * derives the {@see EnumCast} lazily. Deriving at LOOKUP time — rather
+ * than registering during the metadata compile — is deliberate: compile()
+ * runs only on a cache MISS, so a registration performed as a compile
+ * side effect would silently disappear as soon as the L2 metadata cache
+ * was warm, and the enum would start binding its case object to PDO.
+ *
  * Semantics:
  *
  * - Registered casts apply on BOTH read and write paths; scalar casts
@@ -42,6 +51,18 @@ final class Casts
     /** @var array<string, Cast> */
     private static array $casts = [];
 
+    /**
+     * Memoized DERIVED lookups: type => Cast, or null when the type is
+     * not an enum class (a negative hit — `array_key_exists` must be
+     * used to consult this, since a stored null is meaningful). Keeps
+     * the per-lookup `enum_exists()` autoloader probe off the hot path,
+     * because `for()` is called once per column by both extractData()
+     * and hydration.
+     *
+     * @var array<string, Cast|null>
+     */
+    private static array $resolved = [];
+
     /** @var bool built-ins registered? */
     private static bool $booted = false;
 
@@ -53,17 +74,42 @@ final class Casts
         self::boot();
 
         self::$casts[$type] = $cast;
+
+        // A prior lookup may have memoized this type as cast-free (or as
+        // a derived enum cast) — the explicit registration wins now.
+        unset(self::$resolved[$type]);
     }
 
     /**
      * The cast for a column type, or null when the type has no
      * transformation (values pass through raw in both directions).
+     *
+     * Resolution order: an explicit registration, then the memoized
+     * derived answer, then — for a BACKED ENUM class-string — the cast
+     * derived from the type itself. Everything else is cast-free.
      */
     public static function for(string $type): ?Cast
     {
         self::boot();
 
-        return self::$casts[$type] ?? null;
+        return self::$casts[$type]
+            ?? self::$resolved[$type] ??= self::derive($type);
+    }
+
+    /**
+     * Derive a cast from the type name itself. Only backed-enum
+     * class-strings derive: metadata stores the enum CLASS as the column
+     * type, so the enum instance is reachable from the key alone.
+     * Pure enums derive nothing here — Metadata rejects them at compile
+     * time, because they have no scalar representation to round-trip.
+     */
+    private static function derive(string $type): ?Cast
+    {
+        if ($type !== '' && \enum_exists($type) && \is_subclass_of($type, \BackedEnum::class)) {
+            return EnumCast::for($type);
+        }
+
+        return null;
     }
 
     /**
@@ -87,7 +133,8 @@ final class Casts
     }
 
     /**
-     * Registered type names (tests).
+     * Registered type names (tests). DERIVED enum casts are absent by
+     * design — they are resolved on demand, not registered.
      *
      * @return list<string>
      */
@@ -104,6 +151,7 @@ final class Casts
     public static function clear(): void
     {
         self::$casts = [];
+        self::$resolved = [];
         self::$booted = false;
     }
 

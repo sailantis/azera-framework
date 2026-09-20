@@ -89,7 +89,10 @@ final class HydrationMap
 
         foreach ($meta['columns'] as $field => $col) {
             $colAlias = $alias . '__' . $col['name'];
-            $fields[$field] = $colAlias;
+            // field -> [generated alias, raw column name]. The raw name is
+            // what a heap snapshot is keyed by, so the splitter needs it to
+            // keep snapshots identical to the FastHydrator path.
+            $fields[$field] = [$colAlias, $col['name']];
             if ($col['pk']) {
                 $pk[$field] = $colAlias;
             }

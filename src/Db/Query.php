@@ -871,9 +871,10 @@ class Query extends Condition
         $joins   = [];
 
         foreach ($plan['entries'] as $entry) {
-            foreach ($entry['fields'] as $colAlias) {
+            // fields: field => [generated alias, raw column name].
+            foreach ($entry['fields'] as [$colAlias, $colName]) {
                 $selects[] = $db->quoteIdentifier($entry['alias']) . '.'
-                    . $db->quoteIdentifier(substr($colAlias, strlen($entry['alias']) + 2))
+                    . $db->quoteIdentifier($colName)
                     . ' AS ' . $db->quoteIdentifier($colAlias);
             }
 

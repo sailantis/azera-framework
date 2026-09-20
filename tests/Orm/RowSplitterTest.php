@@ -84,4 +84,41 @@ class RowSplitterTest extends TestCase
 
         $this->assertSame($ra['author'], $rb['author'], 'same identity = same object');
     }
+
+    /**
+     * The join path used to assign raw row values with no cast and a
+     * snapshot keyed by FIELD name, holding driver strings. Two bugs in
+     * one: numeric strings in the snapshot (phantom UPDATEs on the next
+     * flush) and a snapshot the diff engine cannot read at all (it is
+     * column-name keyed).
+     */
+    public function testSnapshotIsColumnKeyed(): void
+    {
+        $heap = new Heap();
+        $rs   = new RowSplitter($heap);
+
+        $row = [
+            'comment__id'          => '1',
+            'comment__body'        => 'Nice',
+            'comment__article_id'  => '5',
+            'comment__author_id'   => '2',
+            'comment_author__id'   => '2',
+            'comment_author__name' => 'Ada',
+        ];
+
+        [$root] = $rs->split($row, $this->plan());
+
+        $node = $heap->find($root);
+
+        // Snapshot keyed by the metadata COLUMN name — the same key
+        // extractData() emits, so diff() can actually read the baseline.
+        // (Comment's relations are declared on `article`/`author`, so its
+        // columns are just id + body; the FK aliases are not columns.)
+        $this->assertSame(
+            ['id', 'body'],
+            array_keys($node->data)
+        );
+        $this->assertSame('1', $node->data['id']);
+        $this->assertSame('Nice', $node->data['body']);
+    }
 }

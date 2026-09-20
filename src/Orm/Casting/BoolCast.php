@@ -40,9 +40,8 @@ final class BoolCast implements Cast
             return false;
         }
 
-        filter_var($s, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? throw new \RuntimeException(
-            "Cannot decode '{$s}' as bool — extend BoolCast or declare the " .
-            'column with a non-bool type'
+        throw new \RuntimeException(
+            "Cannot decode '{$s}' as bool — extend BoolCast or declare the column with a non-bool type"
         );
     }
 }
