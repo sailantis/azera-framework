@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-28
+
+### Fixed
+
+- **AOP cache keys no longer depend on the filesystem layout.** The explicit
+  `Pipeline` reflected an anonymous class to build the placeholder method it
+  hands to interceptors, and an anonymous class name embeds its declaring file
+  path. On Linux `getShortName()` has no backslash to split on, so the full
+  absolute path leaked into `CacheInterceptor`'s key, pushed it past
+  `ArrayCache`'s 64-character limit, and made every cached pipeline call throw
+  `InvalidArgumentException: Cache key must be non-empty and at most 64
+  characters`. The pipeline now reflects a named class, and over-long keys are
+  folded into a fixed-length digest instead of overflowing.
+
 ## [0.1.1] - 2026-09-28
 
 The first release prepared for public installation from Packagist. It wires up
@@ -75,6 +89,7 @@ query builder, and the supporting services, all built for PHP 8.2+.
 - Documentation under `docs/`, a generated API reference under `docs/api/`,
   runnable examples, and published PHP-FPM and RoadRunner benchmark summaries.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.2
 [0.1.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.0
