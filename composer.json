@@ -23,7 +23,9 @@
     "phpdocumentor/reflection-docblock": "^6.0",
     "twig/twig": "^3.8",
     "league/plates": "^3.6",
-    "illuminate/view": "^10.49"
+    "illuminate/view": "^10.49",
+    "spiral/stempler-bridge": "^3.17",
+    "mongodb/mongodb": "^2.4"
   },
   "suggest": {
     "mongodb/mongodb": "Required for MongoDB document persistence (Azera\\Orm\\Storage\\MongoStore) — install together with the ext-mongodb PHP extension. Optional: only tests/MongoLiveTest.php needs the real package; all other Mongo tests run against an in-memory fake",
