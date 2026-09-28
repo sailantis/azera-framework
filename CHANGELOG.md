@@ -7,54 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.2] - 2026-09-28
-
-### Fixed
-
-- **AOP cache keys no longer depend on the filesystem layout.** The explicit
-  `Pipeline` reflected an anonymous class to build the placeholder method it
-  hands to interceptors, and an anonymous class name embeds its declaring file
-  path. On Linux `getShortName()` has no backslash to split on, so the full
-  absolute path leaked into `CacheInterceptor`'s key, pushed it past
-  `ArrayCache`'s 64-character limit, and made every cached pipeline call throw
-  `InvalidArgumentException: Cache key must be non-empty and at most 64
-  characters`. The pipeline now reflects a named class, and over-long keys are
-  folded into a fixed-length digest instead of overflowing.
-
-## [0.1.1] - 2026-09-28
-
-The first release prepared for public installation from Packagist. It wires up
-the `azera` CLI binary, pins the template engine to a stable release and adds
-the packaging and community files a published library is expected to carry.
-
-### Added
-
-- **`bin/azera`** is now declared in `composer.json`, so Composer links it as
-  `vendor/bin/azera` (with an `azera.bat` shim on Windows) for consuming
-  projects. The documented CLI workflow works after `composer require`.
-- Continuous integration (`.github/workflows/tests.yml`): the suite runs on
-  PHP 8.2, 8.3 and 8.4, together with `composer validate --strict`.
-- `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.editorconfig` and
-  `.gitattributes` (the latter trims development files from the package
-  archive).
-- Package metadata for Packagist: `keywords`, `homepage`, `support` and
-  `authors`, plus `config.sort-packages`.
-
-### Changed
-
-- `sailantis/clarity-engine` is required at `^0.1` and resolved from Packagist
-  instead of the local `dev-main` path repository. The path repository entry
-  was removed: a `path` URL pointing at an absent directory makes
-  `composer install` fail outright.
-- PSR dependency constraints relaxed to caret ranges (`psr/log ^3.0`,
-  `psr/event-dispatcher ^1.0`, `psr/simple-cache ^3.0`), so the package is no
-  longer pinned to a single patch version.
-- The install example in `docs/00-GETTING-STARTED.md` now uses `^0.1`.
-
-## [0.1.0] - 2026-09-28
+## [0.1.0]
 
 The first public release of Azera. It ships the complete MVC stack, the ORM and
-query builder, and the supporting services, all built for PHP 8.2+.
+query builder, and the supporting services, all built for PHP 8.2+, together
+with the packaging and tooling a published library is expected to carry.
 
 ### Added
 
@@ -86,10 +43,41 @@ query builder, and the supporting services, all built for PHP 8.2+.
   and attribute-driven aspect-oriented interceptors.
 - **AppContext** — a service container that resolves lazily from the DI
   container.
+- **`bin/azera`** is declared in `composer.json`, so Composer links it as
+  `vendor/bin/azera` (with an `azera.bat` shim on Windows) for consuming
+  projects. The documented CLI workflow works after `composer require`.
+- Continuous integration (`.github/workflows/tests.yml`): the suite runs on
+  PHP 8.2, 8.3 and 8.4, together with `composer validate --strict`.
+- `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `.editorconfig` and
+  `.gitattributes` (the latter trims development files from the package
+  archive).
+- Package metadata for Packagist: `keywords`, `homepage`, `support` and
+  `authors`, plus `config.sort-packages`.
 - Documentation under `docs/`, a generated API reference under `docs/api/`,
   runnable examples, and published PHP-FPM and RoadRunner benchmark summaries.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.1.2...HEAD
-[0.1.2]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.2
-[0.1.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.1
+### Changed
+
+- `sailantis/clarity-engine` is required at `^0.1` and resolved from Packagist
+  instead of the local `dev-main` path repository. The path repository entry
+  was removed: a `path` URL pointing at an absent directory makes
+  `composer install` fail outright.
+- PSR dependency constraints relaxed to caret ranges (`psr/log ^3.0`,
+  `psr/event-dispatcher ^1.0`, `psr/simple-cache ^3.0`), so the package is no
+  longer pinned to a single patch version.
+- The install example in `docs/00-GETTING-STARTED.md` now uses `^0.1`.
+
+### Fixed
+
+- **AOP cache keys no longer depend on the filesystem layout.** The explicit
+  `Pipeline` reflected an anonymous class to build the placeholder method it
+  hands to interceptors, and an anonymous class name embeds its declaring file
+  path. On Linux `getShortName()` has no backslash to split on, so the full
+  absolute path leaked into `CacheInterceptor`'s key, pushed it past
+  `ArrayCache`'s 64-character limit, and made every cached pipeline call throw
+  `InvalidArgumentException: Cache key must be non-empty and at most 64
+  characters`. The pipeline now reflects a named class, and over-long keys are
+  folded into a fixed-length digest instead of overflowing.
+
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.0
