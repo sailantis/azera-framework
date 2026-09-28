@@ -19,6 +19,12 @@ use ReflectionMethod;
  */
 class CacheInterceptor implements InterceptorInterface
 {
+    /**
+     * Longest cache key {@see \Azera\Cache\ArrayCache} accepts. Keys that
+     * would exceed it are folded into a digest instead of being truncated.
+     */
+    private const MAX_KEY_LENGTH = 64;
+
     public function __construct(
         private CacheInterface $cache,
     ) {}
@@ -55,13 +61,40 @@ class CacheInterceptor implements InterceptorInterface
             return $this->interpolateKey($advice->key, $method, $args);
         }
 
-        // Sanitize the class name — anonymous classes produce names
-        // like "Pipeline.php:148$115" which contain invalid cache key chars.
-        $className  = preg_replace('/[^A-Za-z0-9_]/', '_', $method->getDeclaringClass()->getShortName());
-        $methodName = $method->getName();
-        $argsHash   = md5(serialize($args));
+        return self::keyFor(
+            $method->getDeclaringClass()->getShortName(),
+            $method->getName(),
+            $args,
+        );
+    }
 
-        return "{$className}.{$methodName}.{$argsHash}";
+    /**
+     * Build the default cache key for a class/method/args triple.
+     *
+     * The declaring class name is sanitized because anonymous classes report
+     * names like "Pipeline.php:150$5" (Windows) or, on Linux, the full
+     * absolute declaring path — `getShortName()` has no backslash to split on
+     * there, so the path leaks in. That path is both invalid as a cache key
+     * and arbitrarily long, so an over-long key is folded into a fixed-length
+     * digest. It is never truncated: that would drop the args hash and make
+     * different arguments collide onto a single entry.
+     *
+     * @internal Exposed for testing; not part of the public AOP surface.
+     *
+     * @param string $className Declaring class name (may be path-derived).
+     * @param string $methodName Method name.
+     * @param array  $args       Call arguments.
+     */
+    public static function keyFor(string $className, string $methodName, array $args): string
+    {
+        $className = preg_replace('/[^A-Za-z0-9_]/', '_', $className);
+        $key       = $className . '.' . $methodName . '.' . md5(serialize($args));
+
+        if (strlen($key) > self::MAX_KEY_LENGTH) {
+            $key = 'aop.' . md5($className . "\0" . $methodName . "\0" . serialize($args));
+        }
+
+        return $key;
     }
 
     private function interpolateKey(string $template, ReflectionMethod $method, array $args): string

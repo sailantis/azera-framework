@@ -124,10 +124,8 @@ class Pipeline
             // Create a lightweight invocation context. Interceptors that
             // look for advice attributes will find none — they should
             // fall back to sensible defaults.
-            $ref    = $this->createDummyReflection($handler);
-            $target = new class
-            {
-            };
+            $ref    = $this->createDummyReflection();
+            $target = new PipelineHandler();
 
             return $interceptor->intercept($target, $ref, $args, $handler);
         };
@@ -139,22 +137,16 @@ class Pipeline
      * The interceptors use it to read advice attributes. For the explicit
      * pipeline, there are no attributes — interceptors should handle this
      * gracefully by checking $attrs === [] and using defaults.
+     *
+     * Reflects {@see PipelineHandler} — a named class — rather than an
+     * anonymous one. An anonymous class name embeds its declaring file path,
+     * which is short on Windows ("Pipeline.php:150$5") but the full absolute
+     * path on Linux (getShortName() has no backslash to split on). That leaked
+     * platform-dependent path into cache keys and could push them past
+     * {@see \Azera\Cache\ArrayCache}'s 64-character limit.
      */
-    private function createDummyReflection(callable $handler): \ReflectionMethod
+    private function createDummyReflection(): \ReflectionMethod
     {
-        // We can't easily create a fake ReflectionMethod for a closure.
-        // Instead, we use a real method on a real class that does nothing.
-        // Interceptors that read attributes will find none.
-        static $dummyClass = null;
-        if ($dummyClass === null) {
-            $dummyClass = new class
-            {
-                public function __invoke(): mixed
-                {
-                    return null;
-                }
-            };
-        }
-        return new \ReflectionMethod($dummyClass, '__invoke');
+        return new \ReflectionMethod(PipelineHandler::class, '__invoke');
     }
 }
