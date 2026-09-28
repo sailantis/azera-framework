@@ -25,11 +25,11 @@ use Azera\Core\Engines\NativeEngine;
 $iterations = isset($argv[1]) && ctype_digit($argv[1]) ? (int) $argv[1] : 2000;
 
 $vars = [
-    'title' => 'Benchmark Page',
-    'user' => ['name' => 'Alice', 'role' => 'admin'],
-    'items' => ['Apple', 'Banana', 'Cherry', 'Date', 'Elderberry'],
-    'show' => true,
-    'count' => 42,
+    'title'   => 'Benchmark Page',
+    'user'    => ['name' => 'Alice', 'role' => 'admin'],
+    'items'   => ['Apple', 'Banana', 'Cherry', 'Date', 'Elderberry'],
+    'show'    => true,
+    'count'   => 42,
     'message' => '<b>Hello & welcome!</b>',
 ];
 
@@ -37,10 +37,10 @@ $vars = [
 // Temporary directories
 // ---------------------------------------------------------------------------
 
-$baseDir = sys_get_temp_dir() . '/merlin_bench_' . bin2hex(random_bytes(4));
-$nativeDir = $baseDir . '/native';
+$baseDir    = sys_get_temp_dir() . '/merlin_bench_' . bin2hex(random_bytes(4));
+$nativeDir  = $baseDir . '/native';
 $clarityDir = $baseDir . '/clarity';
-$cacheDir = $baseDir . '/cache';
+$cacheDir   = $baseDir . '/cache';
 
 foreach ([$nativeDir, $clarityDir, $cacheDir] as $dir) {
     mkdir($dir, 0755, true);
@@ -76,7 +76,7 @@ $clarityTemplate = <<<'CLARITY'
 <head><title>{{ title }}</title></head>
 <body>
 <h1>{{ title }}</h1>
-<p>Welcome, {{ user.name }} ({{ user.role }})</p>
+<p>Welcome, {{ user:name }} ({{ user:role }})</p>
 {% if show %}
 <p>Count: {{ count }}</p>
 <p>{{ message }}</p>
@@ -128,7 +128,7 @@ function bench(callable $fn, int $n): array
     $elapsed = hrtime(true) - $start;
 
     $totalMs = $elapsed / 1_000_000;
-    $avgUs = $elapsed / $n / 1_000;
+    $avgUs   = $elapsed / $n / 1_000;
 
     return ['total_ms' => $totalMs, 'avg_us' => $avgUs, 'iterations' => $n];
 }
@@ -144,7 +144,7 @@ echo "Iterations : {$iterations}" . PHP_EOL;
 echo "PHP        : " . PHP_VERSION . PHP_EOL;
 echo str_repeat('-', 50) . PHP_EOL;
 
-$nativeResult = bench(fn() => $native->renderPartial('bench', $vars), $iterations);
+$nativeResult  = bench(fn() => $native->renderPartial('bench', $vars), $iterations);
 $clarityResult = bench(fn() => $clarity->renderPartial('bench', $vars), $iterations);
 
 $ratio = $clarityResult['avg_us'] / max($nativeResult['avg_us'], 0.001);

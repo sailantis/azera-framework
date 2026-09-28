@@ -1,5 +1,3 @@
-# Azera - PHP Web Framework
-
 ![Azera Logo](docs/images/azera-logo-text.svg)
 
 ### Lightweight by Design. Powerful in Practice.

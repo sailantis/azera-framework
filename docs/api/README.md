@@ -71,6 +71,7 @@
 
 - [BladeAdapter](Core_Engines_Adapters_BladeAdapter.md) `Azera\Core\Engines\Adapters\BladeAdapter`
 - [PlatesAdapter](Core_Engines_Adapters_PlatesAdapter.md) `Azera\Core\Engines\Adapters\PlatesAdapter`
+- [StemplerAdapter](Core_Engines_Adapters_StemplerAdapter.md) `Azera\Core\Engines\Adapters\StemplerAdapter`
 - [TwigAdapter](Core_Engines_Adapters_TwigAdapter.md) `Azera\Core\Engines\Adapters\TwigAdapter`
 
 ### `Azera\Core\Engines`

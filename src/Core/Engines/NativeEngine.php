@@ -135,34 +135,9 @@ namespace Azera\Core\Engines
 namespace
 {
 
-    /**
-     * Escaping functions for use in native PHP templates.
-     *
-     * These are not strictly necessary since you can use any PHP code in the
-     * templates, but they provide a convenient and consistent way to escape output
-     * for common contexts.
-     */
-
     /** Escape for HTML body context (e.g. inside <p> or <div>)
      */
     function esc_html($str): string
-    {
-        return htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-
-    /**
-     * Escape for HTML attribute context (e.g. inside <a href="...">)
-     */
-    function esc_attr($str): string
-    {
-        $str = (string) $str;
-        $str = str_replace(["\r", "\n", "\t"], ' ', $str);
-        return htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    }
-
-    /** Escape for URL context (e.g. inside href or src)
-     */
-    function esc_url($str): string
     {
         return htmlspecialchars($str, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }

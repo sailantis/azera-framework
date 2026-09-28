@@ -43,7 +43,7 @@ Cache location: sys_get_temp_dir()/clarity  (configurable via setCachePath())
 
 ---
 
-### setExtension() · [source](../../src/Core/Engines/ClarityEngine.php#L202)
+### setExtension() · [source](../../src/Core/Engines/ClarityEngine.php#L203)
 
 `public function setExtension(string $ext): static`
 
@@ -62,7 +62,7 @@ Set the view file extension for this instance.
 
 ---
 
-### getExtension() · [source](../../src/Core/Engines/ClarityEngine.php#L219)
+### getExtension() · [source](../../src/Core/Engines/ClarityEngine.php#L220)
 
 `public function getExtension(): string`
 
@@ -76,7 +76,7 @@ Get the effective file extension used when resolving templates.
 
 ---
 
-### addNamespace() · [source](../../src/Core/Engines/ClarityEngine.php#L233)
+### addNamespace() · [source](../../src/Core/Engines/ClarityEngine.php#L234)
 
 `public function addNamespace(string $name, string $path): static`
 
@@ -98,7 +98,7 @@ Views can be referenced using the syntax "namespace::view.name".
 
 ---
 
-### getNamespaces() · [source](../../src/Core/Engines/ClarityEngine.php#L260)
+### getNamespaces() · [source](../../src/Core/Engines/ClarityEngine.php#L261)
 
 `public function getNamespaces(): array`
 
@@ -112,7 +112,7 @@ Get the currently registered view namespaces.
 
 ---
 
-### setViewPath() · [source](../../src/Core/Engines/ClarityEngine.php#L165)
+### setViewPath() · [source](../../src/Core/Engines/ClarityEngine.php#L166)
 
 `public function setViewPath(string $path): static`
 
@@ -131,7 +131,7 @@ Set the base path for resolving relative template names.
 
 ---
 
-### getViewPath() · [source](../../src/Core/Engines/ClarityEngine.php#L191)
+### getViewPath() · [source](../../src/Core/Engines/ClarityEngine.php#L192)
 
 `public function getViewPath(): string`
 
@@ -145,7 +145,7 @@ Get the currently configured base path for view resolution.
 
 ---
 
-### render() · [source](../../src/Core/Engines/ClarityEngine.php#L577)
+### render() · [source](../../src/Core/Engines/ClarityEngine.php#L578)
 
 `public function render(string $view, array $vars = []): string`
 
@@ -206,7 +206,7 @@ $html = $engine->render('admin::dashboard', $data);
 
 ---
 
-### renderPartial() · [source](../../src/Core/Engines/ClarityEngine.php#L599)
+### renderPartial() · [source](../../src/Core/Engines/ClarityEngine.php#L600)
 
 `public function renderPartial(string $view, array $vars = []): string`
 
@@ -227,7 +227,7 @@ Render a partial view (without applying a layout) and return the output.
 
 ---
 
-### renderLayout() · [source](../../src/Core/Engines/ClarityEngine.php#L623)
+### renderLayout() · [source](../../src/Core/Engines/ClarityEngine.php#L626)
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 
@@ -251,7 +251,7 @@ The layout receives the rendered view in the `content` variable.
 
 ---
 
-### addFilter() · [source](../../src/Core/Engines/ClarityEngine.php#L426)
+### addFilter() · [source](../../src/Core/Engines/ClarityEngine.php#L427)
 
 `public function addFilter(string $name, callable $fn): static`
 
@@ -314,7 +314,7 @@ Template usage:
 
 ---
 
-### addFunction() · [source](../../src/Core/Engines/ClarityEngine.php#L442)
+### addFunction() · [source](../../src/Core/Engines/ClarityEngine.php#L443)
 
 `public function addFunction(string $name, callable $fn): static`
 
@@ -337,7 +337,7 @@ This is distinct from filters, which transform a piped value.
 
 ---
 
-### setCachePath() · [source](../../src/Core/Engines/ClarityEngine.php#L506)
+### setCachePath() · [source](../../src/Core/Engines/ClarityEngine.php#L507)
 
 `public function setCachePath(string $path): static`
 
@@ -356,7 +356,7 @@ Set the directory where compiled templates should be cached.
 
 ---
 
-### getCachePath() · [source](../../src/Core/Engines/ClarityEngine.php#L517)
+### getCachePath() · [source](../../src/Core/Engines/ClarityEngine.php#L518)
 
 `public function getCachePath(): string`
 
@@ -370,7 +370,7 @@ Get the currently configured cache directory.
 
 ---
 
-### flushCache() · [source](../../src/Core/Engines/ClarityEngine.php#L527)
+### flushCache() · [source](../../src/Core/Engines/ClarityEngine.php#L528)
 
 `public function flushCache(): static`
 
@@ -383,7 +383,7 @@ Flush all cached compiled templates.
 
 ---
 
-### setDebugMode() · [source](../../src/Core/Engines/ClarityEngine.php#L49)
+### setDebugMode() · [source](../../src/Core/Engines/ClarityEngine.php#L50)
 
 `public function setDebugMode(bool $debug): static`
 
@@ -407,7 +407,7 @@ dump() resolve at runtime instead of being pruned to ''.
 
 ---
 
-### isDebugMode() · [source](../../src/Core/Engines/ClarityEngine.php#L58)
+### isDebugMode() · [source](../../src/Core/Engines/ClarityEngine.php#L59)
 
 `public function isDebugMode(): bool`
 
@@ -420,7 +420,7 @@ Return whether debug mode is currently enabled.
 
 ---
 
-### enableDebug() · [source](../../src/Core/Engines/ClarityEngine.php#L78)
+### enableDebug() · [source](../../src/Core/Engines/ClarityEngine.php#L79)
 
 `public function enableDebug(Clarity\Debug\DumpOptions|null $opts = null): static`
 
@@ -448,7 +448,7 @@ $engine->enableDebug(new DumpOptions(showPanel: true, maxDepth: 4));
 
 ---
 
-### disableDebug() · [source](../../src/Core/Engines/ClarityEngine.php#L135)
+### disableDebug() · [source](../../src/Core/Engines/ClarityEngine.php#L136)
 
 `public function disableDebug(): static`
 
@@ -461,7 +461,7 @@ Disable debug mode and tear down the event bus and debug panel.
 
 ---
 
-### getDebugBus() · [source](../../src/Core/Engines/ClarityEngine.php#L146)
+### getDebugBus() · [source](../../src/Core/Engines/ClarityEngine.php#L147)
 
 `public function getDebugBus(): Clarity\Debug\DebugEventBus|null`
 
@@ -474,7 +474,7 @@ Return the active DebugEventBus, or null when debug mode is off.
 
 ---
 
-### getDebugPanel() · [source](../../src/Core/Engines/ClarityEngine.php#L154)
+### getDebugPanel() · [source](../../src/Core/Engines/ClarityEngine.php#L155)
 
 `public function getDebugPanel(): Clarity\Debug\HtmlDebugPanel|null`
 
@@ -487,7 +487,7 @@ Return the active HtmlDebugPanel, or null when disabled.
 
 ---
 
-### use() · [source](../../src/Core/Engines/ClarityEngine.php#L282)
+### use() · [source](../../src/Core/Engines/ClarityEngine.php#L283)
 
 `public function use(Clarity\ModuleInterface $module): static`
 
@@ -517,7 +517,7 @@ $engine->use(new \Clarity\LocalizationModule([
 
 ---
 
-### addInlineFilter() · [source](../../src/Core/Engines/ClarityEngine.php#L310)
+### addInlineFilter() · [source](../../src/Core/Engines/ClarityEngine.php#L311)
 
 `public function addInlineFilter(string $name, array $definition): static`
 
@@ -552,7 +552,7 @@ additional parameters are declared in `params`.
 
 ---
 
-### addDirective() · [source](../../src/Core/Engines/ClarityEngine.php#L335)
+### addDirective() · [source](../../src/Core/Engines/ClarityEngine.php#L336)
 
 `public function addDirective(string $keyword, callable $handler): static`
 
@@ -584,12 +584,12 @@ $engine->addDirective('endwith_locale', fn(...) => "\$__sv['locale']->pop();");
 
 ---
 
-### addService() · [source](../../src/Core/Engines/ClarityEngine.php#L353)
+### addService() · [source](../../src/Core/Engines/ClarityEngine.php#L354)
 
 `public function addService(string $name, mixed $service): static`
 
-Store a non-callable service object in the registry so that
-compiled template render bodies can access it via `$__sv['key']`.
+Store a service object in the registry so that compiled template render
+bodies can access it via `$__sv['key']`.
 
 This is primarily used by modules that need shared mutable state (e.g. a
 locale stack) accessible both from closures that close over the object
@@ -600,7 +600,7 @@ locale stack) accessible both from closures that close over the object
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Key under which the service is accessible. |
-| `$service` | mixed | - | Service value (not required to be callable). |
+| `$service` | mixed | - | Service value, can be of any type. |
 
 **➡️ Return value**
 
@@ -609,7 +609,7 @@ locale stack) accessible both from closures that close over the object
 
 ---
 
-### hasService() · [source](../../src/Core/Engines/ClarityEngine.php#L362)
+### hasService() · [source](../../src/Core/Engines/ClarityEngine.php#L363)
 
 `public function hasService(string $name): bool`
 
@@ -628,7 +628,7 @@ Return true if a service with the given key has been registered.
 
 ---
 
-### getService() · [source](../../src/Core/Engines/ClarityEngine.php#L372)
+### getService() · [source](../../src/Core/Engines/ClarityEngine.php#L373)
 
 `public function getService(string $name): mixed`
 
@@ -651,7 +651,7 @@ Retrieve a previously registered service.
 
 ---
 
-### setLoader() · [source](../../src/Core/Engines/ClarityEngine.php#L454)
+### setLoader() · [source](../../src/Core/Engines/ClarityEngine.php#L455)
 
 `public function setLoader(Clarity\Template\TemplateLoader $loader): static`
 
@@ -670,7 +670,7 @@ Set a custom template loader, replacing the default FileLoader.
 
 ---
 
-### getLoader() · [source](../../src/Core/Engines/ClarityEngine.php#L467)
+### getLoader() · [source](../../src/Core/Engines/ClarityEngine.php#L468)
 
 `public function getLoader(): Clarity\Template\TemplateLoader`
 
@@ -680,34 +680,6 @@ has been set explicitly.
 **➡️ Return value**
 
 - Type: Clarity\Template\TemplateLoader
-
-
----
-
-### castToArray() · [source](../../src/Core/Engines/ClarityEngine.php#L1059)
-
-`public static function castToArray(mixed $value): mixed`
-
-Recursively cast values to arrays so templates never receive live
-objects and cannot call methods.
-
-Precedence:
-1. JsonSerializable → jsonSerialize() then recurse
-2. Objects with toArray() → toArray() then recurse
-3. Traversable (Iterator / IteratorAggregate) → iterator_to_array() then recurse
-4. Other objects → get_object_vars() then recurse
-5. Arrays → recurse element by element
-6. Scalars / null → pass through
-
-**🧭 Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$value` | mixed | - |  |
-
-**➡️ Return value**
-
-- Type: mixed
 
 
 

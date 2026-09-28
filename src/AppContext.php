@@ -30,6 +30,12 @@ use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
 use RuntimeException;
 
+/**
+ * Application context and dependency injection container.
+ *
+ * This class is a singleton that manages the application's services, including
+ * request-scoped services, critical services, and the service container.
+ */
 class AppContext
 {
     public function __construct()

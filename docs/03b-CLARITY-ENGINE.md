@@ -78,13 +78,41 @@ Enclose any Clarity expression in double curly braces to print it:
 
 ### Variable Access
 
-Variables are accessed via dot notation or bracket notation. Direct PHP variables (`$name`) are forbidden.
+Access is **strict**: the operator states what the value IS, and the engine emits
+exactly that read. There is no conversion of objects to arrays before rendering.
+
+| Syntax                        | Meaning                                  | Emits                      |
+| ----------------------------- | ---------------------------------------- | -------------------------- |
+| `a.b.c`                       | **object property** (static)             | `$vars['a']->b->c`         |
+| `a{expr}`                     | object property (dynamic)                | `$vars['a']->{$exprPhp}`   |
+| `items[expr]`                 | **array index**                          | `$vars['items'][$exprPhp]` |
+| `a:b:c`                       | **array key** (static)                   | `$vars['a']['b']['c']`     |
+| `$a.b` / `$a->b`              | PHP-style alias for `.` (sigil required) | `$vars['a']->b`            |
+| `a?.b` `a?[i]` `a?{k}` `a?:k` | optional **receiver**                    | `isset(…) ? … : null`      |
 
 ```
-user.name                 → $vars['user']['name']
+user.name                 → $vars['user']->name
+user:name                 → $vars['user']['name']
 items[0]                  → $vars['items'][0]
 items[index]              → $vars['items'][$vars['index']]
-a.b[c.d].e                → $vars['a']['b'][$vars['c']['d']]['e']
+a.b[c.d].e                → $vars['a']->b[$vars['c']->d]->e
+```
+
+Applying the wrong operator is an error, not a silent `null`:
+
+```twig
+{% set user = { name: "Alice" } %}   {# an ARRAY #}
+{{ user.name }}     {# ERROR: Cannot read property "name" on array #}
+{{ user:name }}     {# CORRECT #}
+```
+
+A missing key or property raises an exception naming the template and line.
+Whitespace around a chain operator is not significant, so a chain may wrap
+(`user.\naddress.\ncity`). `.` is never string concatenation — use `~` — and an
+operator with no member after it is a compile error.
+
+```twig
+{{ firstName ~ ' ' ~ lastName }}
 ```
 
 ### Operators
@@ -108,6 +136,16 @@ a.b[c.d].e                → $vars['a']['b'][$vars['c']['d']]['e']
 ```
 
 Registered template functions are allowed in expressions. Built-in `context()` and `include()` are always available, and user code may register additional functions via `addFunction()`. Arbitrary PHP function calls such as `strtoupper(name)` are still rejected at compile time.
+
+### Nested Conditions
+
+```twig
+{{ cond ? (foo ? bar : blubb) : blobb }}
+{{ user:active ? 'Active' : 'Inactive' }}
+```
+
+A nested ternary in the else-branch must be parenthesised, because PHP rejects
+`a ? b : c ? d : e` outright.
 
 ### Collection Literals
 
@@ -451,24 +489,47 @@ Clarity templates have **no access to PHP**:
 
 **Benchmark Results**
 
-The following micro-benchmark compares Clarity (compiled templates) with other popular PHP template engines using the `benchmarks` harness. Results were written to `benchmarks/view-engine/results-2026-03-07-004340.json` and `benchmarks/view-engine/results-2026-03-07-004340.csv`.
+A micro-benchmark in the `azera-competition` repository compares Clarity
+(compiled templates) with the other mainstream PHP template engines rendering
+one identical page — a layout, an included partial, a loop over the items, and
+nested loops inside it. `NativeEngine` and Clarity are engines inside Azera; the
+rest are the template languages Azera adapts via its view adapter layer.
 
-- **Context:** CLI run, PHP 8.3, OPcache CLI enabled for steady-state measurements; 10,000 iterations per engine.
-- **Measured metrics:** warm render time (ms), per-iteration mean/median/p95 (ms), and peak memory.
+The chart and the table below are generated from the run's own JSON, so the
+figures cannot drift from the data they came from:
 
-**Summary (warmup, mean render time, ms)**
+<!-- view-engine:begin -->
+Clarity is measured against other PHP template engines rendering the same page, on the same machine and PHP build. The chart and the table below are generated from the run's own JSON.
 
-| Engine  | Warm (ms) | Mean (ms) | P95 (ms) |
-| ------- | --------- | --------- | -------- |
-| native  | 1.8808    | 0.2191    | 0.3162   |
-| clarity | 0.7028    | 0.2744    | 0.3797   |
-| plates  | 5.9563    | 0.3860    | 0.5624   |
-| blade   | 28.4739   | 0.7479    | 1.0375   |
-| twig    | 19.7515   | 0.8289    | 1.1061   |
+![Template engine benchmark](images/benchmarks/view-engine/render-time.svg)
 
-You can find the full CSV/JSON outputs in the repository under `benchmarks/view-engine/` and an SVG visualization next to the results: [benchmarks/view-engine/results-2026-03-07-01.svg](../benchmarks/view-engine/results-2026-03-07-01.svg).
+Rows are ordered by median, fastest first. Two engines sitting next to each other at the top of the table are not thereby ranked: a difference of a few percent is still within the spread of a single engine's own runs, and a gap that small is a tie, not a win.
 
-![Benchmark Result](../benchmarks/view-engine/results-2026-03-07-01.svg)
+| Engine | First render (ms) | Mean (ms) | Median (ms) | Min (ms) | p95 (ms) | Retained (MB) | Peak (MB) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Clarity | 5.407 | 0.430 | 0.418 | 0.397 | 0.494 | 4.19 | 4.70 |
+| Stempler | 12.372 | 0.444 | 0.428 | 0.398 | 0.516 | 4.63 | 5.06 |
+| Native | 0.765 | 0.465 | 0.452 | 0.424 | 0.533 | 3.15 | 3.57 |
+| Plates | 1.478 | 0.548 | 0.531 | 0.496 | 0.632 | 3.25 | 3.67 |
+| Blade | 14.081 | 0.752 | 0.728 | 0.690 | 0.872 | 5.58 | 6.06 |
+| Twig | 17.584 | 1.284 | 1.247 | 1.192 | 1.487 | 5.50 | 5.82 |
+
+**Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · SAPI cli · OPcache (`opcache.enable_cli`): yes · Memory probe: `opcache.enable_cli=0 (probe children run opcache-cold)`
+
+**Budget** — 10,000 renders × 30 runs, 200 items per render
+
+**Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs x iterations-per-run timed renders. No order: each (engine, page) cell is measured in its own process, so measurement order cannot affect a cell. The first render was measured as one render in a fresh process with a cold cache: engine class loading, template compile, cache write and one render.
+
+**Engines** — Clarity dev-main (7c7c9ac) · NativeEngine (Azera) 0.1.0 (daeb5a6) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2
+
+_Measured 2026-09-28T12:16:43+00:00_
+
+Full report — every chart, including the first render (measured in a fresh process per engine) and per-render memory: <https://sailantis.github.io/azera-competition/benchmarks/view-engine.html>
+<!-- view-engine:end -->
+
+The harness lives in `azera-competition` (not in this repository): run
+`php benchmarks/view-engine/run.php` there, then
+`php scripts/view-engine-report.php` to regenerate this section.
 
 ## Choosing Between ClarityEngine and NativeEngine
 

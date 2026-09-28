@@ -6,6 +6,7 @@ Validates and coerces an associative input array against a set of field rules.
 
 Usage:
 
+```php
   $v = new Validator($request->post());
 
   $v->field('email')->required()->email()->max(255);
@@ -21,14 +22,17 @@ Usage:
       return Response::json(['errors' => $v->errors()], 422);
   }
   $data = $v->validated();
+```
 
 Or in a single call (throws ValidationException on failure):
 
+```php
   $data = $v->validate();
+```
 
 ## 🚀 Public methods
 
-### __construct() · [source](../../src/Validation/Validator.php#L49)
+### __construct() · [source](../../src/Validation/Validator.php#L53)
 
 `public function __construct(array $data): mixed`
 
@@ -45,7 +49,7 @@ Or in a single call (throws ValidationException on failure):
 
 ---
 
-### setTranslator() · [source](../../src/Validation/Validator.php#L76)
+### setTranslator() · [source](../../src/Validation/Validator.php#L80)
 
 `public function setTranslator(callable $fn): static`
 
@@ -84,7 +88,7 @@ Error codes and their $params keys / types:
 
 ---
 
-### field() · [source](../../src/Validation/Validator.php#L88)
+### field() · [source](../../src/Validation/Validator.php#L92)
 
 `public function field(string $name): Azera\Validation\FieldValidator`
 
@@ -106,7 +110,7 @@ to make the field optional.
 
 ---
 
-### fails() · [source](../../src/Validation/Validator.php#L99)
+### fails() · [source](../../src/Validation/Validator.php#L103)
 
 `public function fails(): bool`
 
@@ -119,7 +123,7 @@ Run all rules. Returns true when at least one rule failed.
 
 ---
 
-### errors() · [source](../../src/Validation/Validator.php#L111)
+### errors() · [source](../../src/Validation/Validator.php#L115)
 
 `public function errors(): array`
 
@@ -134,7 +138,7 @@ Empty when validation has not been run yet or all rules passed.
 
 ---
 
-### validated() · [source](../../src/Validation/Validator.php#L142)
+### validated() · [source](../../src/Validation/Validator.php#L146)
 
 `public function validated(): array`
 
@@ -148,7 +152,7 @@ their declared types. Fields that failed are excluded.
 
 ---
 
-### validate() · [source](../../src/Validation/Validator.php#L154)
+### validate() · [source](../../src/Validation/Validator.php#L158)
 
 `public function validate(): array`
 

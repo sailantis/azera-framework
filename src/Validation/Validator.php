@@ -6,7 +6,8 @@ namespace Azera\Validation;
  * Validates and coerces an associative input array against a set of field rules.
  *
  * Usage:
- *
+ * 
+ * ```php
  *   $v = new Validator($request->post());
  *
  *   $v->field('email')->required()->email()->max(255);
@@ -22,10 +23,13 @@ namespace Azera\Validation;
  *       return Response::json(['errors' => $v->errors()], 422);
  *   }
  *   $data = $v->validated();
- *
+ * ```
+ * 
  * Or in a single call (throws ValidationException on failure):
  *
+ * ```php
  *   $data = $v->validate();
+ * ```
  */
 class Validator
 {

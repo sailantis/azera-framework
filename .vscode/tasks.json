@@ -1,0 +1,164 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "framework-suite-opcache",
+			"type": "shell",
+			"command": "Set-Location 'c:\\Users\\christian\\Projekte\\Sailantis\\azera-framework'; php -d opcache.enable_cli=0 -d opcache.enable=0 vendor/bin/phpunit --no-coverage 2>&1 | Select-Object -Last 8",
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "framework-suite-final",
+			"type": "shell",
+			"command": "Set-Location 'c:\\Users\\christian\\Projekte\\Sailantis\\azera-framework'; php -d opcache.enable_cli=0 -d opcache.enable=0 vendor/bin/phpunit --no-coverage 2>&1 | Select-Object -Last 8",
+			"problemMatcher": [],
+			"group": "test"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"150",
+				"7"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-lint",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-l",
+				"temp/bench-intcast-decode.php"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"120",
+				"7"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"120",
+				"7"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"120",
+				"9"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"150",
+				"11"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"150",
+				"9"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-bench",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-d",
+				"opcache.enable_cli=0",
+				"-d",
+				"opcache.enable=0",
+				"temp/bench-intcast-decode.php",
+				"200",
+				"11"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-cleanup",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"del /q temp\\*intcast*.ps1 temp\\*intcast*.out temp\\*intcast*.txt 2>nul & dir /b temp\\*intcast*"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-cleanup",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"del /q temp\\intcast-run.log 2>nul & dir /b temp\\*intcast*"
+			],
+			"group": "none"
+		},
+		{
+			"label": "intcast-cleanup3",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"del /q temp\\intcast-run.log 2>nul & dir /b temp\\*intcast*"
+			],
+			"group": "none"
+		}
+	]
+}
