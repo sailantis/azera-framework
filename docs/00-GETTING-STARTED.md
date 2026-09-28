@@ -234,7 +234,7 @@ A minimal `composer.json` for your app might look like:
 ```json
 {
   "require": {
-    "sailantis/azera-framework": "latest"
+    "sailantis/azera-framework": "^0.1"
   },
   "autoload": {
     "psr-4": {

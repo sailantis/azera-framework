@@ -507,12 +507,12 @@ Rows are ordered by median, fastest first. Two engines sitting next to each othe
 
 | Engine | First render (ms) | Mean (ms) | Median (ms) | Min (ms) | p95 (ms) | Retained (MB) | Peak (MB) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Clarity | 5.407 | 0.430 | 0.418 | 0.397 | 0.494 | 4.19 | 4.70 |
-| Stempler | 12.372 | 0.444 | 0.428 | 0.398 | 0.516 | 4.63 | 5.06 |
-| Native | 0.765 | 0.465 | 0.452 | 0.424 | 0.533 | 3.15 | 3.57 |
-| Plates | 1.478 | 0.548 | 0.531 | 0.496 | 0.632 | 3.25 | 3.67 |
-| Blade | 14.081 | 0.752 | 0.728 | 0.690 | 0.872 | 5.58 | 6.06 |
-| Twig | 17.584 | 1.284 | 1.247 | 1.192 | 1.487 | 5.50 | 5.82 |
+| Clarity | 5.869 | 0.436 | 0.421 | 0.396 | 0.505 | 4.28 | 4.88 |
+| Stempler | 13.352 | 0.442 | 0.427 | 0.402 | 0.514 | 4.63 | 5.06 |
+| Native | 0.804 | 0.464 | 0.450 | 0.422 | 0.534 | 3.15 | 3.57 |
+| Plates | 1.605 | 0.550 | 0.531 | 0.501 | 0.639 | 3.25 | 3.67 |
+| Blade | 13.534 | 0.753 | 0.729 | 0.688 | 0.869 | 5.58 | 6.06 |
+| Twig | 18.021 | 1.282 | 1.246 | 1.189 | 1.486 | 5.50 | 5.82 |
 
 **Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · SAPI cli · OPcache (`opcache.enable_cli`): yes · Memory probe: `opcache.enable_cli=0 (probe children run opcache-cold)`
 
@@ -520,9 +520,9 @@ Rows are ordered by median, fastest first. Two engines sitting next to each othe
 
 **Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs x iterations-per-run timed renders. No order: each (engine, page) cell is measured in its own process, so measurement order cannot affect a cell. The first render was measured as one render in a fresh process with a cold cache: engine class loading, template compile, cache write and one render.
 
-**Engines** — Clarity dev-main (7c7c9ac) · NativeEngine (Azera) 0.1.0 (daeb5a6) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2
+**Engines** — Clarity dev-main (716c59c) · NativeEngine (Azera) 0.1.0 (46df5ef) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2
 
-_Measured 2026-09-28T12:16:43+00:00_
+_Measured 2026-09-28T18:00:45+00:00_
 
 Full report — every chart, including the first render (measured in a fresh process per engine) and per-render memory: <https://sailantis.github.io/azera-competition/benchmarks/view-engine.html>
 <!-- view-engine:end -->

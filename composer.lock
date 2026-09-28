@@ -4,7 +4,7 @@
     "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
     "This file is @generated automatically"
   ],
-  "content-hash": "e797e4ec5ffc3c59d2b917e1135b09eb",
+  "content-hash": "29e917a816085e15f8cec000db09dffa",
   "packages": [
     {
       "name": "psr/event-dispatcher",
@@ -159,11 +159,17 @@
     },
     {
       "name": "sailantis/clarity-engine",
-      "version": "dev-main",
+      "version": "v0.1.0",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/sailantis/clarity-engine.git",
+        "reference": "dd0f5407bc1cafea4651f8d05a1d808794bab03c"
+      },
       "dist": {
-        "type": "path",
-        "url": "../clarity-engine",
-        "reference": "8e9b6387ddb36e3fca2265af94127fb47e516951"
+        "type": "zip",
+        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/dd0f5407bc1cafea4651f8d05a1d808794bab03c",
+        "reference": "dd0f5407bc1cafea4651f8d05a1d808794bab03c",
+        "shasum": ""
       },
       "require": {
         "ext-mbstring": "*",
@@ -173,29 +179,39 @@
         "phpdocumentor/reflection-docblock": "^6.0",
         "phpunit/phpunit": "^9.6"
       },
+      "suggest": {
+        "ext-intl": "Locale-aware formatting via IntlFormatModule (format_number, format_currency, format_date, ...)"
+      },
       "type": "library",
       "autoload": {
         "psr-4": {
           "Clarity\\": "src/"
         }
       },
-      "autoload-dev": {
-        "psr-4": {
-          "Clarity\\Tests\\": "tests/"
-        }
-      },
-      "scripts": {
-        "test": [
-          "phpunit"
-        ]
-      },
+      "notification-url": "https://packagist.org/downloads/",
       "license": [
         "MIT"
       ],
+      "authors": [
+        {
+          "name": "Sailantis"
+        }
+      ],
       "description": "A fast and powerful Template engine for PHP inspired by Twig.",
-      "transport-options": {
-        "relative": true
-      }
+      "homepage": "https://github.com/sailantis/clarity-engine",
+      "keywords": [
+        "compiler",
+        "template",
+        "template-engine",
+        "templating",
+        "twig",
+        "view"
+      ],
+      "support": {
+        "issues": "https://github.com/sailantis/clarity-engine/issues",
+        "source": "https://github.com/sailantis/clarity-engine"
+      },
+      "time": "2026-09-28T18:42:31+00:00"
     }
   ],
   "packages-dev": [
@@ -5985,9 +6001,7 @@
   ],
   "aliases": [],
   "minimum-stability": "stable",
-  "stability-flags": {
-    "sailantis/clarity-engine": 20
-  },
+  "stability-flags": {},
   "prefer-stable": false,
   "prefer-lowest": false,
   "platform": {

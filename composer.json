@@ -2,20 +2,21 @@
   "name": "sailantis/azera-framework",
   "description": "A lightweight, fast PHP framework for building modern web and cli applications. Azera combines the best ideas from frameworks like Phalcon, CodeIgniter, Laravel and Twig into a minimal yet powerful toolkit.",
   "type": "library",
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../clarity-engine"
-    }
-  ],
+  "keywords": ["framework", "php", "mvc", "orm", "router", "cli", "query-builder", "php-framework"],
+  "homepage": "https://github.com/sailantis/azera-framework",
+  "support": {
+    "issues": "https://github.com/sailantis/azera-framework/issues",
+    "source": "https://github.com/sailantis/azera-framework"
+  },
+  "bin": ["bin/azera"],
   "require": {
     "php": ">=8.2",
     "ext-mbstring": "*",
     "ext-pdo": "*",
-    "sailantis/clarity-engine": "dev-main",
-    "psr/log": "3.0",
-    "psr/event-dispatcher": "1.0",
-    "psr/simple-cache": "3.0"
+    "sailantis/clarity-engine": "^0.1",
+    "psr/log": "^3.0",
+    "psr/event-dispatcher": "^1.0",
+    "psr/simple-cache": "^3.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5",
@@ -31,6 +32,11 @@
     "ext-mongodb": "PHP driver for MongoDB document persistence (Azera\\Orm\\Storage\\MongoStore)"
   },
   "license": "MIT",
+  "authors": [
+    {
+      "name": "Sailantis"
+    }
+  ],
   "autoload": {
     "psr-4": {
       "Azera\\": "src/"
@@ -44,5 +50,8 @@
   "scripts": {
     "test": "phpunit",
     "bench:metadata-l2": "php benchmarks/metadata-l2-cache.php"
+  },
+  "config": {
+    "sort-packages": true
   }
 }
