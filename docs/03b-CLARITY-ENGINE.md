@@ -507,22 +507,22 @@ Rows are ordered by median, fastest first. Two engines sitting next to each othe
 
 | Engine | First render (ms) | Mean (ms) | Median (ms) | Min (ms) | p95 (ms) | Retained (MB) | Peak (MB) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Clarity | 5.869 | 0.436 | 0.421 | 0.396 | 0.505 | 4.28 | 4.88 |
-| Stempler | 13.352 | 0.442 | 0.427 | 0.402 | 0.514 | 4.63 | 5.06 |
-| Native | 0.804 | 0.464 | 0.450 | 0.422 | 0.534 | 3.15 | 3.57 |
-| Plates | 1.605 | 0.550 | 0.531 | 0.501 | 0.639 | 3.25 | 3.67 |
-| Blade | 13.534 | 0.753 | 0.729 | 0.688 | 0.869 | 5.58 | 6.06 |
-| Twig | 18.021 | 1.282 | 1.246 | 1.189 | 1.486 | 5.50 | 5.82 |
+| Clarity | 14.726 | 0.432 | 0.418 | 0.397 | 0.501 | 1.03 | 1.52 |
+| Stempler | 22.536 | 0.440 | 0.428 | 0.402 | 0.505 | 1.29 | 1.71 |
+| Native | 0.661 | 0.460 | 0.447 | 0.422 | 0.526 | 0.79 | 1.52 |
+| Plates | 2.532 | 0.547 | 0.529 | 0.500 | 0.633 | 0.86 | 1.52 |
+| Blade | 30.786 | 0.760 | 0.734 | 0.692 | 0.888 | 1.57 | 2.05 |
+| Twig | 36.686 | 1.289 | 1.248 | 1.193 | 1.507 | 1.48 | 1.79 |
 
-**Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · SAPI cli · OPcache (`opcache.enable_cli`): yes · Memory probe: `opcache.enable_cli=0 (probe children run opcache-cold)`
+**Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · SAPI cli · OPcache (`opcache.enable_cli`): yes · Memory probe: `a fresh process with opcache.enable_cli=1 but a per-process CLI segment, so engine source is compiled in that process`
 
 **Budget** — 10,000 renders × 30 runs, 200 items per render
 
-**Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs x iterations-per-run timed renders. No order: each (engine, page) cell is measured in its own process, so measurement order cannot affect a cell. The first render was measured as one render in a fresh process with a cold cache: engine class loading, template compile, cache write and one render.
+**Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs x iterations-per-run timed renders. No order: each (engine, page) cell is measured in its own process, so measurement order cannot affect a cell. The first render was measured as one render in a fresh process with a cold template cache: engine class loading, template compile, cache write and one render.
 
-**Engines** — Clarity dev-main (716c59c) · NativeEngine (Azera) 0.1.0 (46df5ef) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2
+**Engines** — Clarity dev-main (0a1c64d) · NativeEngine (Azera) dev-main (v0.1.0+dirty) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2
 
-_Measured 2026-09-28T18:00:45+00:00_
+_Measured 2026-09-29T22:42:39+00:00_
 
 Full report — every chart, including the first render (measured in a fresh process per engine) and per-render memory: <https://sailantis.github.io/azera-competition/benchmarks/view-engine.html>
 <!-- view-engine:end -->
