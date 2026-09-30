@@ -4,7 +4,7 @@
     "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
     "This file is @generated automatically"
   ],
-  "content-hash": "c3d255d1685ae0e7660b3bfb0b23626a",
+  "content-hash": "45838d30e145b94dff3825513228f578",
   "packages": [
     {
       "name": "psr/event-dispatcher",
@@ -159,21 +159,21 @@
     },
     {
       "name": "sailantis/clarity-engine",
-      "version": "v0.1.0",
+      "version": "v0.2.0",
       "source": {
         "type": "git",
         "url": "https://github.com/sailantis/clarity-engine.git",
-        "reference": "dd0f5407bc1cafea4651f8d05a1d808794bab03c"
+        "reference": "8e4a6334260542af5d65792f12e6da23c3ce13dc"
       },
       "dist": {
         "type": "zip",
-        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/dd0f5407bc1cafea4651f8d05a1d808794bab03c",
-        "reference": "dd0f5407bc1cafea4651f8d05a1d808794bab03c",
+        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/8e4a6334260542af5d65792f12e6da23c3ce13dc",
+        "reference": "8e4a6334260542af5d65792f12e6da23c3ce13dc",
         "shasum": ""
       },
       "require": {
         "ext-mbstring": "*",
-        "php": ">=8.1"
+        "php": ">=8.2"
       },
       "require-dev": {
         "phpdocumentor/reflection-docblock": "^6.0",
@@ -211,7 +211,7 @@
         "issues": "https://github.com/sailantis/clarity-engine/issues",
         "source": "https://github.com/sailantis/clarity-engine"
       },
-      "time": "2026-09-28T18:42:31+00:00"
+      "time": "2026-09-30T19:31:11+00:00"
     }
   ],
   "packages-dev": [
