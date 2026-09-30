@@ -32,6 +32,7 @@ This is useful when you want interception on a single operation without marking 
 4. Register the service for **autowiring** (class string, not a factory)
 
 When `AppContext::build()` instantiates the class, it detects `#[Advised]` and generates a proxy class that:
+
 - Extends the target class (the proxy **is** the instance)
 - Overrides advised methods to wrap `parent::method()` in the interceptor chain
 - Leaves non-advised methods untouched (zero overhead)
@@ -86,10 +87,10 @@ class OrderService
 The service **must** be registered as a class string (autowiring) for the proxy to be generated. `AppContext::build()` is only called when the definition is a class string — if you use a factory closure, the returned object is stored directly and no proxy is created:
 
 ```php
-// ✅ Correct — build() generates the proxy
+// Correct: build() generates the proxy
 $ctx->set(OrderService::class);
 
-// ❌ Wrong — factory returns a plain instance, no proxy
+// Wrong: factory returns a plain instance, no proxy
 $ctx->set(OrderService::class, fn() => new OrderService(...));
 ```
 
@@ -97,7 +98,7 @@ Constructor dependencies are resolved automatically from the container during au
 
 ## Built-in Advice Attributes
 
-### `#[Transactional]`
+### #[Transactional]
 
 Wraps the method in a database transaction:
 
@@ -113,7 +114,7 @@ public function transferMoney(int $from, int $to, float $amount): void
 - Supports savepoint nesting (nested `#[Transactional]` methods use savepoints)
 - Specify a connection role: `#[Transactional(connection: 'analytics')]`
 
-### `#[Cache(ttl: int, key: ?string)]`
+### #[Cache(ttl: int, key: ?string)]
 
 Caches the method's return value:
 
@@ -129,7 +130,7 @@ public function getProfile(int $id): array
 - `key` — cache key with `{argName}` placeholders (auto-generated if omitted)
 - Uses `AppContext::cache()` (PSR-16)
 
-### `#[Retry(times: int, backoff: int)]`
+### #[Retry(times: int, backoff: int)]
 
 Retries the method on failure:
 
@@ -142,7 +143,7 @@ public function callExternalApi(): Response
 }
 ```
 
-### `#[Log(level: string, logArgs: bool)]`
+### #[Log(level: string, logArgs: bool)]
 
 Logs method entry, exit, duration, and exceptions:
 
@@ -221,11 +222,11 @@ class OrderService
 
 ## Performance
 
-| Scenario | Cost |
-|---|---|
-| No interceptors registered | Zero — `build()` returns a plain instance |
-| Interceptors registered, class has no `#[Advised]` | Zero — `build()` returns a plain instance |
-| Class has `#[Advised]` but no advised methods | One-time `ReflectionMethod` scan, then plain instance |
-| Class has `#[Advised]` with advised methods | One-time proxy generation, then OPcache'd proxy class |
+| Scenario                                           | Cost                                                  |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| No interceptors registered                         | Zero — `build()` returns a plain instance             |
+| Interceptors registered, class has no `#[Advised]` | Zero — `build()` returns a plain instance             |
+| Class has `#[Advised]` but no advised methods      | One-time `ReflectionMethod` scan, then plain instance |
+| Class has `#[Advised]` with advised methods        | One-time proxy generation, then OPcache'd proxy class |
 
 Non-advised methods on a proxied class have **zero overhead** — they are not overridden and call the parent directly.
