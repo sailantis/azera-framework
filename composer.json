@@ -23,6 +23,7 @@
     "phpdocumentor/reflection-docblock": "^6.0",
     "twig/twig": "^3.8",
     "league/plates": "^3.6",
+    "latte/latte": "^3.1",
     "illuminate/view": "^10.49",
     "spiral/stempler-bridge": "^3.17",
     "mongodb/mongodb": "^2.4"
