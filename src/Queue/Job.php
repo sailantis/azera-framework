@@ -7,7 +7,7 @@ namespace Azera\Queue;
  *
  * Extend this class to create a job without boilerplate:
  *
- * <code>
+ * ```php
  * class SendWelcomeEmailJob extends Job
  * {
  *     public function __construct(private string $email) {}
@@ -17,7 +17,7 @@ namespace Azera\Queue;
  *         Mailer::send($this->email, 'Welcome!');
  *     }
  * }
- * </code>
+ * ```
  */
 abstract class Job implements JobInterface
 {

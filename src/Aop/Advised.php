@@ -12,7 +12,7 @@ namespace Azera\Aop;
  *
  * Place on any class that has methods with advice attributes:
  *
- * <code>
+ * ```php
  * #[Advised]
  * class BillingService
  * {
@@ -22,7 +22,7 @@ namespace Azera\Aop;
  *     #[Cache(ttl: 300)]
  *     public function loadProfile(User $u): Profile { ... }
  * }
- * </code>
+ * ```
  */
 #[\Attribute(\Attribute::TARGET_CLASS)]
 class Advised

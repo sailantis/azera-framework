@@ -6,13 +6,16 @@ namespace Azera\Validation;
  * Fluent validator for a single input field.
  *
  * Chain rules to describe what the field must look like.
- * The validator is executed by {@see Validator} (or the nested model/list machinery)
+ * The validator is executed by {@see Validator}
+ * (or the nested model/list machinery)
  * via the internal {@see validate()} method.
  *
  * Example:
+ * ```php
  *   $v->field('email')->required()->email()->max(255);
  *   $v->field('age')->optional()->int()->min(18)->max(120);
  *   $v->field('tags')->optional()->list(fn($f) => $f->string()->max(50));
+ * ```
  */
 class FieldValidator
 {
@@ -37,23 +40,23 @@ class FieldValidator
     // ---- Error templates ----------------------------------------------------
 
     private const TEMPLATES = [
-        'required' => 'required',
-        'type.int' => 'must be an integer',
+        'required'   => 'required',
+        'type.int'   => 'must be an integer',
         'type.float' => 'must be a number',
-        'type.bool' => 'must be a boolean (true/false, yes/no, on/off, 1/0)',
+        'type.bool'  => 'must be a boolean (true/false, yes/no, on/off, 1/0)',
         'min.string' => 'must have at least {min} characters',
         'min.number' => 'must be at least {min}',
-        'min.array' => 'must have at least {min} items',
+        'min.array'  => 'must have at least {min} items',
         'max.string' => 'must have at most {max} characters',
         'max.number' => 'must be at most {max}',
-        'max.array' => 'must have at most {max} items',
-        'email' => 'must be a valid email address',
-        'url' => 'must be a valid URL',
-        'ip' => 'must be a valid IP address',
-        'domain' => 'must be a valid domain name',
-        'pattern' => 'has an invalid format',
-        'in' => 'must be one of: {allowed}',
-        'not_array' => 'must be an array',
+        'max.array'  => 'must have at most {max} items',
+        'email'      => 'must be a valid email address',
+        'url'        => 'must be a valid URL',
+        'ip'         => 'must be a valid IP address',
+        'domain'     => 'must be a valid domain name',
+        'pattern'    => 'has an invalid format',
+        'in'         => 'must be one of: {allowed}',
+        'not_array'  => 'must be an array',
         'not_object' => 'must be an object',
     ];
 
@@ -66,8 +69,8 @@ class FieldValidator
     private function buildError(string $code, array $params = []): array
     {
         return [
-            'code' => $code,
-            'params' => $params,
+            'code'     => $code,
+            'params'   => $params,
             'template' => self::TEMPLATES[$code] ?? $code,
         ];
     }
@@ -98,7 +101,7 @@ class FieldValidator
      */
     public function default(mixed $value): static
     {
-        $this->hasDefault = true;
+        $this->hasDefault   = true;
         $this->defaultValue = $value;
         $this->requiredFlag = false; // a default makes required() meaningless
         return $this;
@@ -365,27 +368,27 @@ class FieldValidator
     private function applyMinMax(mixed $value, string $path, array &$errors): bool
     {
         if (is_string($value)) {
-            $n = mb_strlen($value);
+            $n    = mb_strlen($value);
             $noun = 'characters';
         } elseif (is_int($value) || is_float($value)) {
-            $n = $value;
+            $n    = $value;
             $noun = null;
         } elseif (is_array($value)) {
-            $n = count($value);
+            $n    = count($value);
             $noun = 'items';
         } else {
             return true;
         }
 
         if ($this->min !== null && $n < $this->min) {
-            $min = (int) $this->min == $this->min ? (int) $this->min : $this->min;
+            $min  = (int) $this->min == $this->min ? (int) $this->min : $this->min;
             $code = $noun === 'characters' ? 'min.string' : ($noun === 'items' ? 'min.array' : 'min.number');
             $errors[$path] = $this->buildError($code, ['min' => $min]);
             return false;
         }
 
         if ($this->max !== null && $n > $this->max) {
-            $max = (int) $this->max == $this->max ? (int) $this->max : $this->max;
+            $max  = (int) $this->max == $this->max ? (int) $this->max : $this->max;
             $code = $noun === 'characters' ? 'max.string' : ($noun === 'items' ? 'max.array' : 'max.number');
             $errors[$path] = $this->buildError($code, ['max' => $max]);
             return false;
@@ -447,8 +450,8 @@ class FieldValidator
                 if ($result !== null) {
                     if (is_array($result)) {
                         $errors[$path] = [
-                            'code' => $result['code'],
-                            'params' => $result['params'] ?? [],
+                            'code'     => $result['code'],
+                            'params'   => $result['params'] ?? [],
                             'template' => $result['template'] ?? (self::TEMPLATES[$result['code']] ?? $result['code']),
                         ];
                     } else {
@@ -471,9 +474,9 @@ class FieldValidator
 
         $result = [];
         foreach ($value as $i => $item) {
-            $subPath = $path . '[' . $i . ']';
+            $subPath      = $path . '[' . $i . ']';
             $errorsBefore = count($errors);
-            $sub = $this->listSubValidator->validate($item, $subPath, $errors);
+            $sub          = $this->listSubValidator->validate($item, $subPath, $errors);
             if (count($errors) === $errorsBefore) {
                 $result[$i] = $sub;
             }
@@ -505,7 +508,7 @@ class FieldValidator
             }
 
             $errorsBefore = count($errors);
-            $sub = $fv->validate($value[$key], $subPath, $errors);
+            $sub          = $fv->validate($value[$key], $subPath, $errors);
             if (count($errors) === $errorsBefore) {
                 $result[$key] = $sub;
             }

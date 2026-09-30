@@ -12,7 +12,7 @@ use Throwable;
  * the corresponding methods.
  *
  * Example:
- * <code>
+ * ```php
  * class SyncStripeSeatsJob implements JobInterface
  * {
  *     public function __construct(private string $subscriptionId) {}
@@ -25,7 +25,7 @@ use Throwable;
  *
  *     public function tries(): int { return 3; }
  * }
- * </code>
+ * ```
  */
 interface JobInterface
 {

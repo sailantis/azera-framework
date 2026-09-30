@@ -11,13 +11,13 @@ namespace Azera\Aop;
  * chain for each advised method.
  *
  * Example:
- * <code>
+ * ```php
  * #[\Attribute(\Attribute::TARGET_METHOD)]
  * class Transactional extends Advice
  * {
  *     public function __construct(public readonly ?string $connection = null) {}
  * }
- * </code>
+ * ```
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
 abstract class Advice

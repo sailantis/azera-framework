@@ -13,7 +13,7 @@ namespace Azera\Aop;
  * A custom key template can be provided with `{argName}` placeholders.
  *
  * Example:
- * <code>
+ * ```php
  * #[Advised]
  * class UserService
  * {
@@ -23,7 +23,7 @@ namespace Azera\Aop;
  *     #[Cache(ttl: 600, key: 'user_{userId}_profile')]
  *     public function loadProfile(int $userId): Profile { ... }
  * }
- * </code>
+ * ```
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Cache extends Advice

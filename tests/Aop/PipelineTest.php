@@ -163,7 +163,8 @@ class PipelineTest extends TestCase
      */
     public function testInterceptorsReceiveANamedDeclaringClass(): void
     {
-        $spy = new class implements \Azera\Aop\InterceptorInterface {
+        $spy = new class implements \Azera\Aop\InterceptorInterface
+        {
             public ?string $className = null;
 
             public function intercept(

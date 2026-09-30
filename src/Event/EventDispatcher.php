@@ -21,14 +21,14 @@ use RuntimeException;
  * the same priority run in registration order.
  *
  * Example:
- * <code>
+ * ```php
  * $dispatcher = new EventDispatcher();
  * $dispatcher->listen(UserCreated::class, function (UserCreated $e) {
  *     // send welcome email
  * });
  * $dispatcher->listen(UserCreated::class, SendWelcomeEmailListener::class, priority: 10);
  * $dispatcher->dispatch(new UserCreated($user));
- * </code>
+ * ```
  */
 class EventDispatcher implements EventDispatcherInterface
 {

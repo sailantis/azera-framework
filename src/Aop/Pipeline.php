@@ -17,19 +17,19 @@ use Throwable;
  * pipeline.
  *
  * Example:
- * <code>
+ * ```php
  * $result = $ctx->pipeline()
  *     ->through([new RetryInterceptor(3), new LogInterceptor($logger)])
  *     ->call(fn() => $service->chargeCard(100));
- * </code>
+ * ```
  *
  * Or the short form:
- * <code>
+ * ```php
  * $result = Pipeline::wrap(
  *     [new RetryInterceptor(3), new LogInterceptor($logger)],
  *     fn() => $service->chargeCard(100),
  * );
- * </code>
+ * ```
  */
 class Pipeline
 {

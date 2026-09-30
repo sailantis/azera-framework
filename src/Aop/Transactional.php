@@ -12,7 +12,7 @@ namespace Azera\Aop;
  * Supports nested transactions via savepoints (see Database::begin(nesting: true)).
  *
  * Example:
- * <code>
+ * ```php
  * #[Advised]
  * class BillingService
  * {
@@ -22,7 +22,7 @@ namespace Azera\Aop;
  *     #[Transactional('analytics')]
  *     public function logEvent(Event $e): void { ... }
  * }
- * </code>
+ * ```
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Transactional extends Advice

@@ -19,7 +19,7 @@ use ReflectionMethod;
  * - Catch/transform exceptions thrown by `$next()`
  *
  * Example:
- * <code>
+ * ```php
  * class TransactionalInterceptor implements InterceptorInterface
  * {
  *     public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed
@@ -35,7 +35,7 @@ use ReflectionMethod;
  *         }
  *     }
  * }
- * </code>
+ * ```
  */
 interface InterceptorInterface
 {

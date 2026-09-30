@@ -10,14 +10,14 @@ namespace Azera\Aop;
  * attempts.
  *
  * Example:
- * <code>
+ * ```php
  * #[Advised]
  * class ApiService
  * {
  *     #[Retry(times: 3, backoff: 100)]
  *     public function callExternalApi(): Response { ... }
  * }
- * </code>
+ * ```
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Retry extends Advice

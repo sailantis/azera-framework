@@ -9,7 +9,7 @@ namespace Azera\Config;
  * nested array. Namespaces are separated by a dot.
  *
  * Example:
- * <code>
+ * ```php
  * $config = new Config([
  *     'db' => ['dsn' => 'mysql:host=localhost', 'user' => 'root'],
  *     'app' => ['name' => 'Azera'],
@@ -18,7 +18,7 @@ namespace Azera\Config;
  * $config->get('app.name');    // 'Azera'
  * $config->get('missing', 'fallback'); // 'fallback'
  * $config->set('app.env', 'prod');
- * </code>
+ * ```
  */
 class Config
 {
@@ -63,7 +63,7 @@ class Config
     public function set(string $key, mixed $value): void
     {
         $segments = explode('.', $key);
-        $current  =& $this->data;
+        $current  = &$this->data;
 
         foreach ($segments as $i => $segment) {
             if ($i === count($segments) - 1) {
@@ -75,7 +75,7 @@ class Config
                 $current[$segment] = [];
             }
 
-            $current =& $current[$segment];
+            $current = &$current[$segment];
         }
     }
 
@@ -159,8 +159,8 @@ class Config
         foreach ($override as $key => $value) {
             if (
                 is_array($value)
-                && isset($base[$key])
-                && is_array($base[$key])
+                    && isset($base[$key])
+                    && is_array($base[$key])
             ) {
                 $base[$key] = $this->mergeRecursive($base[$key], $value);
             } else {

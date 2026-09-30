@@ -6,7 +6,7 @@ namespace Azera\Validation;
  * Validates and coerces an associative input array against a set of field rules.
  *
  * Usage:
- * 
+ *
  * ```php
  *   $v = new Validator($request->post());
  *
@@ -24,7 +24,7 @@ namespace Azera\Validation;
  *   }
  *   $data = $v->validated();
  * ```
- * 
+ *
  * Or in a single call (throws ValidationException on failure):
  *
  * ```php
@@ -67,6 +67,7 @@ class Validator
      * the English default.
      *
      * Error codes and their $params keys / types:
+     * ```php
      *   required, type.int, type.float, type.bool,
      *   email, url, ip, domain, pattern,
      *   not_array, not_object              => params is []
@@ -74,6 +75,50 @@ class Validator
      *   max.string, max.number, max.array  => ['max' => int|float]
      *   in                                 => ['allowed' => array<mixed>]
      *   custom                             => [] (template is the callback's own message)
+     * ```
+     *
+     * Example:
+     *
+     * ```php
+     *   $v = new Validator($request->post());
+     *   $v->field('name')->string()->min(3);
+     *   $v->field('email')->email();
+     *   $v->field('role')->in(['admin', 'editor']);
+     *
+     *   $de = [
+     *       'required'   => 'Pflichtfeld',
+     *       'email'      => 'muss eine gültige E-Mail-Adresse sein',
+     *       'min.string' => 'muss mindestens {min} Zeichen haben',
+     *       'in'         => 'muss einer der folgenden Werte sein: {allowed}',
+     *   ];
+     *
+     *   $v->setTranslator(fn ($field, $code, $params, $template): string
+     *       => $de[$code] ?? $template);
+     *
+     *   $v->errors(); // ['email' => 'muss eine gültige E-Mail-Adresse sein', ...]
+     * ```
+     *
+     * Return a fully rendered string when you need to format the values yourself
+     * (the framework's {placeholder} pass is then a no-op):
+     *
+     * ```php
+     *   $v->setTranslator(function ($field, $code, $params, $template): string {
+     *       if ($code === 'in') {
+     *           return 'muss einer der folgenden Werte sein: ' . implode(' / ', $params['allowed']);
+     *       }
+     *       return $template; // fall back to the English default
+     *   });
+     * ```
+     *
+     * It returns `$this`, so it can be chained onto the constructor:
+     *
+     * ```php
+     *   $v = (new Validator($data))->setTranslator($translator);
+     * ```
+     *
+     * The arguments are positional — keep all four in the order given above.
+     * PHP tolerates a shorter signature, but the declared parameters then bind
+     * to the wrong values.
      *
      * @param callable(string $field, string $code, array<string,mixed> $params, string $template): string $fn
      */

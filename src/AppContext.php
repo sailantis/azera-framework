@@ -314,11 +314,11 @@ class AppContext
      * also work here.
      *
      * Example:
-     * <code>
+     * ```php
      * $result = $ctx->pipeline()
      *     ->through([new RetryInterceptor(3), new LogInterceptor($logger)])
      *     ->call(fn() => $service->chargeCard(100));
-     * </code>
+     * ```
      *
      * @param InterceptorInterface[] $interceptors
      * @return \Azera\Aop\Pipeline

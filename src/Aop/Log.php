@@ -9,14 +9,14 @@ namespace Azera\Aop;
  * any exceptions. Useful for debugging and audit trails.
  *
  * Example:
- * <code>
+ * ```php
  * #[Advised]
  * class PaymentService
  * {
  *     #[Log(level: 'info')]
  *     public function processPayment(Payment $p): Result { ... }
  * }
- * </code>
+ * ```
  */
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Log extends Advice
