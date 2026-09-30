@@ -1,4 +1,4 @@
-# 🧩 Class: Response
+# Class: Response
 
 **Full name:** [Azera\Http\Response](../../src/Http/Response.php)
 
@@ -8,15 +8,15 @@ Build a response by chaining setters and finish by calling `send()`,
 or use one of the static factory methods (`json()`, `html()`,
 `redirect()`, etc.) for common cases.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Http/Response.php#L20)
+### __construct() · <small>[🗎](../../src/Http/Response.php#L20)</small>
 
 `public function __construct(int $status = 200, array $headers = [], string $body = ''): mixed`
 
 Create a new Response.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -24,257 +24,257 @@ Create a new Response.
 | `$headers` | array | `[]` | Associative array of response headers. |
 | `$body` | string | `''` | Response body. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### setStatus() · [source](../../src/Http/Response.php#L32)
+### setStatus() · <small>[🗎](../../src/Http/Response.php#L32)</small>
 
 `public function setStatus(int $code): static`
 
 Set the HTTP status code.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$code` | int | - | HTTP status code (e.g. 200, 404). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getStatus() · [source](../../src/Http/Response.php#L43)
+### getStatus() · <small>[🗎](../../src/Http/Response.php#L43)</small>
 
 `public function getStatus(): int`
 
 Get the HTTP status code.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### getHeader() · [source](../../src/Http/Response.php#L55)
+### getHeader() · <small>[🗎](../../src/Http/Response.php#L55)</small>
 
 `public function getHeader(string $name, mixed $default = null): mixed`
 
 Get a response header value, or a default when not set.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Header name. |
 | `$default` | mixed | `null` | Default when the header is absent. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### getHeaders() · [source](../../src/Http/Response.php#L65)
+### getHeaders() · <small>[🗎](../../src/Http/Response.php#L65)</small>
 
 `public function getHeaders(): array`
 
 Get all response headers.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### getBody() · [source](../../src/Http/Response.php#L73)
+### getBody() · <small>[🗎](../../src/Http/Response.php#L73)</small>
 
 `public function getBody(): string`
 
 Get the response body.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### setHeader() · [source](../../src/Http/Response.php#L85)
+### setHeader() · <small>[🗎](../../src/Http/Response.php#L85)</small>
 
 `public function setHeader(string $key, string $value): static`
 
 Set a response header.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - | Header name (e.g. "Content-Type"). |
 | `$value` | string | - | Header value. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### setHeaders() · [source](../../src/Http/Response.php#L97)
+### setHeaders() · <small>[🗎](../../src/Http/Response.php#L97)</small>
 
 `public function setHeaders(array $headers): static`
 
 Set multiple response headers.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$headers` | array | - | Associative array of headers (e.g. ["Content-Type" => "application/json"]). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### write() · [source](../../src/Http/Response.php#L109)
+### write() · <small>[🗎](../../src/Http/Response.php#L109)</small>
 
 `public function write(string $text): static`
 
 Append text to the response body.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - | Content to append. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### send() · [source](../../src/Http/Response.php#L118)
+### send() · <small>[🗎](../../src/Http/Response.php#L118)</small>
 
 `public function send(): void`
 
 Send the response: emit the status code, headers, and body.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### json() · [source](../../src/Http/Response.php#L136)
+### json() · <small>[🗎](../../src/Http/Response.php#L136)</small>
 
 `public static function json(mixed $data, int $status = 200): static`
 
 Create a JSON response.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$data` | mixed | - | Data to JSON-encode. |
 | `$status` | int | `200` | HTTP status code (default 200). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### text() · [source](../../src/Http/Response.php#L152)
+### text() · <small>[🗎](../../src/Http/Response.php#L152)</small>
 
 `public static function text(string $text, int $status = 200): static`
 
 Create a plain-text response.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - | Response body. |
 | `$status` | int | `200` | HTTP status code (default 200). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### html() · [source](../../src/Http/Response.php#L168)
+### html() · <small>[🗎](../../src/Http/Response.php#L168)</small>
 
 `public static function html(string $html, int $status = 200): static`
 
 Create an HTML response.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$html` | string | - | HTML content. |
 | `$status` | int | `200` | HTTP status code (default 200). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### redirect() · [source](../../src/Http/Response.php#L184)
+### redirect() · <small>[🗎](../../src/Http/Response.php#L184)</small>
 
 `public static function redirect(string $url, int $status = 302): static`
 
 Create a redirect response.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$url` | string | - | URL to redirect to. |
 | `$status` | int | `302` | HTTP redirect status code (default 302). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### status() · [source](../../src/Http/Response.php#L199)
+### status() · <small>[🗎](../../src/Http/Response.php#L199)</small>
 
 `public static function status(int $status): static`
 
 Create a response with only a status code and an empty body.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$status` | int | - | HTTP status code. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 

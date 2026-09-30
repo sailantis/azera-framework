@@ -1,4 +1,4 @@
-# 🧩 Class: ValidationException
+# Class: ValidationException
 
 **Full name:** [Azera\Validation\ValidationException](../../src/Validation/ValidationException.php)
 
@@ -7,32 +7,32 @@ Thrown by Validator::validate() when one or more field rules fail.
 The errors array is keyed by dot-path field name (e.g. "address.zip", "tags[0]")
 and each value is a human-readable error message string.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Validation/ValidationException.php#L16)
+### __construct() · <small>[🗎](../../src/Validation/ValidationException.php#L16)</small>
 
 `public function __construct(array $errors): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$errors` | array | - | Dot-path field errors. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### errors() · [source](../../src/Validation/ValidationException.php#L24)
+### errors() · <small>[🗎](../../src/Validation/ValidationException.php#L24)</small>
 
 `public function errors(): array`
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

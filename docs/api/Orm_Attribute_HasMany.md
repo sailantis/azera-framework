@@ -1,4 +1,4 @@
-# 🧩 Class: HasMany
+# Class: HasMany
 
 **Full name:** [Azera\Orm\Attribute\HasMany](../../src/Orm/Attribute/HasMany.php)
 
@@ -11,19 +11,19 @@ the TARGET table, ownerKey = this model's first ID field.
 Default load strategy: SECOND QUERY by parent IDs (never a JOIN —
 joined to-many duplicates parent rows).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$target` · [source](../../src/Orm/Attribute/HasMany.php)
-- `public` string|null `$foreignKey` · [source](../../src/Orm/Attribute/HasMany.php)
-- `public` string|null `$ownerKey` · [source](../../src/Orm/Attribute/HasMany.php)
+- `public` string `$target` · <small>[🗎](../../src/Orm/Attribute/HasMany.php)</small>
+- `public` string|null `$foreignKey` · <small>[🗎](../../src/Orm/Attribute/HasMany.php)</small>
+- `public` string|null `$ownerKey` · <small>[🗎](../../src/Orm/Attribute/HasMany.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Attribute/HasMany.php#L18)
+### __construct() · <small>[🗎](../../src/Orm/Attribute/HasMany.php#L18)</small>
 
 `public function __construct(string $target, string|null $foreignKey = null, string|null $ownerKey = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -31,9 +31,9 @@ joined to-many duplicates parent rows).
 | `$foreignKey` | string\|null | `null` |  |
 | `$ownerKey` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

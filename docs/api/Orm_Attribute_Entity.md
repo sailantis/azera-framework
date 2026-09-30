@@ -1,4 +1,4 @@
-# 🧩 Class: Entity
+# Class: Entity
 
 **Full name:** [Azera\Orm\Attribute\Entity](../../src/Orm/Attribute/Entity.php)
 
@@ -23,19 +23,19 @@ Precedence: a source()/schema() override on the model still wins over
 the attribute (dynamic > static); the attribute wins over the naming
 convention.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string|null `$name` · [source](../../src/Orm/Attribute/Entity.php)
-- `public` string|null `$schema` · [source](../../src/Orm/Attribute/Entity.php)
-- `public` string|null `$store` · [source](../../src/Orm/Attribute/Entity.php)
+- `public` string|null `$name` · <small>[🗎](../../src/Orm/Attribute/Entity.php)</small>
+- `public` string|null `$schema` · <small>[🗎](../../src/Orm/Attribute/Entity.php)</small>
+- `public` string|null `$store` · <small>[🗎](../../src/Orm/Attribute/Entity.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Attribute/Entity.php#L30)
+### __construct() · <small>[🗎](../../src/Orm/Attribute/Entity.php#L30)</small>
 
 `public function __construct(string|null $name = null, string|null $schema = null, string|null $store = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -43,9 +43,9 @@ convention.
 | `$schema` | string\|null | `null` |  |
 | `$store` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

@@ -1,20 +1,20 @@
-# 🧩 Class: IndexSchema
+# Class: IndexSchema
 
 **Full name:** [Azera\Sync\Schema\IndexSchema](../../src/Sync/Schema/SchemaProvider.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$name` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` bool `$unique` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` array `$columns` · [source](../../src/Sync/Schema/SchemaProvider.php)
+- `public` string `$name` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` bool `$unique` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` array `$columns` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/Schema/SchemaProvider.php#L49)
+### __construct() · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php#L49)</small>
 
 `public function __construct(string $name, bool $unique, array $columns): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -22,9 +22,9 @@
 | `$unique` | bool | - |  |
 | `$columns` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

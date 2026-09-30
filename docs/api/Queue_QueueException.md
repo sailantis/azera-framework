@@ -1,10 +1,10 @@
-# 🧩 Class: QueueException
+# Class: QueueException
 
 **Full name:** [Azera\Queue\QueueException](../../src/Queue/QueueException.php)
 
 Exception thrown for queue-related errors.
 
-## 🚀 Public methods
+## Public methods
 
 
 

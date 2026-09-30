@@ -1,4 +1,4 @@
-# 🧩 Class: Sql
+# Class: Sql
 
 **Full name:** [Azera\Db\Sql](../../src/Db/Sql.php)
 
@@ -8,7 +8,7 @@ Represents SQL expressions (functions, casts, arrays, etc.) that serialize at SQ
 Default behavior: serialize to literals (debug-friendly)
 Sql::param() creates a named binding reference (:name) for use with Query::bind()
 
-**💡 Example**
+**Example**
 
 ```php
 // Function with literals
@@ -29,49 +29,49 @@ Sql::cast(Sql::column('text_search'), 'tsvector')
 // MySQL: CAST(text_search AS tsvector)
 ```
 
-## 🚀 Public methods
+## Public methods
 
-### column() · [source](../../src/Db/Sql.php#L80)
+### column() · <small>[🗎](../../src/Db/Sql.php#L80)</small>
 
 `public static function column(string $name): static`
 
 Column reference (unquoted identifier)
 Supports Model.column syntax for automatic table resolution
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Column name (simple or Model.column format) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### param() · [source](../../src/Db/Sql.php#L96)
+### param() · <small>[🗎](../../src/Db/Sql.php#L96)</small>
 
 `public static function param(string $name): static`
 
 Named binding reference — emits :name in the SQL, resolved against
 the manual bindings supplied via Query::bind().
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Parameter name (must match a key in bind()) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### bind() · [source](../../src/Db/Sql.php#L110)
+### bind() · <small>[🗎](../../src/Db/Sql.php#L110)</small>
 
 `public static function bind(string $name, mixed $value): static`
 
@@ -81,171 +81,171 @@ real PDO named parameter (not inlined as an escaped literal).
 The value is merged into Query::$subQueryBindings and reaches
 Database::query() via PDO execute().
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Parameter name |
 | `$value` | mixed | - | Parameter value |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### usesPdoBinding() · [source](../../src/Db/Sql.php#L122)
+### usesPdoBinding() · <small>[🗎](../../src/Db/Sql.php#L122)</small>
 
 `public function usesPdoBinding(): bool`
 
 Whether this node's bind parameters should be passed as real PDO named
 parameters rather than inlined as escaped literals.
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### func() · [source](../../src/Db/Sql.php#L133)
+### func() · <small>[🗎](../../src/Db/Sql.php#L133)</small>
 
 `public static function func(string $name, array $args = []): static`
 
 SQL function call
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Function name |
 | `$args` | array | `[]` | Function arguments (scalars or Sql instances) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### cast() · [source](../../src/Db/Sql.php#L144)
+### cast() · <small>[🗎](../../src/Db/Sql.php#L144)</small>
 
 `public static function cast(mixed $value, string $type): static`
 
 Type cast (driver-specific syntax)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - | Value to cast (scalar or Sql) |
 | `$type` | string | - | Target type name |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### pgArray() · [source](../../src/Db/Sql.php#L154)
+### pgArray() · <small>[🗎](../../src/Db/Sql.php#L154)</small>
 
 `public static function pgArray(array $values): static`
 
 PostgreSQL array literal
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | array | - | Array elements (scalars or Sql instances) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### csList() · [source](../../src/Db/Sql.php#L164)
+### csList() · <small>[🗎](../../src/Db/Sql.php#L164)</small>
 
 `public static function csList(array $values): static`
 
 Comma-separated list (for IN clauses)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | array | - | List elements (scalars or Sql instances) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### raw() · [source](../../src/Db/Sql.php#L175)
+### raw() · <small>[🗎](../../src/Db/Sql.php#L175)</small>
 
 `public static function raw(string $sql, array $inlineValues = []): static`
 
 Raw SQL (unescaped, passed through as-is)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$sql` | string | - | Raw SQL string |
 | `$inlineValues` | array | `[]` | Optional values to be replaced in the SQL (e.g. for :name placeholders), treated as literal values (escaped) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### value() · [source](../../src/Db/Sql.php#L187)
+### value() · <small>[🗎](../../src/Db/Sql.php#L187)</small>
 
 `public static function value(mixed $value): static`
 
 Literal value (will be properly quoted/escaped)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - | Value to serialize as SQL literal |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### json() · [source](../../src/Db/Sql.php#L197)
+### json() · <small>[🗎](../../src/Db/Sql.php#L197)</small>
 
 `public static function json(mixed $value): static`
 
 JSON value (serialized as JSON literal)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - | Value to encode as JSON |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### concat() · [source](../../src/Db/Sql.php#L209)
+### concat() · <small>[🗎](../../src/Db/Sql.php#L209)</small>
 
 `public static function concat(mixed ...$parts): static`
 
@@ -253,20 +253,20 @@ Driver-aware string concatenation
 PostgreSQL/SQLite: uses || operator
 MySQL: uses CONCAT() function
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$parts` | mixed | - | Parts to concatenate (scalars or Sql instances) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### expr() · [source](../../src/Db/Sql.php#L221)
+### expr() · <small>[🗎](../../src/Db/Sql.php#L221)</small>
 
 `public static function expr(mixed ...$parts): static`
 
@@ -274,26 +274,26 @@ Composite expression - concatenates parts with spaces
 Useful for complex expressions like CASE WHEN
 Plain strings are treated as raw SQL tokens (not serialized)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$parts` | mixed | - | Expression parts (strings are raw, use Sql instances for values) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### case() · [source](../../src/Db/Sql.php#L230)
+### case() · <small>[🗎](../../src/Db/Sql.php#L230)</small>
 
 `public static function case(): Azera\Db\SqlCase`
 
 CASE expression builder
 
-**➡️ Return value**
+**Return value**
 
 - Type: [SqlCase](Db_SqlCase.md)
 - Description: Fluent builder for CASE expressions
@@ -301,65 +301,65 @@ CASE expression builder
 
 ---
 
-### subQuery() · [source](../../src/Db/Sql.php#L240)
+### subQuery() · <small>[🗎](../../src/Db/Sql.php#L240)</small>
 
 `public static function subQuery(Azera\Db\Query $query): static`
 
 Subquery expression - wraps a Query instance as a subquery
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$query` | [Query](Db_Query.md) | - | Subquery instance |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### as() · [source](../../src/Db/Sql.php#L250)
+### as() · <small>[🗎](../../src/Db/Sql.php#L250)</small>
 
 `public function as(string $alias): static`
 
 Add alias to this expression (returns aliased node)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$alias` | string | - | Column alias |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getBindParams() · [source](../../src/Db/Sql.php#L260)
+### getBindParams() · <small>[🗎](../../src/Db/Sql.php#L260)</small>
 
 `public function getBindParams(): array`
 
 Get bind parameters associated with this node
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 - Description: Associative array of bind parameters
 
 
 ---
 
-### toSql() · [source](../../src/Db/Sql.php#L320)
+### toSql() · <small>[🗎](../../src/Db/Sql.php#L320)</small>
 
 `public function toSql(string $driver, callable $serialize, callable|null $protectIdentifier = null): string`
 
 Serialize node to SQL string
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -367,21 +367,21 @@ Serialize node to SQL string
 | `$serialize` | callable | - | Callback for serializing scalar values<br>Signature: fn(mixed $value, bool $param = false): string |
 | `$protectIdentifier` | callable\|null | `null` | Callback for identifier resolution and quoting<br>Signature: fn(string $identifier, ?string $alias = null, int $mode = 0): string<br>If not provided, falls back to simple driver-based quoting |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: SQL fragment
 
 
 ---
 
-### __toString() · [source](../../src/Db/Sql.php#L485)
+### __toString() · <small>[🗎](../../src/Db/Sql.php#L485)</small>
 
 `public function __toString(): string`
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 

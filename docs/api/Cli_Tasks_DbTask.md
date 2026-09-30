@@ -1,4 +1,4 @@
-# 🧩 Class: DbTask
+# Class: DbTask
 
 **Full name:** [Azera\Cli\Tasks\DbTask](../../src/Cli/Tasks/DbTask.php)
 
@@ -23,60 +23,60 @@ Examples:
   db:query "SELECT * FROM users LIMIT 5"
   db:query --file=migration.sql --force
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/DbTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/DbTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/DbTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/DbTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### tablesAction() · [source](../../src/Cli/Tasks/DbTask.php#L37)
+### tablesAction() · <small>[🗎](../../src/Cli/Tasks/DbTask.php#L37)</small>
 
 `public function tablesAction(): void`
 
 List all tables in the database.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### tableAction() · [source](../../src/Cli/Tasks/DbTask.php#L96)
+### tableAction() · <small>[🗎](../../src/Cli/Tasks/DbTask.php#L96)</small>
 
 `public function tableAction(string $table = ''): void`
 
 Show column details for a specific table (db:table).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$table` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### queryAction() · [source](../../src/Cli/Tasks/DbTask.php#L168)
+### queryAction() · <small>[🗎](../../src/Cli/Tasks/DbTask.php#L168)</small>
 
 `public function queryAction(string $sql = ''): void`
 
 Execute a raw SQL query and display results.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$sql` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

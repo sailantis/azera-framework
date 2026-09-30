@@ -1,4 +1,4 @@
-# 🧩 Class: Cookies
+# Class: Cookies
 
 **Full name:** [Azera\Http\Cookies](../../src/Http/Cookies.php)
 
@@ -7,9 +7,9 @@ Cookie jar that manages a collection of [`Cookie`](Http_Cookie.md) instances for
 Acts as a central registry for reading incoming cookies and building/sending
 outgoing Set-Cookie headers.
 
-## 🚀 Public methods
+## Public methods
 
-### get() · [source](../../src/Http/Cookies.php#L26)
+### get() · <small>[🗎](../../src/Http/Cookies.php#L26)</small>
 
 `public function get(string $name, mixed $default = null): mixed`
 
@@ -18,21 +18,21 @@ Read a cookie value from the incoming request.
 If the cookie was set in this request via `set()`, its in-memory value is
 returned; otherwise the value is read from $_COOKIE.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Cookie name. |
 | `$default` | mixed | `null` | Default value when the cookie is absent. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### cookie() · [source](../../src/Http/Cookies.php#L41)
+### cookie() · <small>[🗎](../../src/Http/Cookies.php#L41)</small>
 
 `public function cookie(string $name): Azera\Http\Cookie`
 
@@ -41,20 +41,20 @@ Get (or lazily create) a [`Cookie`](Http_Cookie.md) instance for the given name.
 Use this when you need to configure encryption, path, etc. before reading
 or sending the cookie.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Cookie name. |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Cookie](Http_Cookie.md)
 
 
 ---
 
-### set() · [source](../../src/Http/Cookies.php#L61)
+### set() · <small>[🗎](../../src/Http/Cookies.php#L61)</small>
 
 `public function set(string $name, mixed $value, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): Azera\Http\Cookie`
 
@@ -62,7 +62,7 @@ Create and register a new [`Cookie`](Http_Cookie.md) with the given parameters.
 
 The cookie is not sent until `sendAll()` (or [`Cookie::send()`](Http_Cookie.md#send)) is called.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -74,7 +74,7 @@ The cookie is not sent until `sendAll()` (or [`Cookie::send()`](Http_Cookie.md#s
 | `$secure` | bool | `false` | Send over HTTPS only. |
 | `$httpOnly` | bool | `true` | Inaccessible to JavaScript. |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Cookie](Http_Cookie.md)
 - Description: The newly created Cookie instance for further configuration.
@@ -82,34 +82,34 @@ The cookie is not sent until `sendAll()` (or [`Cookie::send()`](Http_Cookie.md#s
 
 ---
 
-### delete() · [source](../../src/Http/Cookies.php#L80)
+### delete() · <small>[🗎](../../src/Http/Cookies.php#L80)</small>
 
 `public function delete(string $name): void`
 
 Delete a cookie by emitting a Set-Cookie header with an expiration in the past.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Cookie name. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### sendAll() · [source](../../src/Http/Cookies.php#L92)
+### sendAll() · <small>[🗎](../../src/Http/Cookies.php#L92)</small>
 
 `public function sendAll(): void`
 
 Send all registered cookies by emitting their Set-Cookie headers.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

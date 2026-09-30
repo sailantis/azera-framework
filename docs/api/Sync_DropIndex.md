@@ -1,13 +1,11 @@
-# 🧩 Class: DropIndex
+# Class: DropIndex
 
 **Full name:** [Azera\Sync\DropIndex](../../src/Sync/SchemaDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$index` · [source](../../src/Sync/SchemaDiff.php)
-- `public` string `$table` · [source](../../src/Sync/SchemaDiff.php)
-
-## 🚀 Public methods
+- `public` string `$index` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` string `$table` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
 
 
 

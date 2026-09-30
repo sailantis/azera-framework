@@ -1,23 +1,23 @@
-# 🧩 Class: StatementExecuted
+# Class: StatementExecuted
 
 **Full name:** [Azera\Db\Event\StatementExecuted](../../src/Db/Event/StatementExecuted.php)
 
 Dispatched after a previously prepared statement has been executed via
 [`Database::execute()`](Db_Database.md#execute).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` array `$params` · [source](../../src/Db/Event/StatementExecuted.php)
-- `public readonly` float `$durationMs` · [source](../../src/Db/Event/StatementExecuted.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/StatementExecuted.php)
+- `public readonly` array `$params` · <small>[🗎](../../src/Db/Event/StatementExecuted.php)</small>
+- `public readonly` float `$durationMs` · <small>[🗎](../../src/Db/Event/StatementExecuted.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/StatementExecuted.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/StatementExecuted.php#L13)
+### __construct() · <small>[🗎](../../src/Db/Event/StatementExecuted.php#L13)</small>
 
 `public function __construct(Azera\Db\Database $database, array $params, float $durationMs): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -25,9 +25,9 @@ Dispatched after a previously prepared statement has been executed via
 | `$params` | array | - |  |
 | `$durationMs` | float | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

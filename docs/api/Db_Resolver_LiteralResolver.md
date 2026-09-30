@@ -1,4 +1,4 @@
-# 🧩 Class: LiteralResolver
+# Class: LiteralResolver
 
 **Full name:** [Azera\Db\Resolver\LiteralResolver](../../src/Db/Resolver/LiteralResolver.php)
 
@@ -8,21 +8,21 @@ This is the resolver used by [`Query::raw()`](Db_Query.md#raw).
 Every name is treated as-is — no class lookups, no mapping lookups,
 no connection overrides, no hydration.
 
-## 🚀 Public methods
+## Public methods
 
-### resolve() · [source](../../src/Db/Resolver/LiteralResolver.php#L16)
+### resolve() · <small>[🗎](../../src/Db/Resolver/LiteralResolver.php#L16)</small>
 
 `public function resolve(string $name): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: Transactional
+# Class: Transactional
 
 **Full name:** [Azera\Aop\Transactional](../../src/Aop/Transactional.php)
 
@@ -11,7 +11,7 @@ on any Throwable.
 Supports nested transactions via savepoints (see Database::begin(nesting: true)).
 
 Example:
-<code>
+```php
 #[Advised]
 class BillingService
 {
@@ -21,27 +21,27 @@ class BillingService
     #[Transactional('analytics')]
     public function logEvent(Event $e): void { ... }
 }
-</code>
+```
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` string|null `$connection` · [source](../../src/Aop/Transactional.php)
+- `public readonly` string|null `$connection` · <small>[🗎](../../src/Aop/Transactional.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/Transactional.php#L30)
+### __construct() · <small>[🗎](../../src/Aop/Transactional.php#L30)</small>
 
 `public function __construct(string|null $connection = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$connection` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

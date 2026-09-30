@@ -1,4 +1,4 @@
-# 🧩 Class: ChainResolver
+# Class: ChainResolver
 
 **Full name:** [Azera\Db\Resolver\ChainResolver](../../src/Db/Resolver/ChainResolver.php)
 
@@ -16,38 +16,38 @@ Typically used to combine a [`ModelResolver`](Db_Resolver_ModelResolver.md) and 
 new ChainResolver(new ModelResolver(), new MappingResolver($mapping))
 ```
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Resolver/ChainResolver.php#L27)
+### __construct() · <small>[🗎](../../src/Db/Resolver/ChainResolver.php#L27)</small>
 
 `public function __construct(array $resolvers): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$resolvers` | array | - | Resolvers to try, in order. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### resolve() · [source](../../src/Db/Resolver/ChainResolver.php#L31)
+### resolve() · <small>[🗎](../../src/Db/Resolver/ChainResolver.php#L31)</small>
 
 `public function resolve(string $name): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

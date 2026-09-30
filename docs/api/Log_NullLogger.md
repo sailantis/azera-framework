@@ -1,4 +1,4 @@
-# 🧩 Class: NullLogger
+# Class: NullLogger
 
 **Full name:** [Azera\Log\NullLogger](../../src/Log/NullLogger.php)
 
@@ -14,157 +14,157 @@ Implements the PSR-3 `LoggerInterface`, so it is interchangeable
 with any PSR-3 logger (e.g. Monolog). Register a real logger via
 `AppContext::set(LoggerInterface::class, $logger)`.
 
-## 🚀 Public methods
+## Public methods
 
-### emergency() · [source](../../src/Log/NullLogger.php#L22)
+### emergency() · <small>[🗎](../../src/Log/NullLogger.php#L22)</small>
 
 `public function emergency(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### alert() · [source](../../src/Log/NullLogger.php#L23)
+### alert() · <small>[🗎](../../src/Log/NullLogger.php#L23)</small>
 
 `public function alert(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### critical() · [source](../../src/Log/NullLogger.php#L24)
+### critical() · <small>[🗎](../../src/Log/NullLogger.php#L24)</small>
 
 `public function critical(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### error() · [source](../../src/Log/NullLogger.php#L25)
+### error() · <small>[🗎](../../src/Log/NullLogger.php#L25)</small>
 
 `public function error(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### warning() · [source](../../src/Log/NullLogger.php#L26)
+### warning() · <small>[🗎](../../src/Log/NullLogger.php#L26)</small>
 
 `public function warning(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### notice() · [source](../../src/Log/NullLogger.php#L27)
+### notice() · <small>[🗎](../../src/Log/NullLogger.php#L27)</small>
 
 `public function notice(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### info() · [source](../../src/Log/NullLogger.php#L28)
+### info() · <small>[🗎](../../src/Log/NullLogger.php#L28)</small>
 
 `public function info(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### debug() · [source](../../src/Log/NullLogger.php#L29)
+### debug() · <small>[🗎](../../src/Log/NullLogger.php#L29)</small>
 
 `public function debug(Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### log() · [source](../../src/Log/NullLogger.php#L30)
+### log() · <small>[🗎](../../src/Log/NullLogger.php#L30)</small>
 
 `public function log(mixed $level, Stringable|string $message, array $context = []): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -172,9 +172,9 @@ with any PSR-3 logger (e.g. Monolog). Register a real logger via
 | `$message` | Stringable\|string | - |  |
 | `$context` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

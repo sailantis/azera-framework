@@ -1,13 +1,11 @@
-# 🧩 Class: RemoveProperty
+# Class: RemoveProperty
 
 **Full name:** [Azera\Sync\RemoveProperty](../../src/Sync/ModelDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` bool `$markDeprecated` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$property` · [source](../../src/Sync/ModelDiff.php)
-
-## 🚀 Public methods
+- `public` bool `$markDeprecated` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$property` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
 
 
 

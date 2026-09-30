@@ -1,10 +1,10 @@
-# 🔌 Interface: BootstrapProvider
+# Interface: BootstrapProvider
 
 **Full name:** [Azera\Boot\BootstrapProvider](../../src/Boot/BootstrapProvider.php)
 
-## 🚀 Public methods
+## Public methods
 
-### boot() · [source](../../src/Boot/BootstrapProvider.php#L12)
+### boot() · <small>[🗎](../../src/Boot/BootstrapProvider.php#L12)</small>
 
 `public function boot(): void`
 
@@ -13,9 +13,9 @@ Boot the application.
 The provider obtains the correct AppContext (or a subclass)
 via its own AppContext::instance() call.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

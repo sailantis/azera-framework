@@ -1,4 +1,4 @@
-# 🧩 Class: PgArrayCast
+# Class: PgArrayCast
 
 **Full name:** [Azera\Orm\Casting\PgArrayCast](../../src/Orm/Casting/PgArrayCast.php)
 
@@ -24,38 +24,38 @@ Write direction: the literal binds as a plain string parameter — pg
 infers the parameter type from the target column, so `'{"a b"}'`
 against a text[] column just works.
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/PgArrayCast.php#L33)
+### encode() · <small>[🗎](../../src/Orm/Casting/PgArrayCast.php#L33)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/PgArrayCast.php#L52)
+### decode() · <small>[🗎](../../src/Orm/Casting/PgArrayCast.php#L52)</small>
 
 `public function decode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

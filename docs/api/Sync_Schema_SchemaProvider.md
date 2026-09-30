@@ -1,38 +1,38 @@
-# 🔌 Interface: SchemaProvider
+# Interface: SchemaProvider
 
 **Full name:** [Azera\Sync\Schema\SchemaProvider](../../src/Sync/Schema/SchemaProvider.php)
 
-## 🚀 Public methods
+## Public methods
 
-### listTables() · [source](../../src/Sync/Schema/SchemaProvider.php#L11)
+### listTables() · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php#L11)</small>
 
 `public function listTables(string|null $schema = null): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$schema` | string\|null | `null` | Database schema to scan (used by PostgreSQL; ignored by MySQL/SQLite).<br>When null the provider falls back to its engine default. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### getTableSchema() · [source](../../src/Sync/Schema/SchemaProvider.php#L18)
+### getTableSchema() · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php#L18)</small>
 
 `public function getTableSchema(string $table, string|null $schema = null): Azera\Sync\Schema\TableSchema`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$table` | string | - |  |
 | `$schema` | string\|null | `null` | Database schema (used by PostgreSQL; ignored by MySQL/SQLite).<br>When null the provider falls back to its engine default. |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [TableSchema](Sync_Schema_TableSchema.md)
 

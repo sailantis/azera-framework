@@ -1,13 +1,11 @@
-# 🧩 Class: CreateTable
+# Class: CreateTable
 
 **Full name:** [Azera\Sync\CreateTable](../../src/Sync/SchemaDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` array `$columns` · [source](../../src/Sync/SchemaDiff.php)
-- `public` string `$table` · [source](../../src/Sync/SchemaDiff.php)
-
-## 🚀 Public methods
+- `public` array `$columns` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` string `$table` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
 
 
 

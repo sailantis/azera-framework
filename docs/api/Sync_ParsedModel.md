@@ -1,22 +1,22 @@
-# 🧩 Class: ParsedModel
+# Class: ParsedModel
 
 **Full name:** [Azera\Sync\ParsedModel](../../src/Sync/ModelParser.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$filePath` · [source](../../src/Sync/ModelParser.php)
-- `public` string `$className` · [source](../../src/Sync/ModelParser.php)
-- `public` string|null `$classComment` · [source](../../src/Sync/ModelParser.php)
-- `public` array `$properties` · [source](../../src/Sync/ModelParser.php)
-- `public` int `$insertionOffset` · [source](../../src/Sync/ModelParser.php)
+- `public` string `$filePath` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
+- `public` string `$className` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
+- `public` string|null `$classComment` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
+- `public` array `$properties` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
+- `public` int `$insertionOffset` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/ModelParser.php#L224)
+### __construct() · <small>[🗎](../../src/Sync/ModelParser.php#L224)</small>
 
 `public function __construct(string $filePath, string $className, string|null $classComment, array $properties, int $insertionOffset): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -26,9 +26,9 @@
 | `$properties` | array | - |  |
 | `$insertionOffset` | int | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

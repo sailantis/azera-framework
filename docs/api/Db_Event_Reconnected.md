@@ -1,30 +1,30 @@
-# 🧩 Class: Reconnected
+# Class: Reconnected
 
 **Full name:** [Azera\Db\Event\Reconnected](../../src/Db/Event/Reconnected.php)
 
 Dispatched after a successful reconnection.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` int `$attempt` · [source](../../src/Db/Event/Reconnected.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/Reconnected.php)
+- `public readonly` int `$attempt` · <small>[🗎](../../src/Db/Event/Reconnected.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/Reconnected.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/Reconnected.php#L12)
+### __construct() · <small>[🗎](../../src/Db/Event/Reconnected.php#L12)</small>
 
 `public function __construct(Azera\Db\Database $database, int $attempt): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$database` | [Database](Db_Database.md) | - |  |
 | `$attempt` | int | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

@@ -1,5 +1,9 @@
-#!/usr/bin/env php
+﻿#!/usr/bin/env php
 <?php
+/**
+ * Generate API documentation in Markdown format from PHP source code.
+ * @version 1.0.0
+ */
 require __DIR__ . '/../vendor/autoload.php';
 
 //use phpDocumentor\Reflection\DocBlock\Tags\Deprecated as DeprecatedTag;
@@ -9,9 +13,11 @@ use phpDocumentor\Reflection\DocBlock\Tags\Throws as ThrowsTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Example as ExampleTag;
 use phpDocumentor\Reflection\DocBlockFactory;
 
-$srcDir      = 'src';
-$docsDir     = 'docs/api';
-$projectRoot = dirname(__DIR__);
+$config        = require __DIR__ . '/api-docs-config.php';
+$srcDir        = $config['source'] ?? 'src';
+$docsDir       = $config['output'] ?? 'docs/api';
+$projectRoot   = dirname(__DIR__);
+$documentTitle = $config['title'] ?? 'API';
 
 echo "🔍 Scanning $srcDir...\n";
 
@@ -24,19 +30,19 @@ $iterator          = new RecursiveIteratorIterator(new RecursiveDirectoryIterato
 foreach ($iterator as $file) {
     if ($file->isFile() && $file->getExtension() === 'php') {
         $content = file_get_contents($file->getPathname());
-        // Strip comments/docblocks (block + line) before scanning for declarations,
-        // otherwise words like "class metadata" inside a docblock get misdetected
-        // as type declarations — producing bogus lowercase class entries.
+        // Strip comments/docblocks before scanning for declarations, otherwise
+        // words like "class metadata" inside a docblock get misdetected as type
+        // declarations -- producing bogus lowercase class entries.
         $code = stripPhpComments($content);
-        if (preg_match_all('/(?:class|interface)\s+([A-Za-z0-9_]+)/', $code, $matches)) {
+        if (preg_match_all('/(?:class|interface|trait)\s+([A-Za-z0-9_]+)/', $code, $matches)) {
             $namespace = '';
             if (preg_match('/namespace\s+([^\s;{]+)/', $code, $ns)) {
                 $namespace = trim($ns[1]) . '\\';
             }
             foreach ($matches[1] as $className) {
                 $fqcn = $namespace . $className;
-                // include both classes and interfaces
-                if (class_exists($fqcn) || interface_exists($fqcn)) {
+                // include classes, interfaces and traits
+                if (class_exists($fqcn) || interface_exists($fqcn) || trait_exists($fqcn)) {
                     $ns = substr($namespace, 0, -1);
                     $allClasses[$fqcn] = [
                         'short'     => $className,
@@ -49,7 +55,7 @@ foreach ($iterator as $file) {
     }
 }
 
-echo "📝 Generating docs for " . count($allClasses) . " types (classes & interfaces)...\n";
+echo "📝 Generating docs for " . count($allClasses) . " types (classes, interfaces & traits)...\n";
 
 // Build class registry: maps FQCN and short name -> metadata for link generation.
 // All src links are relative from docs/api/ (two levels up to project root).
@@ -86,7 +92,7 @@ if (!is_dir($docsDir)) {
 foreach (glob($docsDir . '/*.md') as $oldDocFile) {
     @unlink($oldDocFile);
 }
-$indexContent = "# Azera MVC API\n\n## Classes & Interfaces overview\n\n";
+$indexContent = "# $documentTitle\n\n## Classes, Interfaces & Traits overview\n\n";
 $sep          = '';
 foreach ($namespacedClasses as $namespace => $classes) {
     $indexContent .= $sep;
@@ -120,7 +126,7 @@ function generateClassDoc(ReflectionClass $reflector, $docFactory, array $classR
 
     $srcInfo   = $classRegistry[$fqcn] ?? null;
     $classLink = $srcInfo ? "[{$fqcn}]({$srcInfo['srcFile']})" : "`{$fqcn}`";
-    $typeLabel = $reflector->isInterface() ? '🔌 Interface' : '🧩 Class';
+    $typeLabel = $reflector->isInterface() ? 'Interface' : 'Class';
     $md        = "# {$typeLabel}: {$shortName}\n\n";
     $md .= "**Full name:** {$classLink}\n\n";
 
@@ -137,7 +143,7 @@ function generateClassDoc(ReflectionClass $reflector, $docFactory, array $classR
         }
         if (hasResolvedTag($docData, 'deprecated')) {
             $tag = current(getResolvedTags($docData, 'deprecated'));
-            $md .= "**🛑 Deprecated**: " . safeTagToString($tag) . "\n\n";
+            $md .= "**Deprecated**: " . safeTagToString($tag) . "\n\n";
         }
         if (hasResolvedTag($docData, 'example')) {
             $md .= renderExampleTags(getResolvedTags($docData, 'example'));
@@ -150,7 +156,7 @@ function generateClassDoc(ReflectionClass $reflector, $docFactory, array $classR
         fn(ReflectionClassConstant $constant) => $constant->isPublic()
     );
     if (!empty($constants)) {
-        $md .= "## 📌 Public Constants\n\n";
+        $md .= "## Public Constants\n\n";
         foreach ($constants as $constant) {
             $name  = $constant->getName();
             $value = $constant->getValue();
@@ -165,7 +171,7 @@ function generateClassDoc(ReflectionClass $reflector, $docFactory, array $classR
         fn(ReflectionProperty $prop) => $prop->isPublic()
     );
     if (!empty($props)) {
-        $md .= "## 🌍 Public Properties\n\n";
+        $md .= "## Public Properties\n\n";
         foreach ($props as $prop) {
             $vis         = getVisibility($prop);
             $static      = $prop->isStatic() ? ' static' : '';
@@ -175,22 +181,25 @@ function generateClassDoc(ReflectionClass $reflector, $docFactory, array $classR
             $propSrcLink = ($srcInfo && method_exists($prop, 'getStartLine'))
                 ? ($srcInfo['srcFile'] . '#L' . $prop->getStartLine())
                 : ($srcInfo ? $srcInfo['srcFile'] : null);
-            $srcRef = $propSrcLink ? " · [source]($propSrcLink)" : '';
+            $srcRef = $propSrcLink ? " · <small>[🗎]($propSrcLink)</small>" : '';
             $md .= "- `{$vis}{$static}{$readonly}` {$linkedType} `\${$prop->getName()}`{$srcRef}\n";
         }
         $md .= "\n";
     }
 
     // Public methods
-    $md .= "## 🚀 Public methods\n\n";
-    $sep = "";
-    foreach ($reflector->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-        if ($method->class !== $reflector->name) {
-            continue;
+    $methods = $reflector->getMethods(ReflectionMethod::IS_PUBLIC);
+    if (!empty($methods)) {
+        $md .= "## Public methods\n\n";
+        $sep = "";
+        foreach ($methods as $method) {
+            if ($method->class !== $reflector->name) {
+                continue;
+            }
+            $md .= $sep;
+            $sep = "\n---\n\n";
+            $md .= generateMethodDoc($method, $docFactory, $classRegistry);
         }
-        $md .= $sep;
-        $sep = "\n---\n\n";
-        $md .= generateMethodDoc($method, $docFactory, $classRegistry);
     }
 
     return $md;
@@ -198,9 +207,16 @@ function generateClassDoc(ReflectionClass $reflector, $docFactory, array $classR
 
 function generateMethodDoc(ReflectionMethod $method, $docFactory, array $classRegistry): string
 {
-    $classSrcInfo  = $classRegistry[$method->class] ?? null;
-    $methodSrcLink = $classSrcInfo ? ($classSrcInfo['srcFile'] . '#L' . $method->getStartLine()) : null;
-    $srcBadge      = $methodSrcLink ? " · [source]({$methodSrcLink})" : '';
+    // The source anchor must point at the file the method is DECLARED in, which
+    // is not necessarily the class file: a method pulled in from a trait lives in
+    // the trait's file, while getDeclaringClass()->getFileName() still reports the
+    // USING class's file — whose line numbers do not correspond, yielding a broken
+    // anchor. ReflectionMethod::getFileName() reports the trait file itself, with
+    // getStartLine() already relative to it, so use it.
+    $declFile      = $method->getFileName();
+    $declRel       = $declFile !== false ? sourceFileLink($declFile) : null;
+    $methodSrcLink = $declRel !== null ? ($declRel . '#L' . $method->getStartLine()) : null;
+    $srcBadge      = $methodSrcLink ? " · <small>[🗎]({$methodSrcLink})</small>" : '';
     $md            = "### {$method->getName()}(){$srcBadge}\n\n";
 
     // Build linked signature
@@ -231,13 +247,13 @@ function generateMethodDoc(ReflectionMethod $method, $docFactory, array $classRe
         }
         if (hasResolvedTag($docData, 'deprecated')) {
             $tag = current(getResolvedTags($docData, 'deprecated'));
-            $md .= "**🛑 Deprecated**: " . safeTagToString($tag) . "\n\n";
+            $md .= "**Deprecated**: " . safeTagToString($tag) . "\n\n";
         }
     }
 
     // Parameters table
     if ($method->getNumberOfParameters() > 0) {
-        $md .= "**🧭 Parameters**\n\n";
+        $md .= "**Parameters**\n\n";
         $md .= "| Name | Type | Default | Description |\n";
         $md .= "|---|---|---|---|\n";
         $paramTags   = $docData !== null ? getResolvedTags($docData, 'param') : [];
@@ -270,7 +286,7 @@ function generateMethodDoc(ReflectionMethod $method, $docFactory, array $classRe
             $returnDesc = safeTagToString($ret);
         }
     }
-    $md .= "**➡️ Return value**\n\n";
+    $md .= "**Return value**\n\n";
     $md .= "- Type: " . $linkedReturn . "\n";
     if ($returnDesc) {
         $md .= "- Description: " . str_replace("\n", "<br>", resolveInlineTags($returnDesc, $classRegistry)) . "\n";
@@ -279,7 +295,7 @@ function generateMethodDoc(ReflectionMethod $method, $docFactory, array $classRe
 
     // Throws
     if ($docData !== null && hasResolvedTag($docData, 'throws')) {
-        $md .= "**⚠️ Throws**\n\n";
+        $md .= "**Throws**\n\n";
         foreach (getResolvedTags($docData, 'throws') as $t) {
             if ($t instanceof ThrowsTag) {
                 $exTypeStr    = ltrim(trim((string) $t->getType()), '\\');
@@ -596,7 +612,7 @@ function renderExampleTags(array $exampleTags): string
     }
 
     $count = count($exampleTags);
-    $md    = '**💡 ' . ($count === 1 ? 'Example' : 'Examples') . "**\n\n";
+    $md    = '**' . ($count === 1 ? 'Example' : 'Examples') . "**\n\n";
 
     foreach ($exampleTags as $tag) {
         if (!($tag instanceof ExampleTag)) {
@@ -621,9 +637,9 @@ function renderExampleTags(array $exampleTags): string
             $start    = $tag->getStartingLine();
             $count    = $tag->getLineCount();
             if ($start > 1) {
-                $lineInfo = " (line{$start}" . ($count > 0 ? '–' . ($start + $count - 1) : '') . ')';
+                $lineInfo = " (line{$start}" . ($count > 0 ? '-' . ($start + $count - 1) : '') . ')';
             }
-            $md .= "`{$filePath}`{$lineInfo}" . ($desc !== '' ? " – {$desc}" : '') . "\n\n";
+            $md .= "`{$filePath}`{$lineInfo}" . ($desc !== '' ? " - {$desc}" : '') . "\n\n";
         } else {
             // Treat the whole tag body as an inline PHP snippet.
             $code = rtrim($filePath . ($desc !== '' ? "\n" . $desc : ''));
@@ -674,20 +690,32 @@ function makeDocFileName(string $fqcn): string
 }
 
 /**
- * Convert a type string (may contain | or & separators) into markdown with
- * inline links for known Azera classes. Unrecognised types pass through
- * decorateType() which adds emojis for primitives and backtick-wraps the rest.
+ * Relative `../../`-prefixed source link for an absolute source file path.
+ *
+ * Mirrors the class-level link computation (relative from docs/api/, two levels
+ * up to the project root) so method/constant anchors declared in a TRAIT file
+ * point at the trait's own source rather than the class file.
  */
+function sourceFileLink(string $absFile): string
+{
+    global $projectRoot;
+    $rel = str_replace('\\', '/', substr($absFile, strlen($projectRoot) + 1));
+    return '../../' . $rel;
+}
+
 /**
+ * Convert a type string (may contain | or & separators) into markdown with
+ * inline links for known Azera classes. Unrecognised types are backtick-wrapped
+ * by decorateType().
+ *
  * @param string $mode 'doc' = link to API .md page, 'src' = link to source file
- * @param bool $decorate Whether to decorate unrecognized types with emojis and backticks
+ * @param bool $decorate Whether to backtick-wrap unrecognized types
  */
 function linkType(string $typeStr, array $classRegistry, string $mode = 'doc', bool $decorate = false): string
 {
     if ($typeStr === '') {
         return '';
     }
-    $decorate = false;
 
     // Split on | and & while keeping the delimiters
     $parts  = preg_split('/([|&])/', $typeStr, -1, PREG_SPLIT_DELIM_CAPTURE);
@@ -704,9 +732,6 @@ function linkType(string $typeStr, array $classRegistry, string $mode = 'doc', b
             $info   = $classRegistry[$lookup];
             $target = $mode === 'src' ? $info['srcLink'] : $info['docLink'];
             $name   = $info['short'];
-            if ($decorate) {
-                $name = "🧩`{$name}`";
-            }
             $result .= "[{$name}]({$target})";
         } else {
             $result .= $decorate ? decorateType($part) : $part;
@@ -970,19 +995,5 @@ function getVisibility(ReflectionMethod|ReflectionProperty $r): string
 
 function decorateType(string $type): string
 {
-    return match ($type) {
-        'string' => "🔤 `string`",
-        'int'    => "🔢 `int`",
-        'float'  => "🌡️ `float`",
-        'bool'   => "⚙️ `bool`",
-        'array'  => "📦 `array`",
-        'object' => "🧱 `object`",
-        'mixed'  => "🎲 `mixed`",
-        'null'   => "`null`",
-        'void'   => "`void`",
-        'never'  => "`never`",
-        'self'   => "🧩 `self`",
-        'static' => "🧩 `static`",
-        default  => "`{$type}`"
-    };
+    return "`{$type}`";
 }

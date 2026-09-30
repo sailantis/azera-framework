@@ -1,18 +1,18 @@
-# 🧩 Class: Paginator
+# Class: Paginator
 
 **Full name:** [Azera\Db\Paginator](../../src/Db/Paginator.php)
 
 Paginator class for paginating database query results.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Paginator.php#L34)
+### __construct() · <small>[🗎](../../src/Db/Paginator.php#L34)</small>
 
 `public function __construct(Azera\Db\Query $builder, int $page = 1, int $pageSize = 30, bool $reverse = false): mixed`
 
 Create a new Paginator instance.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -21,33 +21,33 @@ Create a new Paginator instance.
 | `$pageSize` | int | `30` | The number of items per page. |
 | `$reverse` | bool | `false` | Whether to reverse the order of items. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### reverse() · [source](../../src/Db/Paginator.php#L52)
+### reverse() · <small>[🗎](../../src/Db/Paginator.php#L52)</small>
 
 `public function reverse(bool $reverse = true): static`
 
 Set whether to reverse the order of items.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$reverse` | bool | `true` | True to reverse the order, false otherwise. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### entities() · [source](../../src/Db/Paginator.php#L67)
+### entities() · <small>[🗎](../../src/Db/Paginator.php#L67)</small>
 
 `public function entities(): array`
 
@@ -57,14 +57,14 @@ Requires the query to have a model bound (e.g. via Item::query()).
 Hydrates through the ORM (FastHydrator + request-scoped heap) — the
 same identity-mapped path as Model::find()/entities().
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### objects() · [source](../../src/Db/Paginator.php#L78)
+### objects() · <small>[🗎](../../src/Db/Paginator.php#L78)</small>
 
 `public function objects(): array`
 
@@ -73,14 +73,14 @@ Execute and return items as plain stdClass objects.
 No entity hydration — rows are fetched directly via PDO::FETCH_OBJ.
 Table resolution and relations still go through the model.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### assoc() · [source](../../src/Db/Paginator.php#L88)
+### assoc() · <small>[🗎](../../src/Db/Paginator.php#L88)</small>
 
 `public function assoc(): array`
 
@@ -88,14 +88,14 @@ Execute and return items as associative arrays.
 
 No entity hydration — rows are fetched directly via PDO::FETCH_ASSOC.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### fetch() · [source](../../src/Db/Paginator.php#L98)
+### fetch() · <small>[🗎](../../src/Db/Paginator.php#L98)</small>
 
 `public function fetch(mixed $fetchMode = 0): array`
 
@@ -103,168 +103,168 @@ Execute and return items using the PDO default fetch mode.
 
 Backward-compatible with the original execute() API.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$fetchMode` | mixed | `0` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### items() · [source](../../src/Db/Paginator.php#L156)
+### items() · <small>[🗎](../../src/Db/Paginator.php#L156)</small>
 
 `public function items(): array|null`
 
 Get the items for the current page. Return null if the query has not been executed yet.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array|null
+- Type: `array`|`null`
 - Description: The items for the current page, or null if the query has not been executed yet.
 
 
 ---
 
-### totalItems() · [source](../../src/Db/Paginator.php#L166)
+### totalItems() · <small>[🗎](../../src/Db/Paginator.php#L166)</small>
 
 `public function totalItems(): int`
 
 Get the total number of items across all pages.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The total number of items.
 
 
 ---
 
-### firstItem() · [source](../../src/Db/Paginator.php#L176)
+### firstItem() · <small>[🗎](../../src/Db/Paginator.php#L176)</small>
 
 `public function firstItem(): int`
 
 Get the position of the first item in the current page (1-based index).
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The position of the first item in the current page.
 
 
 ---
 
-### lastItem() · [source](../../src/Db/Paginator.php#L186)
+### lastItem() · <small>[🗎](../../src/Db/Paginator.php#L186)</small>
 
 `public function lastItem(): int`
 
 Get the position of the last item in the current page (1-based index).
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The position of the last item in the current page.
 
 
 ---
 
-### currentPage() · [source](../../src/Db/Paginator.php#L196)
+### currentPage() · <small>[🗎](../../src/Db/Paginator.php#L196)</small>
 
 `public function currentPage(): int`
 
 Get the current page number.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The current page number.
 
 
 ---
 
-### pageSize() · [source](../../src/Db/Paginator.php#L206)
+### pageSize() · <small>[🗎](../../src/Db/Paginator.php#L206)</small>
 
 `public function pageSize(): int`
 
 Get the page size (number of items per page).
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The page size.
 
 
 ---
 
-### previousPage() · [source](../../src/Db/Paginator.php#L216)
+### previousPage() · <small>[🗎](../../src/Db/Paginator.php#L216)</small>
 
 `public function previousPage(): int`
 
 Get the previous page number.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The previous page number.
 
 
 ---
 
-### nextPage() · [source](../../src/Db/Paginator.php#L226)
+### nextPage() · <small>[🗎](../../src/Db/Paginator.php#L226)</small>
 
 `public function nextPage(): int`
 
 Get the next page number.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The next page number.
 
 
 ---
 
-### hasPrevious() · [source](../../src/Db/Paginator.php#L236)
+### hasPrevious() · <small>[🗎](../../src/Db/Paginator.php#L236)</small>
 
 `public function hasPrevious(): bool`
 
 Check if there is a previous page.
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 - Description: True if there is a previous page, false otherwise.
 
 
 ---
 
-### hasNext() · [source](../../src/Db/Paginator.php#L246)
+### hasNext() · <small>[🗎](../../src/Db/Paginator.php#L246)</small>
 
 `public function hasNext(): bool`
 
 Check if there is a next page.
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 - Description: True if there is a next page, false otherwise.
 
 
 ---
 
-### lastPage() · [source](../../src/Db/Paginator.php#L256)
+### lastPage() · <small>[🗎](../../src/Db/Paginator.php#L256)</small>
 
 `public function lastPage(): int`
 
 Get the last page number.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The last page number.
 
 

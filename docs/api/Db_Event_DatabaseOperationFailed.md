@@ -1,4 +1,4 @@
-# 🧩 Class: DatabaseOperationFailed
+# Class: DatabaseOperationFailed
 
 **Full name:** [Azera\Db\Event\DatabaseOperationFailed](../../src/Db/Event/DatabaseOperationFailed.php)
 
@@ -14,21 +14,21 @@ The `$operation` identifies which Database operation failed
 `rollback`). The `$sql` and `$params` are only populated
 when the failing operation had a SQL statement in scope.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` PDOException `$exception` · [source](../../src/Db/Event/DatabaseOperationFailed.php)
-- `public readonly` string `$operation` · [source](../../src/Db/Event/DatabaseOperationFailed.php)
-- `public readonly` string|null `$sql` · [source](../../src/Db/Event/DatabaseOperationFailed.php)
-- `public readonly` array|null `$params` · [source](../../src/Db/Event/DatabaseOperationFailed.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/DatabaseOperationFailed.php)
+- `public readonly` PDOException `$exception` · <small>[🗎](../../src/Db/Event/DatabaseOperationFailed.php)</small>
+- `public readonly` string `$operation` · <small>[🗎](../../src/Db/Event/DatabaseOperationFailed.php)</small>
+- `public readonly` string|null `$sql` · <small>[🗎](../../src/Db/Event/DatabaseOperationFailed.php)</small>
+- `public readonly` array|null `$params` · <small>[🗎](../../src/Db/Event/DatabaseOperationFailed.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/DatabaseOperationFailed.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/DatabaseOperationFailed.php#L23)
+### __construct() · <small>[🗎](../../src/Db/Event/DatabaseOperationFailed.php#L23)</small>
 
 `public function __construct(Azera\Db\Database $database, PDOException $exception, string $operation, string|null $sql = null, array|null $params = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -38,9 +38,9 @@ when the failing operation had a SQL statement in scope.
 | `$sql` | string\|null | `null` |  |
 | `$params` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

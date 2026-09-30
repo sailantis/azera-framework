@@ -1,4 +1,4 @@
-# 🧩 Class: Pipeline
+# Class: Pipeline
 
 **Full name:** [Azera\Aop\Pipeline](../../src/Aop/Pipeline.php)
 
@@ -14,59 +14,59 @@ the next, exactly like HTTP middleware or the Dispatcher's middleware
 pipeline.
 
 Example:
-<code>
+```php
 $result = $ctx->pipeline()
     ->through([new RetryInterceptor(3), new LogInterceptor($logger)])
     ->call(fn() => $service->chargeCard(100));
-</code>
+```
 
 Or the short form:
-<code>
+```php
 $result = Pipeline::wrap(
     [new RetryInterceptor(3), new LogInterceptor($logger)],
     fn() => $service->chargeCard(100),
 );
-</code>
+```
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/Pipeline.php#L42)
+### __construct() · <small>[🗎](../../src/Aop/Pipeline.php#L42)</small>
 
 `public function __construct(array $interceptors = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$interceptors` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### through() · [source](../../src/Aop/Pipeline.php#L60)
+### through() · <small>[🗎](../../src/Aop/Pipeline.php#L60)</small>
 
 `public function through(array $interceptors): static`
 
 Add interceptors to the pipeline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$interceptors` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### call() · [source](../../src/Aop/Pipeline.php#L84)
+### call() · <small>[🗎](../../src/Aop/Pipeline.php#L84)</small>
 
 `public function call(callable $callable, array $args = []): mixed`
 
@@ -75,32 +75,32 @@ Run the pipeline around a callable.
 Each interceptor wraps the next. The innermost call invokes `$callable`
 with the provided arguments.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$callable` | callable | - | The target callable to execute. |
 | `$args` | array | `[]` | Arguments to pass to the callable. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 - Description: The callable's return value.
 
-**⚠️ Throws**
+**Throws**
 
 - Throwable  If the callable (or any interceptor) throws.
 
 
 ---
 
-### wrap() · [source](../../src/Aop/Pipeline.php#L108)
+### wrap() · <small>[🗎](../../src/Aop/Pipeline.php#L108)</small>
 
 `public static function wrap(array $interceptors, callable $callable, array $args = []): mixed`
 
 Static shortcut: wrap a callable with interceptors and call it.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -108,9 +108,9 @@ Static shortcut: wrap a callable with interceptors and call it.
 | `$callable` | callable | - |  |
 | `$args` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

@@ -1,8 +1,8 @@
-# 🧩 Class: TransactionLostException
+# Class: TransactionLostException
 
 **Full name:** [Azera\Db\Exceptions\TransactionLostException](../../src/Db/Exceptions/TransactionLostException.php)
 
-## 🚀 Public methods
+## Public methods
 
 
 

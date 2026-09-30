@@ -1,4 +1,4 @@
-# 🧩 Class: ServeTask
+# Class: ServeTask
 
 **Full name:** [Azera\Cli\Tasks\ServeTask](../../src/Cli/Tasks/ServeTask.php)
 
@@ -18,20 +18,20 @@ Examples:
   serve --port=8888           # start on port 8888
   serve --host=127.0.0.1      # bind to localhost only
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/ServeTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/ServeTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/ServeTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/ServeTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### runAction() · [source](../../src/Cli/Tasks/ServeTask.php#L26)
+### runAction() · <small>[🗎](../../src/Cli/Tasks/ServeTask.php#L26)</small>
 
 `public function runAction(): void`
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

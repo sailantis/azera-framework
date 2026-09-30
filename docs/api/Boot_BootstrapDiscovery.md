@@ -1,4 +1,4 @@
-# 🧩 Class: BootstrapDiscovery
+# Class: BootstrapDiscovery
 
 **Full name:** [Azera\Boot\BootstrapDiscovery](../../src/Boot/BootstrapDiscovery.php)
 
@@ -12,9 +12,9 @@ implements BootstrapProvider.
 The result is cached to vendor/azera-bootstrap.php so the resolver
 does not repeat the scan on every invocation.
 
-## 🚀 Public methods
+## Public methods
 
-### scanAndCache() · [source](../../src/Boot/BootstrapDiscovery.php#L25)
+### scanAndCache() · <small>[🗎](../../src/Boot/BootstrapDiscovery.php#L25)</small>
 
 `public static function scanAndCache(string $projectRoot): void`
 
@@ -23,20 +23,20 @@ the result to vendor/azera-bootstrap.php.
 
 If a cache file already exists and is fresh, the scan is skipped.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$projectRoot` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### scanForProvider() · [source](../../src/Boot/BootstrapDiscovery.php#L53)
+### scanForProvider() · <small>[🗎](../../src/Boot/BootstrapDiscovery.php#L53)</small>
 
 `public static function scanForProvider(string $projectRoot): string|null`
 
@@ -46,20 +46,20 @@ implementing BootstrapProvider.
 Returns the FQCN of the discovered provider, or null if none found.
 If multiple candidates exist, prefers one named "…\Bootstrap".
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$projectRoot` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|null
+- Type: `string`|`null`
 
 
 ---
 
-### writeCache() · [source](../../src/Boot/BootstrapDiscovery.php#L336)
+### writeCache() · <small>[🗎](../../src/Boot/BootstrapDiscovery.php#L336)</small>
 
 `public static function writeCache(string $vendorDir, string|null $provider): void`
 
@@ -67,21 +67,21 @@ Write the generated cache file to vendor/azera-bootstrap.php.
 
 Made public so BootstrapResolver can persist a --save choice.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$vendorDir` | string | - |  |
 | `$provider` | string\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### saveProvider() · [source](../../src/Boot/BootstrapDiscovery.php#L362)
+### saveProvider() · <small>[🗎](../../src/Boot/BootstrapDiscovery.php#L362)</small>
 
 `public static function saveProvider(string $projectRoot, string $provider): void`
 
@@ -89,16 +89,16 @@ Persist a provider FQCN to the discovery cache.
 
 Called by the resolver when --save is passed alongside --provider=.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$projectRoot` | string | - |  |
 | `$provider` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: NullCache
+# Class: NullCache
 
 **Full name:** [Azera\Cache\NullCache](../../src/Cache/NullCache.php)
 
@@ -9,31 +9,31 @@ when no concrete cache has been registered. It allows calling code to
 safely use `$ctx->cache()->get('key', $default)` and always receive
 the default, without null-checks.
 
-## 🚀 Public methods
+## Public methods
 
-### get() · [source](../../src/Cache/NullCache.php#L17)
+### get() · <small>[🗎](../../src/Cache/NullCache.php#L17)</small>
 
 `public function get(string $key, mixed $default = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 | `$default` | mixed | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### set() · [source](../../src/Cache/NullCache.php#L22)
+### set() · <small>[🗎](../../src/Cache/NullCache.php#L22)</small>
 
 `public function set(string $key, mixed $value, DateInterval|int|null $ttl = null): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -41,107 +41,107 @@ the default, without null-checks.
 | `$value` | mixed | - |  |
 | `$ttl` | DateInterval\|int\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### delete() · [source](../../src/Cache/NullCache.php#L27)
+### delete() · <small>[🗎](../../src/Cache/NullCache.php#L27)</small>
 
 `public function delete(string $key): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### clear() · [source](../../src/Cache/NullCache.php#L32)
+### clear() · <small>[🗎](../../src/Cache/NullCache.php#L32)</small>
 
 `public function clear(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### getMultiple() · [source](../../src/Cache/NullCache.php#L37)
+### getMultiple() · <small>[🗎](../../src/Cache/NullCache.php#L37)</small>
 
 `public function getMultiple(iterable $keys, mixed $default = null): iterable`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$keys` | iterable | - |  |
 | `$default` | mixed | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: iterable
+- Type: `iterable`
 
 
 ---
 
-### setMultiple() · [source](../../src/Cache/NullCache.php#L46)
+### setMultiple() · <small>[🗎](../../src/Cache/NullCache.php#L46)</small>
 
 `public function setMultiple(iterable $values, DateInterval|int|null $ttl = null): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | iterable | - |  |
 | `$ttl` | DateInterval\|int\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### deleteMultiple() · [source](../../src/Cache/NullCache.php#L51)
+### deleteMultiple() · <small>[🗎](../../src/Cache/NullCache.php#L51)</small>
 
 `public function deleteMultiple(iterable $keys): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$keys` | iterable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### has() · [source](../../src/Cache/NullCache.php#L56)
+### has() · <small>[🗎](../../src/Cache/NullCache.php#L56)</small>
 
 `public function has(string $key): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 

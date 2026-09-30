@@ -1,4 +1,4 @@
-# 🧩 Class: Model
+# Class: Model
 
 **Full name:** [Azera\Orm\Model](../../src/Orm/Model.php)
 
@@ -12,9 +12,9 @@ query builder remains available for advanced reads via `query()`
 / `with()` — its entities()/firstEntity() terminals hydrate onto
 the SAME heap, so builder reads and facade reads share identity.
 
-## 🚀 Public methods
+## Public methods
 
-### source() · [source](../../src/Orm/Model.php#L40)
+### source() · <small>[🗎](../../src/Orm/Model.php#L40)</small>
 
 `public function source(): string`
 
@@ -28,14 +28,14 @@ admin_users, Person → people). Overriding the method still wins
 for the convention value — the compile-time re-entrancy guard
 keeps that recursion-free.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### schema() · [source](../../src/Orm/Model.php#L58)
+### schema() · <small>[🗎](../../src/Orm/Model.php#L58)</small>
 
 `public function schema(): string|null`
 
@@ -43,14 +43,14 @@ Return the database schema for this model, if applicable
 (e.g. PostgreSQL). Metadata-backed: #[Entity(schema: ...)] > a
 declared schema() override > null.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|null
+- Type: `string`|`null`
 
 
 ---
 
-### idFields() · [source](../../src/Orm/Model.php#L76)
+### idFields() · <small>[🗎](../../src/Orm/Model.php#L76)</small>
 
 `public function idFields(): array`
 
@@ -62,14 +62,14 @@ falling back to ['id']. A declared idFields() override is the
 authority (dynamic > static); parent::idFields() from such an
 override resolves through the compile-time re-entrancy guard.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### query() · [source](../../src/Orm/Model.php#L95)
+### query() · <small>[🗎](../../src/Orm/Model.php#L95)</small>
 
 `public static function query(string|null $alias = null): Azera\Db\Query`
 
@@ -77,20 +77,20 @@ Start a new query builder for this model. By default, it creates a Query with th
 
 Its entities()/firstEntity() terminals hydrate heap-tracked entities on the request-scoped identity map.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$alias` | string\|null | `null` | Optional alias for the model in the query |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Query](Db_Query.md)
 
 
 ---
 
-### with() · [source](../../src/Orm/Model.php#L111)
+### with() · <small>[🗎](../../src/Orm/Model.php#L111)</small>
 
 `public static function with(string ...$relations): Azera\Db\Query`
 
@@ -100,54 +100,54 @@ BelongsTo/HasOne become LEFT JOINs (one SQL, alias-separated rows);
 HasMany stays a second query by parent IDs. Relation names must be
 declared via Orm attributes on the model.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$relations` | string | - | Relation names from Orm metadata |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Query](Db_Query.md)
 
 
 ---
 
-### fresh() · [source](../../src/Orm/Model.php#L128)
+### fresh() · <small>[🗎](../../src/Orm/Model.php#L128)</small>
 
 `public static function fresh(): Azera\Db\Query`
 
 Start a fresh-read query: identity-map hits come back refreshed in
 place (same instance, current values) instead of stale.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Query](Db_Query.md)
 
 
 ---
 
-### create() · [source](../../src/Orm/Model.php#L142)
+### create() · <small>[🗎](../../src/Orm/Model.php#L142)</small>
 
 `public static function create(array $values): static`
 
 Create a new model instance with the given values and save it to the database. Returns the created instance.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | array | - | Associative array of field values to set on the new model |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 - Description: The created model instance
 
 
 ---
 
-### upsert() · [source](../../src/Orm/Model.php#L168)
+### upsert() · <small>[🗎](../../src/Orm/Model.php#L168)</small>
 
 `public static function upsert(array $values): static`
 
@@ -161,63 +161,63 @@ flush transaction. All ID fields must be present in $values so the
 conflict target is well-defined; on conflict, all non-ID fields
 from $values are updated.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | array | - | Associative array of field values (must include all ID fields) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 - Description: The model instance with the given values
 
 
 ---
 
-### firstOrCreate() · [source](../../src/Orm/Model.php#L189)
+### firstOrCreate() · <small>[🗎](../../src/Orm/Model.php#L189)</small>
 
 `public static function firstOrCreate(array $conditions, array $values = []): static`
 
 Find the first model matching the given conditions or create a new one with the combined conditions and values if none found. This is useful for ensuring a record exists without creating duplicates. Returns the found or created instance.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$conditions` | array | - | Associative array of field conditions to find the model |
 | `$values` | array | `[]` | Additional values to set on the model if it needs to be created (merged with conditions) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 - Description: The found or created model instance
 
 
 ---
 
-### updateOrCreate() · [source](../../src/Orm/Model.php#L206)
+### updateOrCreate() · <small>[🗎](../../src/Orm/Model.php#L206)</small>
 
 `public static function updateOrCreate(array $conditions, array $values = []): static`
 
 Find the first model matching the given conditions or update it with the provided values if found, otherwise create a new one with the combined conditions and values. This is useful for ensuring a record exists and is up to date without creating duplicates. Returns the found, updated, or created instance.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$conditions` | array | - | Associative array of field conditions to find the model |
 | `$values` | array | `[]` | Values to set on the model if found (updated) or merged with conditions if created |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 - Description: The found, updated, or created model instance
 
 
 ---
 
-### find() · [source](../../src/Orm/Model.php#L239)
+### find() · <small>[🗎](../../src/Orm/Model.php#L239)</small>
 
 `public static function find(mixed $id, bool $fresh = false): static|null`
 
@@ -230,45 +230,45 @@ $fresh=true re-reads the row and refreshes the tracked instance IN
 PLACE (same object, current values) — the polling-safe variant.
 Throws when the entity carries scheduled unflushed writes.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | mixed | - | Single ID value, or array of ID values (numeric list<br>matching idFields order, or field => value map for<br>composite keys) |
 | `$fresh` | bool | `false` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static|null
+- Type: `static`|`null`
 
 
 ---
 
-### findOrFail() · [source](../../src/Orm/Model.php#L255)
+### findOrFail() · <small>[🗎](../../src/Orm/Model.php#L255)</small>
 
 `public static function findOrFail(mixed $id, bool $fresh = false): static`
 
 Finds a model by its ID(s) or throws an exception if not found
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | mixed | - | Single ID value or array of ID values (for composite keys) |
 | `$fresh` | bool | `false` | Re-read the row and refresh the tracked instance in place |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - RuntimeException  if the model is not found
 
 
 ---
 
-### findOne() · [source](../../src/Orm/Model.php#L274)
+### findOne() · <small>[🗎](../../src/Orm/Model.php#L274)</small>
 
 `public static function findOne(array $conditions, bool $fresh = false): static|null`
 
@@ -279,21 +279,21 @@ heap-tracked result), or null when nothing matches.
 $fresh=true refreshes already-tracked hits in place (same instance,
 current values).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$conditions` | array | - | Associative array of field conditions to find the model |
 | `$fresh` | bool | `false` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static|null
+- Type: `static`|`null`
 
 
 ---
 
-### findAll() · [source](../../src/Orm/Model.php#L290)
+### findAll() · <small>[🗎](../../src/Orm/Model.php#L290)</small>
 
 `public static function findAll(array $conditions = [], bool $fresh = false): array`
 
@@ -301,62 +301,62 @@ Find all models matching the given conditions as heap-tracked
 entities (identity-mapped, ordered by row order). If no conditions
 are provided, it returns all models.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$conditions` | array | `[]` | Associative array of field conditions to find the models |
 | `$fresh` | bool | `false` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 - Description: The found model instances
 
 
 ---
 
-### exists() · [source](../../src/Orm/Model.php#L304)
+### exists() · <small>[🗎](../../src/Orm/Model.php#L304)</small>
 
 `public static function exists(array $conditions): bool`
 
 Check if any model exists matching the given conditions. Returns true if at least one record matches, false otherwise.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$conditions` | array | - | Associative array of field conditions to check for existence |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 - Description: True if a matching model exists, false otherwise
 
 
 ---
 
-### count() · [source](../../src/Orm/Model.php#L318)
+### count() · <small>[🗎](../../src/Orm/Model.php#L318)</small>
 
 `public static function count(array $conditions = []): int`
 
 Count the number of models matching the given conditions. Returns the count as an integer.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$conditions` | array | `[]` | Associative array of field conditions to count |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: The count of matching models
 
 
 ---
 
-### save() · [source](../../src/Orm/Model.php#L389)
+### save() · <small>[🗎](../../src/Orm/Model.php#L389)</small>
 
 `public function save(): bool`
 
@@ -371,14 +371,14 @@ and the EM backfills auto-generated PKs.
 Returns true when a write happened (a no-op flush — nothing scheduled
 — means the model was already in sync).
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### delete() · [source](../../src/Orm/Model.php#L426)
+### delete() · <small>[🗎](../../src/Orm/Model.php#L426)</small>
 
 `public function delete(): bool`
 
@@ -386,15 +386,15 @@ Delete the model through the [`EntityManager`](Orm_EntityManager.md)
 (adopt + remove + flush — one DELETE by PK identity). Requires that
 all ID fields are set; throws otherwise.
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 - Description: True if the delete was successful
 
 
 ---
 
-### refresh() · [source](../../src/Orm/Model.php#L451)
+### refresh() · <small>[🗎](../../src/Orm/Model.php#L451)</small>
 
 `public function refresh(): static|null`
 
@@ -404,141 +404,141 @@ diff baseline. Returns $this, or NULL when the row is gone in
 storage (detached from the identity map). Throws for untracked
 models and models with scheduled unflushed writes.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static|null
+- Type: `static`|`null`
 
 
 ---
 
-### hasChanged() · [source](../../src/Orm/Model.php#L466)
+### hasChanged() · <small>[🗎](../../src/Orm/Model.php#L466)</small>
 
 `public function hasChanged(): bool`
 
 Whether any field differs from the heap baseline (untracked entity:
 true when any metadata column has a set value).
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### changedData() · [source](../../src/Orm/Model.php#L477)
+### changedData() · <small>[🗎](../../src/Orm/Model.php#L477)</small>
 
 `public function changedData(): array`
 
 Field-name-keyed map of values that differ from the heap baseline
 (untracked entity: all set values).
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### loadState() · [source](../../src/Orm/Model.php#L486)
+### loadState() · <small>[🗎](../../src/Orm/Model.php#L486)</small>
 
 `public function loadState(): static`
 
 Revert all properties to the values recorded in the heap node
 snapshot (the loadState() replacement). No-op for untracked entities.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### setDefaultRole() · [source](../../src/Orm/Model.php#L511)
+### setDefaultRole() · <small>[🗎](../../src/Orm/Model.php#L511)</small>
 
 `public static function setDefaultRole(string $role): void`
 
 Set both the read and write database role for this model class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string | - | Named role registered with [`DatabaseManager`](Db_DatabaseManager.md). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### setDefaultReadRole() · [source](../../src/Orm/Model.php#L522)
+### setDefaultReadRole() · <small>[🗎](../../src/Orm/Model.php#L522)</small>
 
 `public static function setDefaultReadRole(string $role): void`
 
 Set the database role used for SELECT queries on this model class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string | - | Named read role registered with [`DatabaseManager`](Db_DatabaseManager.md). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### setDefaultWriteRole() · [source](../../src/Orm/Model.php#L532)
+### setDefaultWriteRole() · <small>[🗎](../../src/Orm/Model.php#L532)</small>
 
 `public static function setDefaultWriteRole(string $role): void`
 
 Set the database role used for INSERT/UPDATE/DELETE queries on this model class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string | - | Named write role registered with [`DatabaseManager`](Db_DatabaseManager.md). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### readRole() · [source](../../src/Orm/Model.php#L569)
+### readRole() · <small>[🗎](../../src/Orm/Model.php#L569)</small>
 
 `public function readRole(): string`
 
 Return the database connection role used for read (SELECT) queries.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: The role name (e.g. 'read', 'replica').
 
 
 ---
 
-### writeRole() · [source](../../src/Orm/Model.php#L579)
+### writeRole() · <small>[🗎](../../src/Orm/Model.php#L579)</small>
 
 `public function writeRole(): string`
 
 Return the database connection role used for write (INSERT/UPDATE/DELETE) queries.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: The role name (e.g. 'write', 'primary').
 
 
 ---
 
-### readConnection() · [source](../../src/Orm/Model.php#L591)
+### readConnection() · <small>[🗎](../../src/Orm/Model.php#L591)</small>
 
 `public function readConnection(): Azera\Db\Database`
 
@@ -546,14 +546,14 @@ Return the database connection used for read (SELECT) queries.
 
 Resolves the configured read role via [`DatabaseManager::getOrDefault()`](Db_DatabaseManager.md#getordefault).
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Database](Db_Database.md)
 
 
 ---
 
-### writeConnection() · [source](../../src/Orm/Model.php#L604)
+### writeConnection() · <small>[🗎](../../src/Orm/Model.php#L604)</small>
 
 `public function writeConnection(): Azera\Db\Database`
 
@@ -561,7 +561,7 @@ Return the database connection used for write (INSERT/UPDATE/DELETE) queries.
 
 Resolves the configured write role via [`DatabaseManager::getOrDefault()`](Db_DatabaseManager.md#getordefault).
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Database](Db_Database.md)
 

@@ -1,4 +1,4 @@
-# 🧩 Class: TestTask
+# Class: TestTask
 
 **Full name:** [Azera\Cli\Tasks\TestTask](../../src/Cli/Tasks/TestTask.php)
 
@@ -32,20 +32,20 @@ Examples:
   test --runner=vendor/bin/pest
   test --bootstrap --filter=DatabaseTest
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/TestTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/TestTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/TestTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/TestTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### runAction() · [source](../../src/Cli/Tasks/TestTask.php#L50)
+### runAction() · <small>[🗎](../../src/Cli/Tasks/TestTask.php#L50)</small>
 
 `public function runAction(): void`
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

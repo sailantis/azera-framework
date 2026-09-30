@@ -1,23 +1,23 @@
-# 🧩 Class: TransactionCommitted
+# Class: TransactionCommitted
 
 **Full name:** [Azera\Db\Event\TransactionCommitted](../../src/Db/Event/TransactionCommitted.php)
 
 Dispatched after a transaction (or savepoint) has been committed via
 [`Database::commit()`](Db_Database.md#commit).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` bool `$nesting` · [source](../../src/Db/Event/TransactionCommitted.php)
-- `public readonly` int `$level` · [source](../../src/Db/Event/TransactionCommitted.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/TransactionCommitted.php)
+- `public readonly` bool `$nesting` · <small>[🗎](../../src/Db/Event/TransactionCommitted.php)</small>
+- `public readonly` int `$level` · <small>[🗎](../../src/Db/Event/TransactionCommitted.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/TransactionCommitted.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/TransactionCommitted.php#L13)
+### __construct() · <small>[🗎](../../src/Db/Event/TransactionCommitted.php#L13)</small>
 
 `public function __construct(Azera\Db\Database $database, bool $nesting, int $level): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -25,9 +25,9 @@ Dispatched after a transaction (or savepoint) has been committed via
 | `$nesting` | bool | - |  |
 | `$level` | int | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

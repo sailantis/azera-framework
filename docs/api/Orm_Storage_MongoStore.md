@@ -1,4 +1,4 @@
-# 🧩 Class: MongoStore
+# Class: MongoStore
 
 **Full name:** [Azera\Orm\Storage\MongoStore](../../src/Orm/Storage/MongoStore.php)
 
@@ -34,49 +34,49 @@ deliberately deferred (documented); the Store seam's begin/commit/rollback
 is satisfied structurally so the EM pipeline works against single-server
 deployments.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Storage/MongoStore.php#L69)
+### __construct() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L69)</small>
 
 `public function __construct(MongoDB\Client|callable $clientOrResolver, string $database = 'test'): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$clientOrResolver` | MongoDB\Client\|callable | - | Optional-dependency boundary: mongodb/mongodb is a `suggest` (not<br>`require`). The `use MongoDB\...` imports here are lazy aliases —<br>loading this class never fatals — and the resolver seam (test<br>fakes) needs no package at all. The failure shape that can actually<br>occur without the package: a real Client instance CANNOT be passed<br>(its class doesn't exist, so it can't be constructed anywhere), so<br>a non-callable argument can only be a mistake — most likely a DSN<br>string in the Client-ctor shape. Convert the cryptic union<br>TypeError into the actionable install hint. |
 | `$database` | string | `'test'` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### insertOne() · [source](../../src/Orm/Storage/MongoStore.php#L94)
+### insertOne() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L94)</small>
 
 `public function insertOne(string $class, array $data): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$data` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### updateOne() · [source](../../src/Orm/Storage/MongoStore.php#L115)
+### updateOne() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L115)</small>
 
 `public function updateOne(string $class, array $data, array $id): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -84,104 +84,104 @@ deployments.
 | `$data` | array | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### upsertOne() · [source](../../src/Orm/Storage/MongoStore.php#L128)
+### upsertOne() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L128)</small>
 
 `public function upsertOne(string $class, array $data): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$data` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### deleteOne() · [source](../../src/Orm/Storage/MongoStore.php#L159)
+### deleteOne() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L159)</small>
 
 `public function deleteOne(string $class, array $id): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### findBy() · [source](../../src/Orm/Storage/MongoStore.php#L165)
+### findBy() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L165)</small>
 
 `public function findBy(string $class, array $where): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$where` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### findByPk() · [source](../../src/Orm/Storage/MongoStore.php#L173)
+### findByPk() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L173)</small>
 
 `public function findByPk(string $class, array $id): array|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array|null
+- Type: `array`|`null`
 
 
 ---
 
-### count() · [source](../../src/Orm/Storage/MongoStore.php#L181)
+### count() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L181)</small>
 
 `public function count(string $class, array $where = []): int`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$where` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### begin() · [source](../../src/Orm/Storage/MongoStore.php#L195)
+### begin() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L195)</small>
 
 `public function begin(array|null $meta = null): void`
 
@@ -191,71 +191,71 @@ Kept structural so the EM pipeline never branches on store type.
 $meta ignored — an owning store has exactly ONE fixed write target,
 so there is nothing to address per class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### commit() · [source](../../src/Orm/Storage/MongoStore.php#L197)
+### commit() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L197)</small>
 
 `public function commit(array|null $meta = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### rollback() · [source](../../src/Orm/Storage/MongoStore.php#L199)
+### rollback() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L199)</small>
 
 `public function rollback(array|null $meta = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### inTransaction() · [source](../../src/Orm/Storage/MongoStore.php#L201)
+### inTransaction() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L201)</small>
 
 `public function inTransaction(array|null $meta = null): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### enrichMetadata() · [source](../../src/Orm/Storage/MongoStore.php#L230)
+### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L230)</small>
 
 `public function enrichMetadata(array $meta, ReflectionClass $class): array`
 
@@ -280,36 +280,36 @@ Contribute document-specific metadata during compile:
 Collection resolution stays generic: metadata `source` (#[Entity(name)])
 with the snake/plural convention as fallback — no per-backend key.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array | - |  |
 | `$class` | ReflectionClass | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### txTarget() · [source](../../src/Orm/Storage/MongoStore.php#L284)
+### txTarget() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L284)</small>
 
 `public function txTarget(array $meta): string`
 
 No transactions: one connection per store instance, so the identity
 token is constant. begin()/commit()/rollback() are no-ops anyway.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: PlatesAdapter
+# Class: PlatesAdapter
 
 **Full name:** [Azera\Core\Engines\Adapters\PlatesAdapter](../../src/Core/Engines/Adapters/PlatesAdapter.php)
 
@@ -17,9 +17,9 @@ PHP runtime (and OPcache) handle directly.
 Filters are mapped to Plates *template functions*, which are called inside
 templates as `$this->filterName($value)`.
 
-## 🚀 Public methods
+## Public methods
 
-### addNamespace() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L38)
+### addNamespace() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L38)</small>
 
 `public function addNamespace(string $name, string $path): static`
 
@@ -28,21 +28,21 @@ Add a namespace for view resolution.
 Also registers the namespace as a Plates folder so templates can use
 `namespace::view` syntax.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Namespace name to register. |
 | `$path` | string | - | Filesystem path corresponding to the namespace. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addFilter() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L59)
+### addFilter() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L59)</small>
 
 `public function addFilter(string $name, callable $fn): static`
 
@@ -53,21 +53,21 @@ registered as Plates *template functions* and called inside templates as
 `$this->name($value, ...$args)`.  This method delegates to
 `addFunction()`.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Filter name used in templates (e.g. 'currency'). |
 | `$fn` | callable | - | fn($value, ...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addFunction() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L73)
+### addFunction() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L73)</small>
 
 `public function addFunction(string $name, callable $fn): static`
 
@@ -79,21 +79,21 @@ Registers a Plates template function, callable inside templates as
 Plates does not distinguish between filters and functions at the API
 level; `addFilter()` is an alias for this method.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Function name used in templates (e.g. 'formatDate'). |
 | `$fn` | callable | - | fn(...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getDriver() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L87)
+### getDriver() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L87)</small>
 
 `public function getDriver(): mixed`
 
@@ -103,56 +103,56 @@ Returns the underlying `\League\Plates\Engine` instance for advanced
 configuration (extensions, data, etc.).
 Initialises Plates on first call if not already done.
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### render() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L149)
+### render() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L149)</small>
 
 `public function render(string $view, array $vars = []): string`
 
 Render a view (and optional layout) and return the result.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to render. |
 | `$vars` | array | `[]` | Additional variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered content.
 
 
 ---
 
-### renderPartial() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L159)
+### renderPartial() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L159)</small>
 
 `public function renderPartial(string $view, array $vars = []): string`
 
 Render a partial view (without applying a layout) and return the output.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to resolve and render. |
 | `$vars` | array | `[]` | Variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered HTML/output.
 
 
 ---
 
-### renderLayout() · [source](../../src/Core/Engines/Adapters/PlatesAdapter.php#L173)
+### renderLayout() · <small>[🗎](../../src/Core/Engines/Adapters/PlatesAdapter.php#L173)</small>
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 
@@ -160,7 +160,7 @@ Render a layout template wrapping provided content.
 
 The layout receives the rendered view in the `content` variable.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -168,9 +168,9 @@ The layout receives the rendered view in the `content` variable.
 | `$content` | string | - | Previously rendered content. |
 | `$vars` | array | `[]` | Additional variables to pass to the layout. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered layout output.
 
 

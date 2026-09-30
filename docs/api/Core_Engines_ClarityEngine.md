@@ -1,4 +1,4 @@
-# 🧩 Class: ClarityEngine
+# Class: ClarityEngine
 
 **Full name:** [Azera\Core\Engines\ClarityEngine](../../src/Core/Engines/ClarityEngine.php)
 
@@ -24,59 +24,59 @@ Template extension: .clarity.html  (overridable via setExtension())
 
 Cache location: sys_get_temp_dir()/clarity  (configurable via setCachePath())
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Core/Engines/ClarityEngine.php#L36)
+### __construct() · <small>[🗎](../../src/Core/Engines/ClarityEngine.php#L36)</small>
 
 `public function __construct(array $vars = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$vars` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### setExtension() · [source](../../src/Core/Engines/ClarityEngine.php#L203)
+### setExtension() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L296)</small>
 
 `public function setExtension(string $ext): static`
 
 Set the view file extension for this instance.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$ext` | string | - | Extension with or without a leading dot. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getExtension() · [source](../../src/Core/Engines/ClarityEngine.php#L220)
+### getExtension() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L313)</small>
 
 `public function getExtension(): string`
 
 Get the effective file extension used when resolving templates.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Extension including leading dot or empty string.
 
 
 ---
 
-### addNamespace() · [source](../../src/Core/Engines/ClarityEngine.php#L234)
+### addNamespace() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L327)</small>
 
 `public function addNamespace(string $name, string $path): static`
 
@@ -84,68 +84,68 @@ Add a namespace for view resolution.
 
 Views can be referenced using the syntax "namespace::view.name".
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Namespace name to register. |
 | `$path` | string | - | Filesystem path corresponding to the namespace. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getNamespaces() · [source](../../src/Core/Engines/ClarityEngine.php#L261)
+### getNamespaces() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L354)</small>
 
 `public function getNamespaces(): array`
 
 Get the currently registered view namespaces.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 - Description: Associative array of namespace => path mappings.
 
 
 ---
 
-### setViewPath() · [source](../../src/Core/Engines/ClarityEngine.php#L166)
+### setViewPath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L259)</small>
 
 `public function setViewPath(string $path): static`
 
 Set the base path for resolving relative template names.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$path` | string | - | Base directory for templates. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getViewPath() · [source](../../src/Core/Engines/ClarityEngine.php#L192)
+### getViewPath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L285)</small>
 
 `public function getViewPath(): string`
 
 Get the currently configured base path for view resolution.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Base directory for views.
 
 
 ---
 
-### render() · [source](../../src/Core/Engines/ClarityEngine.php#L578)
+### render() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L672)</small>
 
 `public function render(string $view, array $vars = []): string`
 
@@ -187,47 +187,47 @@ $engine->addNamespace('admin', __DIR__ . '/admin_templates');
 $html = $engine->render('admin::dashboard', $data);
 ```
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to render. Can include namespace prefix (e.g. 'admin::dashboard'). |
-| `$vars` | array | `[]` | Variables to pass to the template. Objects are automatically converted to arrays. |
+| `$vars` | array | `[]` | Variables to pass to the template. Objects stay objects: `a.b`<br>reads a public property while `a:b` reads an array key. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered HTML/output.
 
-**⚠️ Throws**
+**Throws**
 
 - ClarityException  If template not found or compilation fails.
 
 
 ---
 
-### renderPartial() · [source](../../src/Core/Engines/ClarityEngine.php#L600)
+### renderPartial() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L694)</small>
 
 `public function renderPartial(string $view, array $vars = []): string`
 
 Render a partial view (without applying a layout) and return the output.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to resolve and render. |
 | `$vars` | array | `[]` | Variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered HTML/output.
 
 
 ---
 
-### renderLayout() · [source](../../src/Core/Engines/ClarityEngine.php#L626)
+### renderLayout() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L720)</small>
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 
@@ -235,7 +235,7 @@ Render a layout template wrapping provided content.
 
 The layout receives the rendered view in the `content` variable.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -243,15 +243,15 @@ The layout receives the rendered view in the `content` variable.
 | `$content` | string | - | Previously rendered content. |
 | `$vars` | array | `[]` | Additional variables to pass to the layout. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered layout output.
 
 
 ---
 
-### addFilter() · [source](../../src/Core/Engines/ClarityEngine.php#L427)
+### addFilter() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L520)</small>
 
 `public function addFilter(string $name, callable $fn): static`
 
@@ -299,22 +299,22 @@ Template usage:
 - Dates: `date`, `date_modify`, `format_datetime`
 - Other: `json`, `default`, `unicode`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Filter name used in templates (e.g. 'currency'). |
 | `$fn` | callable | - | Callable with signature: fn($value, ...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 - Description: Fluent interface
 
 
 ---
 
-### addFunction() · [source](../../src/Core/Engines/ClarityEngine.php#L443)
+### addFunction() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L536)</small>
 
 `public function addFunction(string $name, callable $fn): static`
 
@@ -323,67 +323,67 @@ Register a custom function callable.
 Functions are called directly in templates, e.g. `{{ name(arg) }}`.
 This is distinct from filters, which transform a piped value.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Function name used in templates (e.g. 'formatDate'). |
 | `$fn` | callable | - | fn(...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### setCachePath() · [source](../../src/Core/Engines/ClarityEngine.php#L507)
+### setCachePath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L600)</small>
 
 `public function setCachePath(string $path): static`
 
 Set the directory where compiled templates should be cached.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$path` | string | - | Absolute path to the cache directory. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getCachePath() · [source](../../src/Core/Engines/ClarityEngine.php#L518)
+### getCachePath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L611)</small>
 
 `public function getCachePath(): string`
 
 Get the currently configured cache directory.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Absolute path to the cache directory.
 
 
 ---
 
-### flushCache() · [source](../../src/Core/Engines/ClarityEngine.php#L528)
+### flushCache() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L621)</small>
 
 `public function flushCache(): static`
 
 Flush all cached compiled templates.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### setDebugMode() · [source](../../src/Core/Engines/ClarityEngine.php#L50)
+### setDebugMode() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L66)</small>
 
 `public function setDebugMode(bool $debug): static`
 
@@ -394,33 +394,126 @@ dd(), DebugEventBus, optional HTML panel).  setDebugMode(true) only
 activates compiler-level assertions (range-loop safety checks) and makes
 dump() resolve at runtime instead of being pruned to ''.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$debug` | bool | - | True to enable, false to disable. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### isDebugMode() · [source](../../src/Core/Engines/ClarityEngine.php#L59)
+### isDebugMode() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L75)</small>
 
 `public function isDebugMode(): bool`
 
 Return whether debug mode is currently enabled.
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### enableDebug() · [source](../../src/Core/Engines/ClarityEngine.php#L79)
+### setSandboxMode() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L101)</small>
+
+`public function setSandboxMode(bool $sandboxed): static`
+
+Enable or disable the template sandbox.
+
+Sandboxed (the default) is the safe mode the engine has always had:
+templates cannot call arbitrary PHP functions or methods.  Passing `false`
+switches to "open mode", where templates have the full power of PHP —
+any function call, any PHP function used as a filter, and `$obj->method()`
+method calls.  This is intended for templates written by trusted authors
+(Blade / Stempler / Plates parity).
+
+SECURITY: open mode is equivalent to executing arbitrary PHP.  Templates
+compiled in either mode record which mode built them and are automatically
+recompiled when the setting changes.
+
+```php
+$engine->setSandboxMode(false);   // grant full PHP access
+```
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$sandboxed` | bool | - | True to keep templates sandboxed, false for open mode. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### isSandboxed() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L110)</small>
+
+`public function isSandboxed(): bool`
+
+Whether the sandbox is currently enabled (true = safe mode).
+
+**Return value**
+
+- Type: `bool`
+
+
+---
+
+### setDeniedFunctions() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L135)</small>
+
+`public function setDeniedFunctions(array $names): static`
+
+Replace the list of functions blocked in open mode.
+
+Accepts a list of function names (case-insensitive, leading `\` allowed).
+Nothing is blocked by default, because
+`Registry::DEFAULT_DENIED_FUNCTIONS()` is empty; set names here only if
+the application wants its own guardrails, or pass `[]` to clear them.
+
+NOTE: the compiled cache embeds the function names it calls, so changing
+this list does not invalidate already-compiled templates.  Clear the
+compiled-template cache after changing it.
+
+```php
+$engine->setDeniedFunctions(['exec', 'system']);  // add guardrails
+$engine->setDeniedFunctions([]);                  // block nothing
+```
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$names` | array | - | Function names to block in open mode. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### getDeniedFunctions() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L152)</small>
+
+`public function getDeniedFunctions(): array`
+
+Return the function names currently blocked in open mode.
+
+**Return value**
+
+- Type: `array`
+
+
+---
+
+### enableDebug() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L172)</small>
 
 `public function enableDebug(Clarity\Debug\DumpOptions|null $opts = null): static`
 
@@ -435,59 +528,59 @@ $engine->enableDebug();   // default options
 $engine->enableDebug(new DumpOptions(showPanel: true, maxDepth: 4));
 ```
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$opts` | Clarity\Debug\DumpOptions\|null | `null` | Customise depth, masking, panel, etc. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### disableDebug() · [source](../../src/Core/Engines/ClarityEngine.php#L136)
+### disableDebug() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L229)</small>
 
 `public function disableDebug(): static`
 
 Disable debug mode and tear down the event bus and debug panel.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getDebugBus() · [source](../../src/Core/Engines/ClarityEngine.php#L147)
+### getDebugBus() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L240)</small>
 
 `public function getDebugBus(): Clarity\Debug\DebugEventBus|null`
 
 Return the active DebugEventBus, or null when debug mode is off.
 
-**➡️ Return value**
+**Return value**
 
-- Type: Clarity\Debug\DebugEventBus|null
+- Type: `Clarity\Debug\DebugEventBus`|`null`
 
 
 ---
 
-### getDebugPanel() · [source](../../src/Core/Engines/ClarityEngine.php#L155)
+### getDebugPanel() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L248)</small>
 
 `public function getDebugPanel(): Clarity\Debug\HtmlDebugPanel|null`
 
 Return the active HtmlDebugPanel, or null when disabled.
 
-**➡️ Return value**
+**Return value**
 
-- Type: Clarity\Debug\HtmlDebugPanel|null
+- Type: `Clarity\Debug\HtmlDebugPanel`|`null`
 
 
 ---
 
-### use() · [source](../../src/Core/Engines/ClarityEngine.php#L283)
+### use() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L376)</small>
 
 `public function use(Clarity\ModuleInterface $module): static`
 
@@ -504,20 +597,20 @@ $engine->use(new \Clarity\LocalizationModule([
 ]));
 ```
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$module` | Clarity\ModuleInterface | - | Module to register. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addInlineFilter() · [source](../../src/Core/Engines/ClarityEngine.php#L311)
+### addInlineFilter() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L404)</small>
 
 `public function addInlineFilter(string $name, array $definition): static`
 
@@ -538,21 +631,21 @@ $engine->addInlineFilter('my_substr', [
 Template placeholders: `{1}` for the piped value, `{2}`, `{3}`, … for
 additional parameters are declared in `params`.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Filter name. |
 | `$definition` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addDirective() · [source](../../src/Core/Engines/ClarityEngine.php#L336)
+### addDirective() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L429)</small>
 
 `public function addDirective(string $keyword, callable $handler): static`
 
@@ -565,121 +658,121 @@ It must return a PHP statement string.
 
 ```php
 $engine->addDirective('with_locale', function(string $rest, string $path, int $line, callable $expr): string {
-    return "\$__sv['locale']->push({$expr(trim($rest))});"
+    return "\$__c_sv['locale']->push({$expr(trim($rest))});"
 });
-$engine->addDirective('endwith_locale', fn(...) => "\$__sv['locale']->pop();");
+$engine->addDirective('endwith_locale', fn(...) => "\$__c_sv['locale']->pop();");
 ```
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$keyword` | string | - | The directive keyword in lowercase (e.g. 'with_locale'). |
 | `$handler` | callable | - | See `Registry` for the expected signature. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addService() · [source](../../src/Core/Engines/ClarityEngine.php#L354)
+### addService() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L447)</small>
 
 `public function addService(string $name, mixed $service): static`
 
 Store a service object in the registry so that compiled template render
-bodies can access it via `$__sv['key']`.
+bodies can access it via `$__c_sv['key']`.
 
 This is primarily used by modules that need shared mutable state (e.g. a
 locale stack) accessible both from closures that close over the object
-*and* from inline filter PHP templates using `$__sv['key']->method()`.
+*and* from inline filter PHP templates using `$__c_sv['key']->method()`.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Key under which the service is accessible. |
 | `$service` | mixed | - | Service value, can be of any type. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### hasService() · [source](../../src/Core/Engines/ClarityEngine.php#L363)
+### hasService() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L456)</small>
 
 `public function hasService(string $name): bool`
 
 Return true if a service with the given key has been registered.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### getService() · [source](../../src/Core/Engines/ClarityEngine.php#L373)
+### getService() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L466)</small>
 
 `public function getService(string $name): mixed`
 
 Retrieve a previously registered service.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
-**⚠️ Throws**
+**Throws**
 
 - RuntimeException  if no service with that name exists.
 
 
 ---
 
-### setLoader() · [source](../../src/Core/Engines/ClarityEngine.php#L455)
+### setLoader() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L548)</small>
 
 `public function setLoader(Clarity\Template\TemplateLoader $loader): static`
 
 Set a custom template loader, replacing the default FileLoader.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$loader` | Clarity\Template\TemplateLoader | - | The loader to use. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getLoader() · [source](../../src/Core/Engines/ClarityEngine.php#L468)
+### getLoader() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L561)</small>
 
 `public function getLoader(): Clarity\Template\TemplateLoader`
 
 Return the active template loader, lazily creating a FileLoader if none
 has been set explicitly.
 
-**➡️ Return value**
+**Return value**
 
-- Type: Clarity\Template\TemplateLoader
+- Type: `Clarity\Template\TemplateLoader`
 
 
 

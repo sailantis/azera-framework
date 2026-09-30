@@ -1,4 +1,4 @@
-# 🧩 Class: RateLimiter
+# Class: RateLimiter
 
 **Full name:** [Azera\Security\RateLimiter](../../src/Security/RateLimiter.php)
 
@@ -14,32 +14,32 @@ The limiter uses a fixed time-window strategy: a counter is stored
 with a TTL equal to the window size and incremented on every hit.
 When the entry expires the window resets automatically.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Security/RateLimiter.php#L27)
+### __construct() · <small>[🗎](../../src/Security/RateLimiter.php#L27)</small>
 
 `public function __construct(Psr\SimpleCache\CacheInterface $cache): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$cache` | Psr\SimpleCache\CacheInterface | - | The cache used to persist counters. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### limit() · [source](../../src/Security/RateLimiter.php#L42)
+### limit() · <small>[🗎](../../src/Security/RateLimiter.php#L42)</small>
 
 `public function limit(string $key, int $max, int $perSeconds): bool`
 
 Record a hit for `$key` and report whether the limit is exceeded.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -47,70 +47,70 @@ Record a hit for `$key` and report whether the limit is exceeded.
 | `$max` | int | - | Maximum number of hits allowed within the<br>window. |
 | `$perSeconds` | int | - | Size of the sliding window in seconds. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 - Description: True if the request is within the limit (allowed),<br>false if the limit has been exceeded (deny).
 
 
 ---
 
-### hits() · [source](../../src/Security/RateLimiter.php#L65)
+### hits() · <small>[🗎](../../src/Security/RateLimiter.php#L65)</small>
 
 `public function hits(string $key): int`
 
 Get the number of hits recorded for `$key` within the current
 window, or 0 when no entry exists.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### isLimited() · [source](../../src/Security/RateLimiter.php#L78)
+### isLimited() · <small>[🗎](../../src/Security/RateLimiter.php#L78)</small>
 
 `public function isLimited(string $key, int $max): bool`
 
 Check whether `$key` has reached its limit without recording a
 new hit.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - | Identifier for the rate-limited resource. |
 | `$max` | int | - | Maximum number of hits allowed. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### reset() · [source](../../src/Security/RateLimiter.php#L86)
+### reset() · <small>[🗎](../../src/Security/RateLimiter.php#L86)</small>
 
 `public function reset(string $key): void`
 
 Reset the counter for `$key`, clearing any recorded hits.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

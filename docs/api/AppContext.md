@@ -1,53 +1,58 @@
-# 🧩 Class: AppContext
+# Class: AppContext
 
 **Full name:** [Azera\AppContext](../../src/AppContext.php)
 
-## 🚀 Public methods
+Application context and dependency injection container.
 
-### __construct() · [source](../../src/AppContext.php#L35)
+This class is a singleton that manages the application's services, including
+request-scoped services, critical services, and the service container.
+
+## Public methods
+
+### __construct() · <small>[🗎](../../src/AppContext.php#L41)</small>
 
 `public function __construct(): mixed`
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### instance() · [source](../../src/AppContext.php#L78)
+### instance() · <small>[🗎](../../src/AppContext.php#L84)</small>
 
 `public static function instance(): static`
 
 Get/create shared singleton instance
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### setInstance() · [source](../../src/AppContext.php#L87)
+### setInstance() · <small>[🗎](../../src/AppContext.php#L93)</small>
 
 `public static function setInstance(self $instance): void`
 
 Set the shared singleton instance (e.g. for testing or multi-context scenarios).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$instance` | self | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### reset() · [source](../../src/AppContext.php#L100)
+### reset() · <small>[🗎](../../src/AppContext.php#L106)</small>
 
 `public static function reset(): void`
 
@@ -58,20 +63,20 @@ guarantee each test starts from a pristine context, instead of relying on
 a previous test having called `setInstance()`. After this, the next
 `instance()` call lazily builds a fresh context.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### request() · [source](../../src/AppContext.php#L112)
+### request() · <small>[🗎](../../src/AppContext.php#L118)</small>
 
 `public function request(): Azera\Http\Request`
 
 Get the HttpRequest instance, resolved through the DI container.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Request](Http_Request.md)
 - Description: The HttpRequest instance.
@@ -79,7 +84,7 @@ Get the HttpRequest instance, resolved through the DI container.
 
 ---
 
-### view() · [source](../../src/AppContext.php#L133)
+### view() · <small>[🗎](../../src/AppContext.php#L139)</small>
 
 `public function view(): Azera\Core\ViewEngine`
 
@@ -95,7 +100,7 @@ path, memoized by the container.
 Boot code must NOT call this method (or get(ViewEngine::class)) — that
 is what triggers the engine build and its class autoload cost.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [ViewEngine](Core_ViewEngine.md)
 - Description: The active view engine instance.
@@ -103,7 +108,7 @@ is what triggers the engine build and its class autoload cost.
 
 ---
 
-### setView() · [source](../../src/AppContext.php#L151)
+### setView() · <small>[🗎](../../src/AppContext.php#L157)</small>
 
 `public function setView(Azera\Core\ViewEngine $engine): static`
 
@@ -115,26 +120,26 @@ To register a deferred factory instead, use
 `set(ViewEngine::class, $factory)` — registering a callable unsets the
 cached instance, so the factory applies on the next resolution.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$engine` | [ViewEngine](Core_ViewEngine.md) | - | The engine to use from this point on. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### cookies() · [source](../../src/AppContext.php#L162)
+### cookies() · <small>[🗎](../../src/AppContext.php#L168)</small>
 
 `public function cookies(): Azera\Http\Cookies`
 
 Get the Cookies instance, resolved through the DI container.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Cookies](Http_Cookies.md)
 - Description: The Cookies instance.
@@ -142,7 +147,7 @@ Get the Cookies instance, resolved through the DI container.
 
 ---
 
-### heap() · [source](../../src/AppContext.php#L179)
+### heap() · <small>[🗎](../../src/AppContext.php#L185)</small>
 
 `public function heap(): Azera\Orm\Heap`
 
@@ -156,14 +161,14 @@ heap is created lazily, registered in the container, and wiped by
 in persistent workers — a leaking heap would serve stale entities
 across requests/tenants).
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Heap](Orm_Heap.md)
 
 
 ---
 
-### entityManager() · [source](../../src/AppContext.php#L193)
+### entityManager() · <small>[🗎](../../src/AppContext.php#L199)</small>
 
 `public function entityManager(): Azera\Orm\EntityManager`
 
@@ -174,33 +179,33 @@ Model::save() and direct EM calls all see the same identity space.
 persist() schedules, flush() executes in one transaction. Wiped by
 `clearRequestScope()` like the heap.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [EntityManager](Orm_EntityManager.md)
 
 
 ---
 
-### dbManager() · [source](../../src/AppContext.php#L202)
+### dbManager() · <small>[🗎](../../src/AppContext.php#L208)</small>
 
 `public function dbManager(): Azera\Db\DatabaseManager`
 
 Get the DatabaseManager instance, resolved through the DI container.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [DatabaseManager](Db_DatabaseManager.md)
 
 
 ---
 
-### router() · [source](../../src/AppContext.php#L213)
+### router() · <small>[🗎](../../src/AppContext.php#L219)</small>
 
 `public function router(): Azera\Core\Router`
 
 Get the Router instance, resolved through the DI container.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Router](Core_Router.md)
 - Description: The Router instance.
@@ -208,13 +213,13 @@ Get the Router instance, resolved through the DI container.
 
 ---
 
-### dispatcher() · [source](../../src/AppContext.php#L224)
+### dispatcher() · <small>[🗎](../../src/AppContext.php#L230)</small>
 
 `public function dispatcher(): Azera\Core\Dispatcher`
 
 Get the Dispatcher instance, resolved through the DI container.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Dispatcher](Core_Dispatcher.md)
 - Description: The Dispatcher instance.
@@ -222,7 +227,7 @@ Get the Dispatcher instance, resolved through the DI container.
 
 ---
 
-### logger() · [source](../../src/AppContext.php#L237)
+### logger() · <small>[🗎](../../src/AppContext.php#L243)</small>
 
 `public function logger(): Psr\Log\LoggerInterface`
 
@@ -230,14 +235,14 @@ Get the logger instance. Returns a [`NullLogger`](Log_NullLogger.md) if no logge
 has been registered, so calling code can safely log without
 null-checks. Register a real logger via `set(LoggerInterface::class, ...)`.
 
-**➡️ Return value**
+**Return value**
 
-- Type: Psr\Log\LoggerInterface
+- Type: `Psr\Log\LoggerInterface`
 
 
 ---
 
-### events() · [source](../../src/AppContext.php#L250)
+### events() · <small>[🗎](../../src/AppContext.php#L256)</small>
 
 `public function events(): Psr\EventDispatcher\EventDispatcherInterface`
 
@@ -245,14 +250,14 @@ Get the event dispatcher. Returns a [`NullEventDispatcher`](Event_NullEventDispa
 none has been registered, so `dispatch()` is always safe. Register
 a real dispatcher via `set(EventDispatcherInterface::class, ...)`.
 
-**➡️ Return value**
+**Return value**
 
-- Type: Psr\EventDispatcher\EventDispatcherInterface
+- Type: `Psr\EventDispatcher\EventDispatcherInterface`
 
 
 ---
 
-### cache() · [source](../../src/AppContext.php#L263)
+### cache() · <small>[🗎](../../src/AppContext.php#L269)</small>
 
 `public function cache(): Psr\SimpleCache\CacheInterface`
 
@@ -260,14 +265,14 @@ Get the cache instance. Returns a [`NullCache`](Cache_NullCache.md) if none has 
 registered (always reports a miss). Register a real cache via
 `set(CacheInterface::class, ...)`.
 
-**➡️ Return value**
+**Return value**
 
-- Type: Psr\SimpleCache\CacheInterface
+- Type: `Psr\SimpleCache\CacheInterface`
 
 
 ---
 
-### queue() · [source](../../src/AppContext.php#L280)
+### queue() · <small>[🗎](../../src/AppContext.php#L286)</small>
 
 `public function queue(): Azera\Queue\QueueInterface`
 
@@ -278,32 +283,32 @@ because silently dropping jobs would be dangerous. If no queue is
 registered, this throws a LogicException with an install hint.
 Register a queue via `set(QueueInterface::class, ...)`.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [QueueInterface](Queue_QueueInterface.md)
 
-**⚠️ Throws**
+**Throws**
 
 - LogicException  If no queue is registered.
 
 
 ---
 
-### config() · [source](../../src/AppContext.php#L296)
+### config() · <small>[🗎](../../src/AppContext.php#L302)</small>
 
 `public function config(): Azera\Config\Config`
 
 Get the configuration service. Lazily creates a [`Config`](Config_Config.md)
 if none has been registered.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Config](Config_Config.md)
 
 
 ---
 
-### pipeline() · [source](../../src/AppContext.php#L320)
+### pipeline() · <small>[🗎](../../src/AppContext.php#L326)</small>
 
 `public function pipeline(array $interceptors = []): Azera\Aop\Pipeline`
 
@@ -315,26 +320,26 @@ classes. The same interceptors that work with the proxy AOP
 also work here.
 
 Example:
-<code>
+```php
 $result = $ctx->pipeline()
     ->through([new RetryInterceptor(3), new LogInterceptor($logger)])
     ->call(fn() => $service->chargeCard(100));
-</code>
+```
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$interceptors` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Pipeline](Aop_Pipeline.md)
 
 
 ---
 
-### registerInterceptor() · [source](../../src/AppContext.php#L342)
+### registerInterceptor() · <small>[🗎](../../src/AppContext.php#L348)</small>
 
 `public function registerInterceptor(string $adviceClass, Azera\Aop\InterceptorInterface|callable $interceptor): void`
 
@@ -350,21 +355,21 @@ resolved exactly once — when the ProxyFactory is first built — so boot
 can register lazy wiring (e.g. an interceptor depending on dbManager())
 without constructing anything during bootstrap.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$adviceClass` | string | - | The advice attribute class. |
 | `$interceptor` | [InterceptorInterface](Aop_InterceptorInterface.md)\|callable | - | The interceptor to handle it (or a factory returning one). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### setAopCacheDir() · [source](../../src/AppContext.php#L383)
+### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L389)</small>
 
 `public function setAopCacheDir(string|null $dir): void`
 
@@ -373,84 +378,84 @@ Set the AOP proxy cache directory.
 Pass a path for file-based proxy generation (OPcache-cached, production).
 Pass null to use eval() (development, no cache files).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$dir` | string\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### session() · [source](../../src/AppContext.php#L442)
+### session() · <small>[🗎](../../src/AppContext.php#L448)</small>
 
 `public function session(): Azera\Http\Session|null`
 
 Get the Session instance, or null until `setSession()` binds one.
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Session](Http_Session.md)|null
+- Type: [Session](Http_Session.md)|`null`
 
 
 ---
 
-### setSession() · [source](../../src/AppContext.php#L453)
+### setSession() · <small>[🗎](../../src/AppContext.php#L459)</small>
 
 `public function setSession(Azera\Http\Session $session): void`
 
 Set the Session instance.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$session` | [Session](Http_Session.md) | - | The Session instance to set in the context. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### route() · [source](../../src/AppContext.php#L461)
+### route() · <small>[🗎](../../src/AppContext.php#L467)</small>
 
 `public function route(): Azera\Core\ResolvedRoute|null`
 
 Get the current resolved route information.
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ResolvedRoute](Core_ResolvedRoute.md)|null
+- Type: [ResolvedRoute](Core_ResolvedRoute.md)|`null`
 
 
 ---
 
-### setRoute() · [source](../../src/AppContext.php#L471)
+### setRoute() · <small>[🗎](../../src/AppContext.php#L477)</small>
 
 `public function setRoute(Azera\Core\ResolvedRoute $route): void`
 
 Set the current resolved route information.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$route` | [ResolvedRoute](Core_ResolvedRoute.md) | - | The resolved route to set in the context. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### clearRequestScope() · [source](../../src/AppContext.php#L498)
+### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L504)</small>
 
 `public function clearRequestScope(): void`
 
@@ -475,14 +480,14 @@ their handles and connections alive across requests.
 
 Safe to call repeatedly; a no-op when no request has been processed yet.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### set() · [source](../../src/AppContext.php#L530)
+### set() · <small>[🗎](../../src/AppContext.php#L536)</small>
 
 `public function set(string $id, callable|object|null $service = null): void`
 
@@ -491,41 +496,41 @@ Register a service instance or lazy factory in the context.
 Registered callables are treated as zero-argument factories. They are invoked on
 first resolution and their returned object is cached for subsequent lookups.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | string | - | The identifier for the service (usually the class name). |
 | `$service` | callable\|object\|null | `null` | Optional service instance or zero-argument factory to register. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### has() · [source](../../src/AppContext.php#L548)
+### has() · <small>[🗎](../../src/AppContext.php#L554)</small>
 
 `public function has(string $id): bool`
 
 Check if a service is registered in the context.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | string | - | The identifier of the service to check. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 - Description: True if the service is registered, false otherwise.
 
 
 ---
 
-### get() · [source](../../src/AppContext.php#L566)
+### get() · <small>[🗎](../../src/AppContext.php#L572)</small>
 
 `public function get(string $id): object`
 
@@ -536,25 +541,25 @@ once and the returned object will be cached. If the service is not
 registered but the identifier is a class name, it will attempt to
 auto-wire and instantiate it.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | string | - | The identifier of the service to retrieve. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: object
+- Type: `object`
 - Description: The service instance associated with the given identifier.
 
-**⚠️ Throws**
+**Throws**
 
 - RuntimeException  If the service is not found and cannot be auto-wired.
 
 
 ---
 
-### tryGet() · [source](../../src/AppContext.php#L595)
+### tryGet() · <small>[🗎](../../src/AppContext.php#L601)</small>
 
 `public function tryGet(string $id): object|null`
 
@@ -566,21 +571,21 @@ registered but the identifier is a class name, it will attempt to
 auto-wire and instantiate it. Returns null if the service is not found,
 or if a registered factory currently resolves to null.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | string | - | The identifier of the service to retrieve. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: object|null
+- Type: `object`|`null`
 - Description: The service instance associated with the given identifier, or null if not found.
 
 
 ---
 
-### getOrNull() · [source](../../src/AppContext.php#L623)
+### getOrNull() · <small>[🗎](../../src/AppContext.php#L629)</small>
 
 `public function getOrNull(string $id): object|null`
 
@@ -590,15 +595,15 @@ Registered factories are resolved lazily. This method does not attempt
 to auto-wire or instantiate classes that have not been registered
 explicitly.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$id` | string | - | The identifier of the service to retrieve. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: object|null
+- Type: `object`|`null`
 - Description: The service instance associated with the given identifier, or null if not found.
 
 

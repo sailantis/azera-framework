@@ -1,4 +1,4 @@
-# 🧩 Class: TwigAdapter
+# Class: TwigAdapter
 
 **Full name:** [Azera\Core\Engines\Adapters\TwigAdapter](../../src/Core/Engines/Adapters/TwigAdapter.php)
 
@@ -17,26 +17,26 @@ the pipe syntax: `{{ value|filterName }}`.
 Cache location: `sys_get_temp_dir()/twig_cache` (override with `setCachePath()`).
 Pass an empty string to disable caching.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L35)
+### __construct() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L35)</small>
 
 `public function __construct(array $vars = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$vars` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### setCachePath() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L51)
+### setCachePath() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L51)</small>
 
 `public function setCachePath(string $path): static`
 
@@ -45,46 +45,46 @@ Set the directory where compiled templates should be cached.
 Pass an empty string to disable caching entirely.
 Changes take effect immediately even if Twig is already initialised.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$path` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getCachePath() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L63)
+### getCachePath() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L63)</small>
 
 `public function getCachePath(): string`
 
 Get the currently configured cache directory.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### flushCache() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L69)
+### flushCache() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L69)</small>
 
 `public function flushCache(): static`
 
 Flush all cached compiled templates.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addNamespace() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L95)
+### addNamespace() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L95)</small>
 
 `public function addNamespace(string $name, string $path): static`
 
@@ -94,21 +94,21 @@ Also registers the namespace with the Twig FilesystemLoader so templates
 can reference it as `@namespace/path/to/template.twig`.  If Twig has not
 been initialised yet the namespace is queued and applied on first render.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Namespace name to register. |
 | `$path` | string | - | Filesystem path corresponding to the namespace. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addFilter() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L119)
+### addFilter() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L119)</small>
 
 `public function addFilter(string $name, callable $fn): static`
 
@@ -119,21 +119,21 @@ Registers a Twig filter callable.  Available in templates as
 
 Can be called before or after the first render.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Filter name used in templates (e.g. 'currency'). |
 | `$fn` | callable | - | fn($value, ...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addFunction() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L137)
+### addFunction() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L137)</small>
 
 `public function addFunction(string $name, callable $fn): static`
 
@@ -144,21 +144,21 @@ Registers a Twig function callable.  Available in templates as
 
 Can be called before or after the first render.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Function name used in templates (e.g. 'formatDate'). |
 | `$fn` | callable | - | fn(...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getDriver() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L154)
+### getDriver() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L154)</small>
 
 `public function getDriver(): mixed`
 
@@ -168,56 +168,56 @@ Returns the underlying `\Twig\Environment` instance for advanced
 configuration (extensions, token parsers, globals, etc.).
 Initialises Twig on first call if not already done.
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### render() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L229)
+### render() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L229)</small>
 
 `public function render(string $view, array $vars = []): string`
 
 Render a view (and optional layout) and return the result.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to render. |
 | `$vars` | array | `[]` | Additional variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered content.
 
 
 ---
 
-### renderPartial() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L239)
+### renderPartial() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L239)</small>
 
 `public function renderPartial(string $view, array $vars = []): string`
 
 Render a partial view (without applying a layout) and return the output.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to resolve and render. |
 | `$vars` | array | `[]` | Variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered HTML/output.
 
 
 ---
 
-### renderLayout() · [source](../../src/Core/Engines/Adapters/TwigAdapter.php#L253)
+### renderLayout() · <small>[🗎](../../src/Core/Engines/Adapters/TwigAdapter.php#L253)</small>
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 
@@ -225,7 +225,7 @@ Render a layout template wrapping provided content.
 
 The layout receives the rendered view in the `content` variable.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -233,9 +233,9 @@ The layout receives the rendered view in the `content` variable.
 | `$content` | string | - | Previously rendered content. |
 | `$vars` | array | `[]` | Additional variables to pass to the layout. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered layout output.
 
 

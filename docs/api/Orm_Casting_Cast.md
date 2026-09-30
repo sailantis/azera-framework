@@ -1,4 +1,4 @@
-# 🔌 Interface: Cast
+# Interface: Cast
 
 **Full name:** [Azera\Orm\Casting\Cast](../../src/Orm/Casting/Cast.php)
 
@@ -20,42 +20,42 @@ Implementations must be null-transparent (encode(null) === null,
 decode(null) === null) and stateless — a single instance is shared by
 all classes and rows of the registered type.
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/Cast.php#L29)
+### encode() · <small>[🗎](../../src/Orm/Casting/Cast.php#L29)</small>
 
 `public function encode(mixed $value): mixed`
 
 PHP entity value -> raw store value.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/Cast.php#L34)
+### decode() · <small>[🗎](../../src/Orm/Casting/Cast.php#L34)</small>
 
 `public function decode(mixed $value): mixed`
 
 Raw store value -> PHP entity value.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

@@ -1,4 +1,4 @@
-# Azera MVC API
+# Azera Framework API
 
 ## Classes & Interfaces overview
 
@@ -12,6 +12,7 @@
 - [Log](Aop_Log.md) `Azera\Aop\Log`
 - [LogInterceptor](Aop_LogInterceptor.md) `Azera\Aop\LogInterceptor`
 - [Pipeline](Aop_Pipeline.md) `Azera\Aop\Pipeline`
+- [PipelineHandler](Aop_PipelineHandler.md) `Azera\Aop\PipelineHandler`
 - [ProxyFactory](Aop_ProxyFactory.md) `Azera\Aop\ProxyFactory`
 - [Retry](Aop_Retry.md) `Azera\Aop\Retry`
 - [RetryInterceptor](Aop_RetryInterceptor.md) `Azera\Aop\RetryInterceptor`

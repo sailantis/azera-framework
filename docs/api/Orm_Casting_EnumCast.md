@@ -1,4 +1,4 @@
-# 🧩 Class: EnumCast
+# Class: EnumCast
 
 **Full name:** [Azera\Orm\Casting\EnumCast](../../src/Orm/Casting/EnumCast.php)
 
@@ -38,26 +38,26 @@ and never handed to tryFrom() raw.
 Instances are memoized per enum class, so one instance is shared by
 every class and row using that enum.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Casting/EnumCast.php#L56)
+### __construct() · <small>[🗎](../../src/Orm/Casting/EnumCast.php#L56)</small>
 
 `public function __construct(string $enumClass): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$enumClass` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### for() · [source](../../src/Orm/Casting/EnumCast.php#L91)
+### for() · <small>[🗎](../../src/Orm/Casting/EnumCast.php#L91)</small>
 
 `public static function for(string $enumClass): self`
 
@@ -69,49 +69,49 @@ immutable (backing type resolved once) and stateless, so sharing
 one across registry clears, classes and rows is safe. Replacing an
 enum's cast is done through [`Casts::register()`](Orm_Casting_Casts.md#register), not here.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$enumClass` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: self
+- Type: `self`
 
 
 ---
 
-### encode() · [source](../../src/Orm/Casting/EnumCast.php#L96)
+### encode() · <small>[🗎](../../src/Orm/Casting/EnumCast.php#L96)</small>
 
 `public function encode(mixed $value): string|int|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|int|null
+- Type: `string`|`int`|`null`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/EnumCast.php#L120)
+### decode() · <small>[🗎](../../src/Orm/Casting/EnumCast.php#L120)</small>
 
 `public function decode(mixed $value): BackedEnum|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: BackedEnum|null
+- Type: `BackedEnum`|`null`
 
 
 

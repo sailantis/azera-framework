@@ -1,4 +1,4 @@
-# 🧩 Class: MakeTask
+# Class: MakeTask
 
 **Full name:** [Azera\Cli\Tasks\MakeTask](../../src/Cli/Tasks/MakeTask.php)
 
@@ -23,104 +23,104 @@ Examples:
   make:view home
   make:controller Foo --namespace=App\\Admin
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/MakeTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/MakeTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/MakeTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/MakeTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### controllerAction() · [source](../../src/Cli/Tasks/MakeTask.php#L36)
+### controllerAction() · <small>[🗎](../../src/Cli/Tasks/MakeTask.php#L36)</small>
 
 `public function controllerAction(string $name = ''): void`
 
 Create a controller class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | `''` | Controller name (e.g. "Foo" or "UserController") |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### modelAction() · [source](../../src/Cli/Tasks/MakeTask.php#L57)
+### modelAction() · <small>[🗎](../../src/Cli/Tasks/MakeTask.php#L57)</small>
 
 `public function modelAction(string $name = ''): void`
 
 Create a model class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | `''` | Model name (e.g. "User" or "BlogPost") |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### taskAction() · [source](../../src/Cli/Tasks/MakeTask.php#L79)
+### taskAction() · <small>[🗎](../../src/Cli/Tasks/MakeTask.php#L79)</small>
 
 `public function taskAction(string $name = ''): void`
 
 Create a CLI task class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | `''` | Task name (e.g. "SyncPrices" or "SendEmails") |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### middlewareAction() · [source](../../src/Cli/Tasks/MakeTask.php#L100)
+### middlewareAction() · <small>[🗎](../../src/Cli/Tasks/MakeTask.php#L100)</small>
 
 `public function middlewareAction(string $name = ''): void`
 
 Create a middleware class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | `''` | Middleware name (e.g. "Auth" or "Cors") |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### viewAction() · [source](../../src/Cli/Tasks/MakeTask.php#L121)
+### viewAction() · <small>[🗎](../../src/Cli/Tasks/MakeTask.php#L121)</small>
 
 `public function viewAction(string $name = ''): void`
 
 Create a Clarity template view file.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | `''` | View name (e.g. "home", "users.index") |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

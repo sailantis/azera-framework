@@ -1,55 +1,55 @@
-# 🧩 Class: MySqlSchemaProvider
+# Class: MySqlSchemaProvider
 
 **Full name:** [Azera\Sync\Schema\MySqlSchemaProvider](../../src/Sync/Schema/MySqlSchemaProvider.php)
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/Schema/MySqlSchemaProvider.php#L8)
+### __construct() · <small>[🗎](../../src/Sync/Schema/MySqlSchemaProvider.php#L8)</small>
 
 `public function __construct(PDO $pdo): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$pdo` | PDO | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### listTables() · [source](../../src/Sync/Schema/MySqlSchemaProvider.php#L10)
+### listTables() · <small>[🗎](../../src/Sync/Schema/MySqlSchemaProvider.php#L10)</small>
 
 `public function listTables(string|null $schema = null): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$schema` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### getTableSchema() · [source](../../src/Sync/Schema/MySqlSchemaProvider.php#L21)
+### getTableSchema() · <small>[🗎](../../src/Sync/Schema/MySqlSchemaProvider.php#L21)</small>
 
 `public function getTableSchema(string $table, string|null $schema = null): Azera\Sync\Schema\TableSchema`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$table` | string | - |  |
 | `$schema` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [TableSchema](Sync_Schema_TableSchema.md)
 

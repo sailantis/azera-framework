@@ -1,4 +1,4 @@
-# 🧩 Class: ProxyFactory
+# Class: ProxyFactory
 
 **Full name:** [Azera\Aop\ProxyFactory](../../src/Aop/ProxyFactory.php)
 
@@ -21,27 +21,27 @@ Cost when interceptors are registered but class has no #[Advised]: zero
 Cost when class has #[Advised] but no advised methods: one-time
 ReflectionMethod scan, then the raw target is returned — no proxy.
 
-## 🚀 Public methods
+## Public methods
 
-### register() · [source](../../src/Aop/ProxyFactory.php#L42)
+### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L42)</small>
 
 `public function register(string $adviceClass, Azera\Aop\InterceptorInterface $interceptor): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$adviceClass` | string | - |  |
 | `$interceptor` | [InterceptorInterface](Aop_InterceptorInterface.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### setCacheDir() · [source](../../src/Aop/ProxyFactory.php#L55)
+### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L55)</small>
 
 `public function setCacheDir(string|null $dir): void`
 
@@ -50,42 +50,42 @@ Set the cache directory for file-based proxy generation.
 When set, proxy classes are written to disk as PHP files and `require`d,
 allowing OPcache to cache them. When null (default), `eval()` is used.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$dir` | string\|null | - | Cache directory, or null to use eval(). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### getCacheDir() · [source](../../src/Aop/ProxyFactory.php#L60)
+### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L60)</small>
 
 `public function getCacheDir(): string|null`
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|null
+- Type: `string`|`null`
 
 
 ---
 
-### hasInterceptors() · [source](../../src/Aop/ProxyFactory.php#L65)
+### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L65)</small>
 
 `public function hasInterceptors(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### buildProxyClass() · [source](../../src/Aop/ProxyFactory.php#L80)
+### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L80)</small>
 
 `public function buildProxyClass(ReflectionClass $ref): string|null`
 
@@ -96,58 +96,58 @@ if no methods need interception. In file-based mode, the class is
 written to disk and `require`d — OPcache caches it. In eval mode
 (development), an anonymous class is created inline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$ref` | ReflectionClass | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|null
+- Type: `string`|`null`
 
 
 ---
 
-### setCurrent() · [source](../../src/Aop/ProxyFactory.php#L380)
+### setCurrent() · <small>[🗎](../../src/Aop/ProxyFactory.php#L380)</small>
 
 `public static function setCurrent(Azera\Aop\ProxyFactory|null $factory): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$factory` | [ProxyFactory](Aop_ProxyFactory.md)\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### current() · [source](../../src/Aop/ProxyFactory.php#L385)
+### current() · <small>[🗎](../../src/Aop/ProxyFactory.php#L385)</small>
 
 `public static function current(): Azera\Aop\ProxyFactory|null`
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ProxyFactory](Aop_ProxyFactory.md)|null
+- Type: [ProxyFactory](Aop_ProxyFactory.md)|`null`
 
 
 ---
 
-### getInterceptor() · [source](../../src/Aop/ProxyFactory.php#L390)
+### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L390)</small>
 
 `public function getInterceptor(string $adviceClass): Azera\Aop\InterceptorInterface`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$adviceClass` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [InterceptorInterface](Aop_InterceptorInterface.md)
 

@@ -1,4 +1,4 @@
-# 🧩 Class: Job
+# Class: Job
 
 **Full name:** [Azera\Queue\Job](../../src/Queue/Job.php)
 
@@ -6,7 +6,7 @@ Base implementation of [`JobInterface`](Queue_JobInterface.md) with sensible def
 
 Extend this class to create a job without boilerplate:
 
-<code>
+```php
 class SendWelcomeEmailJob extends Job
 {
     public function __construct(private string $email) }
@@ -16,78 +16,78 @@ class SendWelcomeEmailJob extends Job
         Mailer::send($this->email, 'Welcome!');
     }
 }
-</code>
+```
 
-## 🚀 Public methods
+## Public methods
 
-### tries() · [source](../../src/Queue/Job.php#L24)
+### tries() · <small>[🗎](../../src/Queue/Job.php#L24)</small>
 
 `public function tries(): int`
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### backoff() · [source](../../src/Queue/Job.php#L29)
+### backoff() · <small>[🗎](../../src/Queue/Job.php#L29)</small>
 
 `public function backoff(): array|int`
 
-**➡️ Return value**
+**Return value**
 
-- Type: array|int
+- Type: `array`|`int`
 
 
 ---
 
-### retryUntil() · [source](../../src/Queue/Job.php#L34)
+### retryUntil() · <small>[🗎](../../src/Queue/Job.php#L34)</small>
 
 `public function retryUntil(): int|null`
 
-**➡️ Return value**
+**Return value**
 
-- Type: int|null
+- Type: `int`|`null`
 
 
 ---
 
-### failed() · [source](../../src/Queue/Job.php#L39)
+### failed() · <small>[🗎](../../src/Queue/Job.php#L39)</small>
 
 `public function failed(Throwable $exception): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$exception` | Throwable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### id() · [source](../../src/Queue/Job.php#L44)
+### id() · <small>[🗎](../../src/Queue/Job.php#L44)</small>
 
 `public function id(): string|null`
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|null
+- Type: `string`|`null`
 
 
 ---
 
-### queue() · [source](../../src/Queue/Job.php#L49)
+### queue() · <small>[🗎](../../src/Queue/Job.php#L49)</small>
 
 `public function queue(): string`
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 

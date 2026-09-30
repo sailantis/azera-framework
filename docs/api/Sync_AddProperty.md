@@ -1,16 +1,14 @@
-# 🧩 Class: AddProperty
+# Class: AddProperty
 
 **Full name:** [Azera\Sync\AddProperty](../../src/Sync/ModelDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$type` · [source](../../src/Sync/ModelDiff.php)
-- `public` bool `$nullable` · [source](../../src/Sync/ModelDiff.php)
-- `public` string|null `$comment` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$visibility` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$property` · [source](../../src/Sync/ModelDiff.php)
-
-## 🚀 Public methods
+- `public` string `$type` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` bool `$nullable` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string|null `$comment` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$visibility` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$property` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
 
 
 

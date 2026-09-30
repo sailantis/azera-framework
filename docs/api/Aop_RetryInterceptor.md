@@ -1,4 +1,4 @@
-# 🧩 Class: RetryInterceptor
+# Class: RetryInterceptor
 
 **Full name:** [Azera\Aop\RetryInterceptor](../../src/Aop/RetryInterceptor.php)
 
@@ -11,13 +11,13 @@ exception is re-thrown.
 When used in the explicit [`Pipeline`](Aop_Pipeline.md) (no attribute), the constructor
 defaults for `times` and `backoff` are used.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/RetryInterceptor.php#L21)
+### __construct() · <small>[🗎](../../src/Aop/RetryInterceptor.php#L21)</small>
 
 `public function __construct(Psr\Log\LoggerInterface|null $logger = null, int $defaultTimes = 3, int $defaultBackoff = 0): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -25,18 +25,18 @@ defaults for `times` and `backoff` are used.
 | `$defaultTimes` | int | `3` |  |
 | `$defaultBackoff` | int | `0` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### intercept() · [source](../../src/Aop/RetryInterceptor.php#L27)
+### intercept() · <small>[🗎](../../src/Aop/RetryInterceptor.php#L27)</small>
 
 `public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -45,9 +45,9 @@ defaults for `times` and `backoff` are used.
 | `$args` | array | - |  |
 | `$next` | callable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: HydrationMap
+# Class: HydrationMap
 
 **Full name:** [Azera\Orm\HydrationMap](../../src/Orm/HydrationMap.php)
 
@@ -13,22 +13,22 @@ several classes without collisions.
 Pure function of (class, relation names) — cheap to rebuild, cacheable
 later alongside metadata.
 
-## 🚀 Public methods
+## Public methods
 
-### build() · [source](../../src/Orm/HydrationMap.php#L24)
+### build() · <small>[🗎](../../src/Orm/HydrationMap.php#L24)</small>
 
 `public static function build(string $rootClass, array $relations): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$rootClass` | string | - |  |
 | `$relations` | array | - | relation names from metadata |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

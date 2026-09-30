@@ -1,54 +1,57 @@
-# 🧩 Class: FieldValidator
+# Class: FieldValidator
 
 **Full name:** [Azera\Validation\FieldValidator](../../src/Validation/FieldValidator.php)
 
 Fluent validator for a single input field.
 
 Chain rules to describe what the field must look like.
-The validator is executed by [`Validator`](Validation_Validator.md) (or the nested model/list machinery)
+The validator is executed by [`Validator`](Validation_Validator.md)
+(or the nested model/list machinery)
 via the internal `validate()` method.
 
 Example:
+```php
   $v->field('email')->required()->email()->max(255);
   $v->field('age')->optional()->int()->min(18)->max(120);
   $v->field('tags')->optional()->list(fn($f) => $f->string()->max(50));
+```
 
-## 🚀 Public methods
+## Public methods
 
-### required() · [source](../../src/Validation/FieldValidator.php#L77)
+### required() · <small>[🗎](../../src/Validation/FieldValidator.php#L80)</small>
 
 `public function required(): static`
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### optional() · [source](../../src/Validation/FieldValidator.php#L83)
+### optional() · <small>[🗎](../../src/Validation/FieldValidator.php#L86)</small>
 
 `public function optional(): static`
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### isRequired() · [source](../../src/Validation/FieldValidator.php#L89)
+### isRequired() · <small>[🗎](../../src/Validation/FieldValidator.php#L92)</small>
 
 `public function isRequired(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### default() · [source](../../src/Validation/FieldValidator.php#L99)
+### default() · <small>[🗎](../../src/Validation/FieldValidator.php#L102)</small>
 
 `public function default(mixed $value): static`
 
@@ -57,94 +60,94 @@ Supply a default value used when the field is absent.
 Calling default() implicitly makes the field optional.
 The default is included in validated() as-is (no rules are applied to it).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### hasDefault() · [source](../../src/Validation/FieldValidator.php#L107)
+### hasDefault() · <small>[🗎](../../src/Validation/FieldValidator.php#L110)</small>
 
 `public function hasDefault(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### getDefault() · [source](../../src/Validation/FieldValidator.php#L112)
+### getDefault() · <small>[🗎](../../src/Validation/FieldValidator.php#L115)</small>
 
 `public function getDefault(): mixed`
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### int() · [source](../../src/Validation/FieldValidator.php#L122)
+### int() · <small>[🗎](../../src/Validation/FieldValidator.php#L125)</small>
 
 `public function int(): static`
 
 Coerce to integer. Accepts int values and numeric strings (including negatives).
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### float() · [source](../../src/Validation/FieldValidator.php#L131)
+### float() · <small>[🗎](../../src/Validation/FieldValidator.php#L134)</small>
 
 `public function float(): static`
 
 Coerce to float. Accepts any numeric value.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### bool() · [source](../../src/Validation/FieldValidator.php#L140)
+### bool() · <small>[🗎](../../src/Validation/FieldValidator.php#L143)</small>
 
 `public function bool(): static`
 
 Coerce to bool. Accepts true/false, 1/0, "true"/"false", "yes"/"no", "on"/"off".
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### string() · [source](../../src/Validation/FieldValidator.php#L149)
+### string() · <small>[🗎](../../src/Validation/FieldValidator.php#L152)</small>
 
 `public function string(): static`
 
 Explicitly cast to string. Useful for ensuring min/max applies to character length.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### min() · [source](../../src/Validation/FieldValidator.php#L163)
+### min() · <small>[🗎](../../src/Validation/FieldValidator.php#L166)</small>
 
 `public function min(int|float $n): static`
 
@@ -153,129 +156,129 @@ Minimum value / length / count depending on type:
   - int/float: minimum numeric value
   - array: minimum number of items
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$n` | int\|float | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### max() · [source](../../src/Validation/FieldValidator.php#L172)
+### max() · <small>[🗎](../../src/Validation/FieldValidator.php#L175)</small>
 
 `public function max(int|float $n): static`
 
 Maximum value / length / count (same semantics as min).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$n` | int\|float | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### email() · [source](../../src/Validation/FieldValidator.php#L181)
+### email() · <small>[🗎](../../src/Validation/FieldValidator.php#L184)</small>
 
 `public function email(): static`
 
 Value must be a valid e-mail address (RFC 5321).
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### url() · [source](../../src/Validation/FieldValidator.php#L188)
+### url() · <small>[🗎](../../src/Validation/FieldValidator.php#L191)</small>
 
 `public function url(): static`
 
 Value must be a valid URL (FILTER_VALIDATE_URL).
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### ip() · [source](../../src/Validation/FieldValidator.php#L195)
+### ip() · <small>[🗎](../../src/Validation/FieldValidator.php#L198)</small>
 
 `public function ip(): static`
 
 Value must be a valid IPv4 or IPv6 address.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### pattern() · [source](../../src/Validation/FieldValidator.php#L202)
+### pattern() · <small>[🗎](../../src/Validation/FieldValidator.php#L205)</small>
 
 `public function pattern(string $regex): static`
 
 Value must match the given regular expression.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$regex` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### in() · [source](../../src/Validation/FieldValidator.php#L213)
+### in() · <small>[🗎](../../src/Validation/FieldValidator.php#L216)</small>
 
 `public function in(array $allowed): static`
 
 Value must be strictly equal (===) to one of the allowed values.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$allowed` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### domain() · [source](../../src/Validation/FieldValidator.php#L220)
+### domain() · <small>[🗎](../../src/Validation/FieldValidator.php#L223)</small>
 
 `public function domain(): static`
 
 Value must be a valid domain name (e.g. example.com), without scheme or path.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### custom() · [source](../../src/Validation/FieldValidator.php#L241)
+### custom() · <small>[🗎](../../src/Validation/FieldValidator.php#L244)</small>
 
 `public function custom(callable $fn): static`
 
@@ -291,39 +294,39 @@ Custom validation callback. Return:
 
 Multiple custom() calls are supported and stack; the first failure short-circuits.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$fn` | callable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### list() · [source](../../src/Validation/FieldValidator.php#L254)
+### list() · <small>[🗎](../../src/Validation/FieldValidator.php#L257)</small>
 
 `public function list(callable $configure): static`
 
 Value must be an array; each element is validated by the configured sub-validator.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$configure` | callable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### model() · [source](../../src/Validation/FieldValidator.php#L268)
+### model() · <small>[🗎](../../src/Validation/FieldValidator.php#L271)</small>
 
 `public function model(array $fields): static`
 
@@ -331,26 +334,26 @@ Value must be an associative array matching the given field definitions.
 
 Each entry maps a key name to a callable that configures a FieldValidator.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$fields` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### validate() · [source](../../src/Validation/FieldValidator.php#L284)
+### validate() · <small>[🗎](../../src/Validation/FieldValidator.php#L287)</small>
 
 `public function validate(mixed $value, string $path, array &$errors): mixed`
 
 Apply all configured rules to $value, appending any errors to $errors.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -358,9 +361,9 @@ Apply all configured rules to $value, appending any errors to $errors.
 | `$path` | string | - | Dot-path used as the error key. |
 | `$errors` | array | - | Accumulated errors (mutated in place). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 - Description: The coerced / validated value.
 
 

@@ -1,4 +1,4 @@
-# 🔌 Interface: TableResolver
+# Interface: TableResolver
 
 **Full name:** [Azera\Db\Resolver\TableResolver](../../src/Db/Resolver/TableResolver.php)
 
@@ -14,26 +14,26 @@ The resolver is also the single source of truth for hydration: when
 so that `FETCH_CLASS` hydration is available. When it is null, only
 fast array/object fetching is available.
 
-## 🚀 Public methods
+## Public methods
 
-### resolve() · [source](../../src/Db/Resolver/TableResolver.php#L36)
+### resolve() · <small>[🗎](../../src/Db/Resolver/TableResolver.php#L36)</small>
 
 `public function resolve(string $name): array`
 
 Resolve a logical name to a concrete source descriptor.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | The logical model/table name (e.g. `User`, `users`, `App\Models\Order`). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 - Description: <br>- `source`:     The concrete table or view name.<br>- `schema`:     Optional database schema (e.g. for PostgreSQL), or null.<br>- `read`:       Optional read connection role, or null (falls back to AppContext default).<br>- `write`:      Optional write connection role, or null (falls back to AppContext default).<br>- `modelClass`: The fully-qualified model class name when this name maps to a real model,<br>                or null for mapping/literal resolvers (no hydration).<br>- `idFields`:   The primary key field names (for UPSERT conflict target), or null.
 
-**⚠️ Throws**
+**Throws**
 
 - [ResolveException](Db_Resolver_ResolveException.md)  When the name cannot be resolved.
 

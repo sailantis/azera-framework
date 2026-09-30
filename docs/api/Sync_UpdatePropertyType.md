@@ -1,14 +1,12 @@
-# 🧩 Class: UpdatePropertyType
+# Class: UpdatePropertyType
 
 **Full name:** [Azera\Sync\UpdatePropertyType](../../src/Sync/ModelDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$oldType` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$newType` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$property` · [source](../../src/Sync/ModelDiff.php)
-
-## 🚀 Public methods
+- `public` string `$oldType` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$newType` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$property` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
 
 
 

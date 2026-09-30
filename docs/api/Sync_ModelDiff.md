@@ -1,14 +1,14 @@
-# 🧩 Class: ModelDiff
+# Class: ModelDiff
 
 **Full name:** [Azera\Sync\ModelDiff](../../src/Sync/ModelDiff.php)
 
-## 🚀 Public methods
+## Public methods
 
-### diff() · [source](../../src/Sync/ModelDiff.php#L11)
+### diff() · <small>[🗎](../../src/Sync/ModelDiff.php#L11)</small>
 
 `public function diff(Azera\Sync\Schema\TableSchema $table, Azera\Sync\ParsedModel $model, Azera\Sync\SyncOptions|null $options = null): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -16,9 +16,9 @@
 | `$model` | [ParsedModel](Sync_ParsedModel.md) | - |  |
 | `$options` | [SyncOptions](Sync_SyncOptions.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

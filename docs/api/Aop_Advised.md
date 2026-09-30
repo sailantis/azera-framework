@@ -1,4 +1,4 @@
-# 🧩 Class: Advised
+# Class: Advised
 
 **Full name:** [Azera\Aop\Advised](../../src/Aop/Advised.php)
 
@@ -11,7 +11,7 @@ of every class for advice attributes.
 
 Place on any class that has methods with advice attributes:
 
-<code>
+```php
 #[Advised]
 class BillingService
 {
@@ -21,9 +21,7 @@ class BillingService
     #[Cache(ttl: 300)]
     public function loadProfile(User $u): Profile { ... }
 }
-</code>
-
-## 🚀 Public methods
+```
 
 
 

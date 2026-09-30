@@ -1,4 +1,4 @@
-# 🧩 Class: LogInterceptor
+# Class: LogInterceptor
 
 **Full name:** [Azera\Aop\LogInterceptor](../../src/Aop/LogInterceptor.php)
 
@@ -7,30 +7,30 @@ Intercepts methods marked with [`Log`](Aop_Log.md) and logs their execution.
 Logs method entry (with optional arguments), exit (with duration),
 and any exceptions thrown.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/LogInterceptor.php#L17)
+### __construct() · <small>[🗎](../../src/Aop/LogInterceptor.php#L17)</small>
 
 `public function __construct(Psr\Log\LoggerInterface $logger): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$logger` | Psr\Log\LoggerInterface | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### intercept() · [source](../../src/Aop/LogInterceptor.php#L21)
+### intercept() · <small>[🗎](../../src/Aop/LogInterceptor.php#L21)</small>
 
 `public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -39,9 +39,9 @@ and any exceptions thrown.
 | `$args` | array | - |  |
 | `$next` | callable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

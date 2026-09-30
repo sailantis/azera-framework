@@ -1,4 +1,4 @@
-# 🧩 Class: Stores
+# Class: Stores
 
 **Full name:** [Azera\Orm\Storage\Stores](../../src/Orm/Storage/Stores.php)
 
@@ -23,55 +23,55 @@ Registered in the context under this class name; EntityManager::setStore()
 writes through it, storeFor()/Metadata read through it. Pure
 configuration, no per-request state — deliberately NOT RequestScoped.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Storage/Stores.php#L32)
+### __construct() · <small>[🗎](../../src/Orm/Storage/Stores.php#L32)</small>
 
 `public function __construct(): mixed`
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### set() · [source](../../src/Orm/Storage/Stores.php#L39)
+### set() · <small>[🗎](../../src/Orm/Storage/Stores.php#L39)</small>
 
 `public function set(string $type, Azera\Orm\Storage\Store $store): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$type` | string | - |  |
 | `$store` | [Store](Orm_Storage_Store.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### has() · [source](../../src/Orm/Storage/Stores.php#L44)
+### has() · <small>[🗎](../../src/Orm/Storage/Stores.php#L44)</small>
 
 `public function has(string $type): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$type` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### tryGet() · [source](../../src/Orm/Storage/Stores.php#L54)
+### tryGet() · <small>[🗎](../../src/Orm/Storage/Stores.php#L54)</small>
 
 `public function tryGet(string $type): Azera\Orm\Storage\Store|null`
 
@@ -80,15 +80,15 @@ Lenient NON-throwing lookup: null when the type is unregistered.
 Hot paths treat "nothing registered" as ordinary control flow
 (fallback resolution) — a miss costs one array probe.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$type` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Store](Orm_Storage_Store.md)|null
+- Type: [Store](Orm_Storage_Store.md)|`null`
 
 
 

@@ -1,25 +1,25 @@
-# 🧩 Class: SyncResult
+# Class: SyncResult
 
 **Full name:** [Azera\Sync\SyncResult](../../src/Sync/SyncResult.php)
 
 Holds the result of synchronising a single model file against the database schema.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$filePath` · [source](../../src/Sync/SyncResult.php)
-- `public` string `$className` · [source](../../src/Sync/SyncResult.php)
-- `public` string `$tableName` · [source](../../src/Sync/SyncResult.php)
-- `public` array `$operations` · [source](../../src/Sync/SyncResult.php)
-- `public` bool `$applied` · [source](../../src/Sync/SyncResult.php)
-- `public` string|null `$error` · [source](../../src/Sync/SyncResult.php)
+- `public` string `$filePath` · <small>[🗎](../../src/Sync/SyncResult.php)</small>
+- `public` string `$className` · <small>[🗎](../../src/Sync/SyncResult.php)</small>
+- `public` string `$tableName` · <small>[🗎](../../src/Sync/SyncResult.php)</small>
+- `public` array `$operations` · <small>[🗎](../../src/Sync/SyncResult.php)</small>
+- `public` bool `$applied` · <small>[🗎](../../src/Sync/SyncResult.php)</small>
+- `public` string|null `$error` · <small>[🗎](../../src/Sync/SyncResult.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/SyncResult.php#L17)
+### __construct() · <small>[🗎](../../src/Sync/SyncResult.php#L17)</small>
 
 `public function __construct(string $filePath, string $className, string $tableName, array $operations, bool $applied, string|null $error = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -30,88 +30,88 @@ Holds the result of synchronising a single model file against the database schem
 | `$applied` | bool | - | Whether the operations were written to disk |
 | `$error` | string\|null | `null` | Error message, or null on success |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### hasChanges() · [source](../../src/Sync/SyncResult.php#L27)
+### hasChanges() · <small>[🗎](../../src/Sync/SyncResult.php#L27)</small>
 
 `public function hasChanges(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### isSuccess() · [source](../../src/Sync/SyncResult.php#L32)
+### isSuccess() · <small>[🗎](../../src/Sync/SyncResult.php#L32)</small>
 
 `public function isSuccess(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### addedProperties() · [source](../../src/Sync/SyncResult.php#L38)
+### addedProperties() · <small>[🗎](../../src/Sync/SyncResult.php#L38)</small>
 
 `public function addedProperties(): array`
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### removedProperties() · [source](../../src/Sync/SyncResult.php#L44)
+### removedProperties() · <small>[🗎](../../src/Sync/SyncResult.php#L44)</small>
 
 `public function removedProperties(): array`
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### typeChanges() · [source](../../src/Sync/SyncResult.php#L50)
+### typeChanges() · <small>[🗎](../../src/Sync/SyncResult.php#L50)</small>
 
 `public function typeChanges(): array`
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### addedAccessors() · [source](../../src/Sync/SyncResult.php#L56)
+### addedAccessors() · <small>[🗎](../../src/Sync/SyncResult.php#L56)</small>
 
 `public function addedAccessors(): array`
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### summary() · [source](../../src/Sync/SyncResult.php#L64)
+### summary() · <small>[🗎](../../src/Sync/SyncResult.php#L64)</small>
 
 `public function summary(): string`
 
 Human-readable summary line.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 

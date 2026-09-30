@@ -1,22 +1,22 @@
-# 🧩 Class: SyncOptions
+# Class: SyncOptions
 
 **Full name:** [Azera\Sync\SyncOptions](../../src/Sync/SyncOptions.php)
 
 Configuration options that control the behavior of the model-sync process.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` bool `$generateAccessors` · [source](../../src/Sync/SyncOptions.php)
-- `public` string `$fieldVisibility` · [source](../../src/Sync/SyncOptions.php)
-- `public` bool `$deprecate` · [source](../../src/Sync/SyncOptions.php)
+- `public` bool `$generateAccessors` · <small>[🗎](../../src/Sync/SyncOptions.php)</small>
+- `public` string `$fieldVisibility` · <small>[🗎](../../src/Sync/SyncOptions.php)</small>
+- `public` bool `$deprecate` · <small>[🗎](../../src/Sync/SyncOptions.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/SyncOptions.php#L17)
+### __construct() · <small>[🗎](../../src/Sync/SyncOptions.php#L17)</small>
 
 `public function __construct(bool $generateAccessors = false, string $fieldVisibility = 'public', bool $deprecate = true): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -24,9 +24,9 @@ Configuration options that control the behavior of the model-sync process.
 | `$fieldVisibility` | string | `'public'` | Visibility modifier applied to generated properties:<br>'public', 'protected', or 'private'. |
 | `$deprecate` | bool | `true` | When false, properties whose columns have been removed<br>are left untouched instead of being tagged @deprecated. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

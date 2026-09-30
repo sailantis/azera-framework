@@ -1,4 +1,4 @@
-# 🧩 Class: Cache
+# Class: Cache
 
 **Full name:** [Azera\Aop\Cache](../../src/Aop/Cache.php)
 
@@ -12,7 +12,7 @@ The key is derived from the method name and arguments by default.
 A custom key template can be provided with `{argName}` placeholders.
 
 Example:
-<code>
+```php
 #[Advised]
 class UserService
 {
@@ -22,29 +22,29 @@ class UserService
     #[Cache(ttl: 600, key: 'user_{userId}_profile')]
     public function loadProfile(int $userId): Profile { ... }
 }
-</code>
+```
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` int|null `$ttl` · [source](../../src/Aop/Cache.php)
-- `public readonly` string|null `$key` · [source](../../src/Aop/Cache.php)
+- `public readonly` int|null `$ttl` · <small>[🗎](../../src/Aop/Cache.php)</small>
+- `public readonly` string|null `$key` · <small>[🗎](../../src/Aop/Cache.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/Cache.php#L31)
+### __construct() · <small>[🗎](../../src/Aop/Cache.php#L31)</small>
 
 `public function __construct(int|null $ttl = null, string|null $key = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$ttl` | int\|null | `null` |  |
 | `$key` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

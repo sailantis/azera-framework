@@ -1,4 +1,4 @@
-# 🧩 Class: HasOne
+# Class: HasOne
 
 **Full name:** [Azera\Orm\Attribute\HasOne](../../src/Orm/Attribute/HasOne.php)
 
@@ -10,19 +10,19 @@ first ID field.
 
 Default load strategy: SQL JOIN (to-one is always JOIN).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$target` · [source](../../src/Orm/Attribute/HasOne.php)
-- `public` string|null `$foreignKey` · [source](../../src/Orm/Attribute/HasOne.php)
-- `public` string|null `$ownerKey` · [source](../../src/Orm/Attribute/HasOne.php)
+- `public` string `$target` · <small>[🗎](../../src/Orm/Attribute/HasOne.php)</small>
+- `public` string|null `$foreignKey` · <small>[🗎](../../src/Orm/Attribute/HasOne.php)</small>
+- `public` string|null `$ownerKey` · <small>[🗎](../../src/Orm/Attribute/HasOne.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Attribute/HasOne.php#L17)
+### __construct() · <small>[🗎](../../src/Orm/Attribute/HasOne.php#L17)</small>
 
 `public function __construct(string $target, string|null $foreignKey = null, string|null $ownerKey = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -30,9 +30,9 @@ Default load strategy: SQL JOIN (to-one is always JOIN).
 | `$foreignKey` | string\|null | `null` |  |
 | `$ownerKey` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

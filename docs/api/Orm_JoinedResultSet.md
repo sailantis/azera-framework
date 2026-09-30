@@ -1,4 +1,4 @@
-# 🧩 Class: JoinedResultSet
+# Class: JoinedResultSet
 
 **Full name:** [Azera\Orm\JoinedResultSet](../../src/Orm/JoinedResultSet.php)
 
@@ -18,13 +18,13 @@ the same identity map the EntityManager uses.
 Deliberately NOT a ResultSet: no FETCH_CLASS double-write, no wrapper
 cursor; iteration yields root entities with relations attached.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/JoinedResultSet.php#L31)
+### __construct() · <small>[🗎](../../src/Orm/JoinedResultSet.php#L31)</small>
 
 `public function __construct(array $rows, array $plan, Azera\Db\Database|null $db = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -32,33 +32,33 @@ cursor; iteration yields root entities with relations attached.
 | `$plan` | array | - | HydrationMap::build() output |
 | `$db` | [Database](Db_Database.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### getIterator() · [source](../../src/Orm/JoinedResultSet.php#L39)
+### getIterator() · <small>[🗎](../../src/Orm/JoinedResultSet.php#L39)</small>
 
 `public function getIterator(): Generator`
 
-**➡️ Return value**
+**Return value**
 
-- Type: Generator
+- Type: `Generator`
 
 
 ---
 
-### first() · [source](../../src/Orm/JoinedResultSet.php#L149)
+### first() · <small>[🗎](../../src/Orm/JoinedResultSet.php#L149)</small>
 
 `public function first(): object|null`
 
 First root entity or null.
 
-**➡️ Return value**
+**Return value**
 
-- Type: object|null
+- Type: `object`|`null`
 
 
 

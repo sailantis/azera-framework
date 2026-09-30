@@ -1,4 +1,4 @@
-# 🧩 Class: BladeAdapter
+# Class: BladeAdapter
 
 **Full name:** [Azera\Core\Engines\Adapters\BladeAdapter](../../src/Core/Engines/Adapters/BladeAdapter.php)
 
@@ -16,26 +16,26 @@ to register custom `@directiveName(...)` syntax instead.
 
 Cache location: `sys_get_temp_dir()/blade_cache` (override with `setCachePath()`)
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L30)
+### __construct() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L30)</small>
 
 `public function __construct(array $vars = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$vars` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### setCachePath() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L46)
+### setCachePath() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L46)</small>
 
 `public function setCachePath(string $path): static`
 
@@ -44,46 +44,46 @@ Set the directory where compiled templates should be cached.
 Forces re-initialisation of the Blade compiler on the next render so the
 new path takes effect.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$path` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getCachePath() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L55)
+### getCachePath() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L55)</small>
 
 `public function getCachePath(): string`
 
 Get the currently configured cache directory.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### flushCache() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L61)
+### flushCache() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L61)</small>
 
 `public function flushCache(): static`
 
 Flush all cached compiled templates.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addNamespace() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L86)
+### addNamespace() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L86)</small>
 
 `public function addNamespace(string $name, string $path): static`
 
@@ -92,21 +92,21 @@ Add a namespace for view resolution.
 Also registers the namespace as a Blade hint path so templates can use
 `namespace::view.name` syntax.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Namespace name to register. |
 | `$path` | string | - | Filesystem path corresponding to the namespace. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addDirective() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L109)
+### addDirective() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L109)</small>
 
 `public function addDirective(string $name, callable $handler): static`
 
@@ -115,21 +115,21 @@ Register a custom Blade directive.
 Blade does not support pipe-style filters; use this method to add
 custom `@name(...)` syntax instead.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Directive name without the `@` prefix. |
 | `$handler` | callable | - | fn(?string $expression): string — must return PHP code. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### addFilter() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L124)
+### addFilter() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L124)</small>
 
 `public function addFilter(string $name, callable $fn): static`
 
@@ -138,25 +138,25 @@ Register a custom filter callable.
 Blade does not support pipe-style filters.  Use `addDirective()`
 to register a custom `@{$name}` directive instead.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Filter name used in templates (e.g. 'currency'). |
 | `$fn` | callable | - | fn($value, ...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - LogicException  Always.
 
 
 ---
 
-### addFunction() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L141)
+### addFunction() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L141)</small>
 
 `public function addFunction(string $name, callable $fn): static`
 
@@ -166,25 +166,25 @@ Blade does not have a standalone function concept equivalent to
 Twig/Plates.  Use `addDirective()` to register a custom
 `@{$name}(...)` directive instead.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Function name used in templates (e.g. 'formatDate'). |
 | `$fn` | callable | - | fn(...$args): mixed |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - LogicException  Always.
 
 
 ---
 
-### getDriver() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L157)
+### getDriver() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L157)</small>
 
 `public function getDriver(): mixed`
 
@@ -195,56 +195,56 @@ configuration.  Initialises Blade on first call if not already done.
 Use `getDriver()->getEngineResolver()` or access `$this->bladeCompiler`
 via `addDirective()` for compiler-level customisation.
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### render() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L228)
+### render() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L228)</small>
 
 `public function render(string $view, array $vars = []): string`
 
 Render a view (and optional layout) and return the result.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to render. |
 | `$vars` | array | `[]` | Additional variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered content.
 
 
 ---
 
-### renderPartial() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L238)
+### renderPartial() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L238)</small>
 
 `public function renderPartial(string $view, array $vars = []): string`
 
 Render a partial view (without applying a layout) and return the output.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to resolve and render. |
 | `$vars` | array | `[]` | Variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered HTML/output.
 
 
 ---
 
-### renderLayout() · [source](../../src/Core/Engines/Adapters/BladeAdapter.php#L252)
+### renderLayout() · <small>[🗎](../../src/Core/Engines/Adapters/BladeAdapter.php#L252)</small>
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 
@@ -252,7 +252,7 @@ Render a layout template wrapping provided content.
 
 The layout receives the rendered view in the `content` variable.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -260,9 +260,9 @@ The layout receives the rendered view in the `content` variable.
 | `$content` | string | - | Previously rendered content. |
 | `$vars` | array | `[]` | Additional variables to pass to the layout. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered layout output.
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: Tx
+# Class: Tx
 
 **Full name:** [Azera\Facade\Tx](../../src/Facade/Tx.php)
 
@@ -8,72 +8,72 @@ Plain static methods; no magic. Complements Db::transaction() with
 explicit begin/commit/rollback handles when the callback shape doesn't
 fit.
 
-## 🚀 Public methods
+## Public methods
 
-### begin() · [source](../../src/Facade/Tx.php#L16)
+### begin() · <small>[🗎](../../src/Facade/Tx.php#L16)</small>
 
 `public static function begin(string|null $role = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### commit() · [source](../../src/Facade/Tx.php#L21)
+### commit() · <small>[🗎](../../src/Facade/Tx.php#L21)</small>
 
 `public static function commit(string|null $role = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### rollback() · [source](../../src/Facade/Tx.php#L26)
+### rollback() · <small>[🗎](../../src/Facade/Tx.php#L26)</small>
 
 `public static function rollback(string|null $role = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### level() · [source](../../src/Facade/Tx.php#L31)
+### level() · <small>[🗎](../../src/Facade/Tx.php#L31)</small>
 
 `public static function level(string|null $role = null): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$role` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 

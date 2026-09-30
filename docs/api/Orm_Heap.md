@@ -1,4 +1,4 @@
-# 🧩 Class: Heap
+# Class: Heap
 
 **Full name:** [Azera\Orm\Heap](../../src/Orm/Heap.php)
 
@@ -14,9 +14,9 @@ entities for a new request / another tenant).
 Performance shape: two flat array lookups per access (identity index and
 oid index), no objects allocated for lookups.
 
-## 🚀 Public methods
+## Public methods
 
-### key() · [source](../../src/Orm/Heap.php#L77)
+### key() · <small>[🗎](../../src/Orm/Heap.php#L77)</small>
 
 `public static function key(string $class, array $id): string`
 
@@ -30,112 +30,112 @@ Fast path: single-PK scalar ids (the overwhelmingly common shape —
 e.g. ['id' => 42]) skip ksort/array_is_list and build the key with
 one interpolation. Composite keys keep the full canonicalization.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - | PK field => value (all values non-null) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### attach() · [source](../../src/Orm/Heap.php#L101)
+### attach() · <small>[🗎](../../src/Orm/Heap.php#L101)</small>
 
 `public function attach(object $entity, Azera\Orm\Node $node): void`
 
 Register (or replace) the node for an entity.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$entity` | object | - |  |
 | `$node` | [Node](Orm_Node.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### find() · [source](../../src/Orm/Heap.php#L165)
+### find() · <small>[🗎](../../src/Orm/Heap.php#L165)</small>
 
 `public function find(object $entity): Azera\Orm\Node|null`
 
 Find the node for an entity OBJECT (regardless of its identity).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$entity` | object | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Node](Orm_Node.md)|null
+- Type: [Node](Orm_Node.md)|`null`
 
 
 ---
 
-### findById() · [source](../../src/Orm/Heap.php#L176)
+### findById() · <small>[🗎](../../src/Orm/Heap.php#L176)</small>
 
 `public function findById(string $class, array $id): Azera\Orm\Node|null`
 
 Find the node for a class + PK values — the identity-map hit path.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Node](Orm_Node.md)|null
+- Type: [Node](Orm_Node.md)|`null`
 
 
 ---
 
-### detach() · [source](../../src/Orm/Heap.php#L184)
+### detach() · <small>[🗎](../../src/Orm/Heap.php#L184)</small>
 
 `public function detach(object $entity): void`
 
 Drop an entity from identity tracking (after delete or detach).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$entity` | object | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### scheduled() · [source](../../src/Orm/Heap.php#L211)
+### scheduled() · <small>[🗎](../../src/Orm/Heap.php#L211)</small>
 
 `public function scheduled(): array`
 
 All nodes currently scheduled for a flush, in insertion order.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### entityFor() · [source](../../src/Orm/Heap.php#L228)
+### entityFor() · <small>[🗎](../../src/Orm/Heap.php#L228)</small>
 
 `public function entityFor(Azera\Orm\Node $node): object|null`
 
@@ -144,44 +144,44 @@ backfill needs the actual instance, not just its bookkeeping node).
 
 O(1) via the reverse node => oid index.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$node` | [Node](Orm_Node.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: object|null
+- Type: `object`|`null`
 
 
 ---
 
-### all() · [source](../../src/Orm/Heap.php#L240)
+### all() · <small>[🗎](../../src/Orm/Heap.php#L240)</small>
 
 `public function all(): array`
 
 All nodes (any state), in insertion order.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### count() · [source](../../src/Orm/Heap.php#L245)
+### count() · <small>[🗎](../../src/Orm/Heap.php#L245)</small>
 
 `public function count(): int`
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### resetState() · [source](../../src/Orm/Heap.php#L255)
+### resetState() · <small>[🗎](../../src/Orm/Heap.php#L255)</small>
 
 `public function resetState(): void`
 
@@ -189,9 +189,9 @@ Request-scoped hook: wipe the entire identity map. Called between
 requests in persistent workers. This is a correctness requirement —
 never turn the heap into a cross-request cache.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

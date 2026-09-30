@@ -1,10 +1,10 @@
-# 🧩 Class: Query
+# Class: Query
 
 **Full name:** [Azera\Db\Query](../../src/Db/Query.php)
 
 Unified query builder for SELECT, INSERT, UPDATE, DELETE operations
 
-**💡 Example**
+**Example**
 
 ```php
 // SELECT (raw/literal table)
@@ -31,47 +31,47 @@ $exists = Query::raw()->table('users')->where('email', 'test@example.com')->exis
 $count = Query::raw()->table('users')->where('active', 1)->count();
 ```
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Query.php#L148)
+### __construct() · <small>[🗎](../../src/Db/Query.php#L148)</small>
 
 `public function __construct(Azera\Db\Database|null $db = null): mixed`
 
 Constructor. Can optionally pass a Database connection to use for this query.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$db` | [Database](Db_Database.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### new() · [source](../../src/Db/Query.php#L158)
+### new() · <small>[🗎](../../src/Db/Query.php#L158)</small>
 
 `public static function new(Azera\Db\Database|null $db = null): static`
 
 Factory method to create a new Query instance using the AppContext default resolver.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$db` | [Database](Db_Database.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### raw() · [source](../../src/Db/Query.php#L170)
+### raw() · <small>[🗎](../../src/Db/Query.php#L170)</small>
 
 `public static function raw(Azera\Db\Database|null $db = null): static`
 
@@ -79,20 +79,20 @@ Factory method to create a new Query instance that treats table names as literal
 (no model/mapping resolution). Useful for raw queries, small scripts, or when
 you want to avoid coupling to model classes.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$db` | [Database](Db_Database.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### modelFor() · [source](../../src/Db/Query.php#L186)
+### modelFor() · <small>[🗎](../../src/Db/Query.php#L186)</small>
 
 `public static function modelFor(string $modelClass, Azera\Db\Database|null $db = null): self`
 
@@ -100,41 +100,41 @@ Factory method for a MODEL-backed query with an explicit connection —
 the test/CLI escape hatch for entities()/firstEntity() without a
 bootstrapped model stack. Production code uses Model::query().
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$modelClass` | string | - |  |
 | `$db` | [Database](Db_Database.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: self
+- Type: `self`
 
 
 ---
 
-### using() · [source](../../src/Db/Query.php#L199)
+### using() · <small>[🗎](../../src/Db/Query.php#L199)</small>
 
 `public function using(Azera\Db\Resolver\TableResolver $resolver): static`
 
 Set a custom table resolver for this query. This is the low-level
 escape hatch for custom resolver implementations.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$resolver` | [TableResolver](Db_Resolver_TableResolver.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### table() · [source](../../src/Db/Query.php#L264)
+### table() · <small>[🗎](../../src/Db/Query.php#L264)</small>
 
 `public function table(string $name, string|null $alias = null): static`
 
@@ -144,108 +144,108 @@ and optional model class for hydration.
 
 The name may include an alias in `"table" AS "alias"` or `"table alias"` form.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Logical model/table name or model class name |
 | `$alias` | string\|null | `null` | Optional table alias |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### from() · [source](../../src/Db/Query.php#L291)
+### from() · <small>[🗎](../../src/Db/Query.php#L291)</small>
 
 `public function from(Azera\Db\Query|string $source, string|null $alias = null): static`
 
 Set the source for this query from a subquery or raw table expression. The subquery will be wrapped in parentheses and treated as a table. An optional alias can be provided for the subquery.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$source` | [Query](Db_Query.md)\|string | - | Subquery or raw table expression |
 | `$alias` | string\|null | `null` | Optional alias for the subquery |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### columns() · [source](../../src/Db/Query.php#L321)
+### columns() · <small>[🗎](../../src/Db/Query.php#L321)</small>
 
 `public function columns(array|string $columns): static`
 
 Set columns for SELECT queries. Can be either a comma-separated string or an array of column names.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$columns` | array\|string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### limit() · [source](../../src/Db/Query.php#L340)
+### limit() · <small>[🗎](../../src/Db/Query.php#L340)</small>
 
 `public function limit(int $limit, int|null $offset = null): static`
 
 Set the LIMIT and optional OFFSET for SELECT queries
 (or limit number of rows affected for UPDATE/DELETE)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$limit` | int | - | Number of rows to limit |
 | `$offset` | int\|null | `null` | Optional offset for the limit |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### offset() · [source](../../src/Db/Query.php#L354)
+### offset() · <small>[🗎](../../src/Db/Query.php#L354)</small>
 
 `public function offset(int $offset): static`
 
 Sets an OFFSET clause for SELECT queries
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$offset` | int | - | Number of rows to offset |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### values() · [source](../../src/Db/Query.php#L368)
+### values() · <small>[🗎](../../src/Db/Query.php#L368)</small>
 
 `public function values(object|array $values, bool $escape = true): static`
 
@@ -253,21 +253,21 @@ Adds values for INSERT or UPDATE queries. Can be either:
 - An associative array of column => value pairs
 - An object with public properties
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | object\|array | - |  |
 | `$escape` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### bulkValues() · [source](../../src/Db/Query.php#L393)
+### bulkValues() · <small>[🗎](../../src/Db/Query.php#L393)</small>
 
 `public function bulkValues(array $valuesList = [], bool $escape = true): static`
 
@@ -275,34 +275,34 @@ Set multiple rows of values for bulk insert operations.
 
 Each item in the list should be an array of column => value pairs.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$valuesList` | array | `[]` |  |
 | `$escape` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### hasValues() · [source](../../src/Db/Query.php#L413)
+### hasValues() · <small>[🗎](../../src/Db/Query.php#L413)</small>
 
 `public function hasValues(): bool`
 
 Check if any values have been set for this query
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### set() · [source](../../src/Db/Query.php#L427)
+### set() · <small>[🗎](../../src/Db/Query.php#L427)</small>
 
 `public function set(array|string $column, mixed $value = null, bool $escape = true): static`
 
@@ -310,7 +310,7 @@ Set a value for INSERT or UPDATE queries. Can be either:
 - A single column name and value pair
 - An associative array of column => value pairs
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -318,20 +318,20 @@ Set a value for INSERT or UPDATE queries. Can be either:
 | `$value` | mixed | `null` |  |
 | `$escape` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### innerJoin() · [source](../../src/Db/Query.php#L472)
+### innerJoin() · <small>[🗎](../../src/Db/Query.php#L472)</small>
 
 `public function innerJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
 Adds an INNER join to the query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -339,24 +339,24 @@ Adds an INNER join to the query
 | `$alias` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 | `$conditions` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### leftJoin() · [source](../../src/Db/Query.php#L485)
+### leftJoin() · <small>[🗎](../../src/Db/Query.php#L485)</small>
 
 `public function leftJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
 Adds a LEFT join to the query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -364,24 +364,24 @@ Adds a LEFT join to the query
 | `$alias` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 | `$conditions` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### rightJoin() · [source](../../src/Db/Query.php#L498)
+### rightJoin() · <small>[🗎](../../src/Db/Query.php#L498)</small>
 
 `public function rightJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
 Adds a RIGHT join to the query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -389,24 +389,24 @@ Adds a RIGHT join to the query
 | `$alias` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 | `$conditions` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### crossJoin() · [source](../../src/Db/Query.php#L511)
+### crossJoin() · <small>[🗎](../../src/Db/Query.php#L511)</small>
 
 `public function crossJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
 Adds a CROSS join to the query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -414,24 +414,24 @@ Adds a CROSS join to the query
 | `$alias` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 | `$conditions` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### join() · [source](../../src/Db/Query.php#L525)
+### join() · <small>[🗎](../../src/Db/Query.php#L525)</small>
 
 `public function join(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null, string|null $type = null): static`
 
 Add a JOIN clause to the query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -440,208 +440,208 @@ Add a JOIN clause to the query
 | `$conditions` | [Condition](Db_Condition.md)\|string\|null | `null` |  |
 | `$type` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### orderBy() · [source](../../src/Db/Query.php#L586)
+### orderBy() · <small>[🗎](../../src/Db/Query.php#L586)</small>
 
 `public function orderBy(array|string $orderBy): static`
 
 Set ORDER BY clause
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$orderBy` | array\|string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### bind() · [source](../../src/Db/Query.php#L607)
+### bind() · <small>[🗎](../../src/Db/Query.php#L607)</small>
 
 `public function bind(object|array $bindParams): static`
 
 Bind parameters for prepared statements. Can be either an associative array or an object with properties as parameter names.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$bindParams` | object\|array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### returnSql() · [source](../../src/Db/Query.php#L621)
+### returnSql() · <small>[🗎](../../src/Db/Query.php#L621)</small>
 
 `public function returnSql(bool $returnSql = true): static`
 
 Set whether to return the SQL string instead of executing the query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$returnSql` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### distinct() · [source](../../src/Db/Query.php#L636)
+### distinct() · <small>[🗎](../../src/Db/Query.php#L636)</small>
 
 `public function distinct(bool $distinct): static`
 
 Set DISTINCT modifier for SELECT queries
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$distinct` | bool | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### injectBeforeColumns() · [source](../../src/Db/Query.php#L647)
+### injectBeforeColumns() · <small>[🗎](../../src/Db/Query.php#L647)</small>
 
 `public function injectBeforeColumns(string $inject): static`
 
 Set a string to be injected before the column list in SELECT queries (e.g. for SQL_CALC_FOUND_ROWS in MySQL)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$inject` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### groupBy() · [source](../../src/Db/Query.php#L658)
+### groupBy() · <small>[🗎](../../src/Db/Query.php#L658)</small>
 
 `public function groupBy(array|string $groupBy): static`
 
 Set GROUP BY clause
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$groupBy` | array\|string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### forUpdate() · [source](../../src/Db/Query.php#L671)
+### forUpdate() · <small>[🗎](../../src/Db/Query.php#L671)</small>
 
 `public function forUpdate(bool $forUpdate): static`
 
 Sets a FOR UPDATE clause (MySQL/PostgreSQL) or FOR SHARE (PostgreSQL)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$forUpdate` | bool | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### sharedLock() · [source](../../src/Db/Query.php#L682)
+### sharedLock() · <small>[🗎](../../src/Db/Query.php#L682)</small>
 
 `public function sharedLock(bool $sharedLock): static`
 
 Sets a LOCK IN SHARE MODE / FOR SHARE clause (MySQL/PostgreSQL)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$sharedLock` | bool | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### replace() · [source](../../src/Db/Query.php#L697)
+### replace() · <small>[🗎](../../src/Db/Query.php#L697)</small>
 
 `public function replace(bool $replace = true): static`
 
 Mark this as a REPLACE INTO operation (MySQL/SQLite)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$replace` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### ignore() · [source](../../src/Db/Query.php#L708)
+### ignore() · <small>[🗎](../../src/Db/Query.php#L708)</small>
 
 `public function ignore(bool $ignore = true): static`
 
 Set IGNORE modifier for INSERT (MySQL/SQLite) or ON CONFLICT DO NOTHING (PostgreSQL)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$ignore` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### updateValues() · [source](../../src/Db/Query.php#L731)
+### updateValues() · <small>[🗎](../../src/Db/Query.php#L731)</small>
 
 `public function updateValues(array $updateValues, bool $escape = true): static`
 
@@ -657,21 +657,21 @@ forces SQLite to compile the conflict action as an internal
 DELETE+INSERT (fsync-bound), so explicit PK assignments are the
 one thing to avoid.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$updateValues` | array | - |  |
 | `$escape` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### conflict() · [source](../../src/Db/Query.php#L762)
+### conflict() · <small>[🗎](../../src/Db/Query.php#L762)</small>
 
 `public function conflict(array|string $columnsOrConstraint): static`
 
@@ -679,43 +679,43 @@ Set conflict target for ON CONFLICT clause (PostgreSQL). Can be either:
 - Array with column names
 - String with column names or constraint name
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$columnsOrConstraint` | array\|string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### returning() · [source](../../src/Db/Query.php#L774)
+### returning() · <small>[🗎](../../src/Db/Query.php#L774)</small>
 
 `public function returning(array|string|null $columns): static`
 
 Set columns to return from an INSERT/UPDATE/DELETE query. Supported by PostgreSQL (RETURNING) and MySQL (RETURNING with MySQL 8.0.27+)
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$columns` | array\|string\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### with() · [source](../../src/Db/Query.php#L796)
+### with() · <small>[🗎](../../src/Db/Query.php#L796)</small>
 
 `public function with(string $relation): static`
 
@@ -724,61 +724,61 @@ declared via Orm attributes on the model. BelongsTo/HasOne become
 LEFT JOINs at select() time (one SQL, alias-separated rows); HasMany
 stays a second query by parent IDs.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$relation` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### toSql() · [source](../../src/Db/Query.php#L813)
+### toSql() · <small>[🗎](../../src/Db/Query.php#L813)</small>
 
 `public function toSql(): string`
 
 Compile and return the SQL string for this query without executing it
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### select() · [source](../../src/Db/Query.php#L827)
+### select() · <small>[🗎](../../src/Db/Query.php#L827)</small>
 
 `public function select(array|string|null $columns = null): Azera\Db\ResultSet|Azera\Orm\JoinedResultSet|string`
 
 Execute SELECT query and return ResultSet or return SQL string if returnSql is enabled
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$columns` | array\|string\|null | `null` | Columns to select, or null to ignore parameter. Can be either a comma-separated string or an array of column names. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ResultSet](Db_ResultSet.md)|[JoinedResultSet](Orm_JoinedResultSet.md)|string
+- Type: [ResultSet](Db_ResultSet.md)|[JoinedResultSet](Orm_JoinedResultSet.md)|`string`
 - Description: ResultSet normally, JoinedResultSet on the eager-load path, string when returnSql is true
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### entities() · [source](../../src/Db/Query.php#L939)
+### entities() · <small>[🗎](../../src/Db/Query.php#L939)</small>
 
 `public function entities(): array`
 
@@ -795,18 +795,18 @@ Requires model mode (resolved modelClass); raw-table queries throw.
 Explicit columns() are honored: unknown names surface as SQL errors,
 while known-but-aliased columns hydrate what they provide.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception|\LogicException
 
 
 ---
 
-### firstEntity() · [source](../../src/Db/Query.php#L971)
+### firstEntity() · <small>[🗎](../../src/Db/Query.php#L971)</small>
 
 `public function firstEntity(): object|null`
 
@@ -814,18 +814,18 @@ First matching row as a heap-tracked entity, or null. LIMIT 1,
 offset cleared — same semantics as the criteria terminals, zero
 extra terminal methods on the builder.
 
-**➡️ Return value**
+**Return value**
 
-- Type: object|null
+- Type: `object`|`null`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception|\LogicException
 
 
 ---
 
-### fresh() · [source](../../src/Db/Query.php#L996)
+### fresh() · <small>[🗎](../../src/Db/Query.php#L996)</small>
 
 `public function fresh(bool $fresh = true): static`
 
@@ -839,20 +839,20 @@ pending state until flush(). For PK reads prefer
 {@see \Azera\Orm\EntityManager::find($class, $id, fresh: true)} /
 Model::find($id, fresh: true); fresh() serves criteria reads.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$fresh` | bool | `true` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### first() · [source](../../src/Db/Query.php#L1080)
+### first() · <small>[🗎](../../src/Db/Query.php#L1080)</small>
 
 `public function first(): Azera\Orm\Model|string|null`
 
@@ -862,181 +862,181 @@ Execute SELECT query and return the first heap-tracked entity or null
 Same hydration path as entities()/Model::find() — identity-mapped,
 metadata-mapped columns, bound parameters.
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Model](Orm_Model.md)|string|null
+- Type: [Model](Orm_Model.md)|`string`|`null`
 - Description: First entity, or SQL string, or null if no results
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### insert() · [source](../../src/Db/Query.php#L1100)
+### insert() · <small>[🗎](../../src/Db/Query.php#L1100)</small>
 
 `public function insert(array|null $data = null): Azera\Db\ResultSet|array|string|bool`
 
 Execute INSERT or UPSERT query or return SQL string if returnSql is enabled
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$data` | array\|null | `null` | Data to insert |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ResultSet](Db_ResultSet.md)|array|string|bool
+- Type: [ResultSet](Db_ResultSet.md)|`array`|`string`|`bool`
 - Description: Insert ID, true on success, or SQL string, or result of returning clause
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### upsert() · [source](../../src/Db/Query.php#L1111)
+### upsert() · <small>[🗎](../../src/Db/Query.php#L1111)</small>
 
 `public function upsert(array|null $data = null): Azera\Db\ResultSet|array|string|bool`
 
 Execute UPSERT query (INSERT with ON CONFLICT/ON DUPLICATE KEY UPDATE) or return SQL string if returnSql is enabled
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$data` | array\|null | `null` | Data to insert |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ResultSet](Db_ResultSet.md)|array|string|bool
+- Type: [ResultSet](Db_ResultSet.md)|`array`|`string`|`bool`
 - Description: Insert ID, true on success, or SQL string, or result of returning clause
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### update() · [source](../../src/Db/Query.php#L1150)
+### update() · <small>[🗎](../../src/Db/Query.php#L1150)</small>
 
 `public function update(array|null $data = null): Azera\Db\ResultSet|array|string|int`
 
 Execute UPDATE query or return SQL string if returnSql is enabled
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$data` | array\|null | `null` | Data to update |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ResultSet](Db_ResultSet.md)|array|string|int
+- Type: [ResultSet](Db_ResultSet.md)|`array`|`string`|`int`
 - Description: Number of affected rows or SQL string, or row of returning clause
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### delete() · [source](../../src/Db/Query.php#L1180)
+### delete() · <small>[🗎](../../src/Db/Query.php#L1180)</small>
 
 `public function delete(): Azera\Db\ResultSet|array|string|int`
 
 Execute DELETE query
 
-**➡️ Return value**
+**Return value**
 
-- Type: [ResultSet](Db_ResultSet.md)|array|string|int
+- Type: [ResultSet](Db_ResultSet.md)|`array`|`string`|`int`
 - Description: Number of affected rows, SQL string, or result of returning clause
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### truncate() · [source](../../src/Db/Query.php#L1205)
+### truncate() · <small>[🗎](../../src/Db/Query.php#L1205)</small>
 
 `public function truncate(): string|int`
 
 Execute TRUNCATE query or return SQL string if returnSql is enabled
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|int
+- Type: `string`|`int`
 - Description: Number of affected rows or SQL string
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### exists() · [source](../../src/Db/Query.php#L1226)
+### exists() · <small>[🗎](../../src/Db/Query.php#L1226)</small>
 
 `public function exists(): string|bool`
 
 Check if any rows exist matching the query
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|bool
+- Type: `string`|`bool`
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### count() · [source](../../src/Db/Query.php#L1253)
+### count() · <small>[🗎](../../src/Db/Query.php#L1253)</small>
 
 `public function count(): string|int`
 
 Count rows matching the query
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|int
+- Type: `string`|`int`
 - Description: Number of matching rows or SQL string
 
-**⚠️ Throws**
+**Throws**
 
 - Exception
 
 
 ---
 
-### getBindings() · [source](../../src/Db/Query.php#L2000)
+### getBindings() · <small>[🗎](../../src/Db/Query.php#L2000)</small>
 
 `public function getBindings(): array`
 
 Get bind parameters
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### paginate() · [source](../../src/Db/Query.php#L2012)
+### paginate() · <small>[🗎](../../src/Db/Query.php#L2012)</small>
 
 `public function paginate(int $page = 1, int $pageSize = 30, bool $reverse = false): Azera\Db\Paginator`
 
 Create a paginator for the current query
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -1044,22 +1044,22 @@ Create a paginator for the current query
 | `$pageSize` | int | `30` | Number of items per page |
 | `$reverse` | bool | `false` | Whether to reverse the order of results (for efficient deep pagination) |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Paginator](Db_Paginator.md)
 
 
 ---
 
-### getRowCount() · [source](../../src/Db/Query.php#L2051)
+### getRowCount() · <small>[🗎](../../src/Db/Query.php#L2051)</small>
 
 `public function getRowCount(): int`
 
 Return the number of affected rows for write operations or the number of rows in the result set for read operations
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 

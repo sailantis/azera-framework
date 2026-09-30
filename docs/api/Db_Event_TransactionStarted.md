@@ -1,23 +1,23 @@
-# 🧩 Class: TransactionStarted
+# Class: TransactionStarted
 
 **Full name:** [Azera\Db\Event\TransactionStarted](../../src/Db/Event/TransactionStarted.php)
 
 Dispatched after a transaction (or savepoint) has been started via
 [`Database::begin()`](Db_Database.md#begin).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` bool `$nesting` · [source](../../src/Db/Event/TransactionStarted.php)
-- `public readonly` int `$level` · [source](../../src/Db/Event/TransactionStarted.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/TransactionStarted.php)
+- `public readonly` bool `$nesting` · <small>[🗎](../../src/Db/Event/TransactionStarted.php)</small>
+- `public readonly` int `$level` · <small>[🗎](../../src/Db/Event/TransactionStarted.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/TransactionStarted.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/TransactionStarted.php#L13)
+### __construct() · <small>[🗎](../../src/Db/Event/TransactionStarted.php#L13)</small>
 
 `public function __construct(Azera\Db\Database $database, bool $nesting, int $level): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -25,9 +25,9 @@ Dispatched after a transaction (or savepoint) has been started via
 | `$nesting` | bool | - |  |
 | `$level` | int | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

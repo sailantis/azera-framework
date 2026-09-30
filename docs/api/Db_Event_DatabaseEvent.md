@@ -1,4 +1,4 @@
-# 🧩 Class: DatabaseEvent
+# Class: DatabaseEvent
 
 **Full name:** [Azera\Db\Event\DatabaseEvent](../../src/Db/Event/DatabaseEvent.php)
 
@@ -12,25 +12,25 @@ Each event carries the `$database` instance so listeners can
 inspect the connection (driver, transaction level, etc.) without
 holding a separate reference.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/DatabaseEvent.php)
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/DatabaseEvent.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/DatabaseEvent.php#L18)
+### __construct() · <small>[🗎](../../src/Db/Event/DatabaseEvent.php#L18)</small>
 
 `public function __construct(Azera\Db\Database $database): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$database` | [Database](Db_Database.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

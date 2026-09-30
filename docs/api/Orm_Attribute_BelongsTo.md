@@ -1,4 +1,4 @@
-# 🧩 Class: BelongsTo
+# Class: BelongsTo
 
 **Full name:** [Azera\Orm\Attribute\BelongsTo](../../src/Orm/Attribute/BelongsTo.php)
 
@@ -10,19 +10,19 @@ ID field.
 
 Default load strategy: SQL JOIN (to-one is always JOIN).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$target` · [source](../../src/Orm/Attribute/BelongsTo.php)
-- `public` string|null `$foreignKey` · [source](../../src/Orm/Attribute/BelongsTo.php)
-- `public` string|null `$ownerKey` · [source](../../src/Orm/Attribute/BelongsTo.php)
+- `public` string `$target` · <small>[🗎](../../src/Orm/Attribute/BelongsTo.php)</small>
+- `public` string|null `$foreignKey` · <small>[🗎](../../src/Orm/Attribute/BelongsTo.php)</small>
+- `public` string|null `$ownerKey` · <small>[🗎](../../src/Orm/Attribute/BelongsTo.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Attribute/BelongsTo.php#L17)
+### __construct() · <small>[🗎](../../src/Orm/Attribute/BelongsTo.php#L17)</small>
 
 `public function __construct(string $target, string|null $foreignKey = null, string|null $ownerKey = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -30,9 +30,9 @@ Default load strategy: SQL JOIN (to-one is always JOIN).
 | `$foreignKey` | string\|null | `null` |  |
 | `$ownerKey` | string\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

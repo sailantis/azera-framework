@@ -1,22 +1,22 @@
-# 🧩 Class: BootstrapResolver
+# Class: BootstrapResolver
 
 **Full name:** [Azera\Boot\BootstrapResolver](../../src/Boot/BootstrapResolver.php)
 
-## 🚀 Public methods
+## Public methods
 
-### resolve() · [source](../../src/Boot/BootstrapResolver.php#L9)
+### resolve() · <small>[🗎](../../src/Boot/BootstrapResolver.php#L9)</small>
 
 `public static function resolve(string $projectRoot): Azera\Boot\BootstrapProvider|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$projectRoot` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [BootstrapProvider](Boot_BootstrapProvider.md)|null
+- Type: [BootstrapProvider](Boot_BootstrapProvider.md)|`null`
 
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: SchemaDiff
+# Class: SchemaDiff
 
 **Full name:** [Azera\Sync\SchemaDiff](../../src/Sync/SchemaDiff.php)
 
@@ -11,27 +11,27 @@ This is the inverse of ModelDiff, which goes DB → PHP.
 The diff is purely informational by default. Operations can be
 converted to SQL via SqlGenerator and optionally executed.
 
-## 🚀 Public methods
+## Public methods
 
-### diff() · [source](../../src/Sync/SchemaDiff.php#L21)
+### diff() · <small>[🗎](../../src/Sync/SchemaDiff.php#L21)</small>
 
 `public function diff(Azera\Sync\ParsedModel $model, Azera\Sync\Schema\TableSchema $table): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$model` | [ParsedModel](Sync_ParsedModel.md) | - |  |
 | `$table` | [TableSchema](Sync_Schema_TableSchema.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### diffTableExists() · [source](../../src/Sync/SchemaDiff.php#L122)
+### diffTableExists() · <small>[🗎](../../src/Sync/SchemaDiff.php#L122)</small>
 
 `public function diffTableExists(Azera\Sync\ParsedModel $model, Azera\Sync\Schema\TableSchema|null $table): array`
 
@@ -39,16 +39,16 @@ Check if a table exists at all based on the diff.
 
 If the model has no matching table, a CreateTable operation is needed.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$model` | [ParsedModel](Sync_ParsedModel.md) | - |  |
 | `$table` | [TableSchema](Sync_Schema_TableSchema.md)\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

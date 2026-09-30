@@ -1,4 +1,4 @@
-# 🧩 Class: MigrateTask
+# Class: MigrateTask
 
 **Full name:** [Azera\Cli\Tasks\MigrateTask](../../src/Cli/Tasks/MigrateTask.php)
 
@@ -34,33 +34,33 @@ Examples:
   migrate:diff --apply --confirm
   migrate:diff --file=database/migrations/add_avatar.sql
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/MigrateTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/MigrateTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/MigrateTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/MigrateTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Cli/Tasks/MigrateTask.php#L50)
+### __construct() · <small>[🗎](../../src/Cli/Tasks/MigrateTask.php#L50)</small>
 
 `public function __construct(): mixed`
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### diffAction() · [source](../../src/Cli/Tasks/MigrateTask.php#L59)
+### diffAction() · <small>[🗎](../../src/Cli/Tasks/MigrateTask.php#L59)</small>
 
 `public function diffAction(): void`
 
 Compare PHP model definitions against the database and generate SQL.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

@@ -1,4 +1,4 @@
-# 🔌 Interface: MiddlewareInterface
+# Interface: MiddlewareInterface
 
 **Full name:** [Azera\Core\MiddlewareInterface](../../src/Core/MiddlewareInterface.php)
 
@@ -9,24 +9,24 @@ the remainder of the pipeline. They can short-circuit processing by returning
 a [`Response`](Http_Response.md) directly, or continue by calling `$next()` and
 optionally modifying its result.
 
-## 🚀 Public methods
+## Public methods
 
-### process() · [source](../../src/Core/MiddlewareInterface.php#L26)
+### process() · <small>[🗎](../../src/Core/MiddlewareInterface.php#L26)</small>
 
 `public function process(Azera\AppContext $context, callable $next): Azera\Http\Response|null`
 
 Process the incoming request and optionally delegate to the next handler.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$context` | [AppContext](AppContext.md) | - | Application context for the current request. |
 | `$next` | callable | - | Callable that invokes the remaining pipeline. Returns ?Response. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Response](Http_Response.md)|null
+- Type: [Response](Http_Response.md)|`null`
 - Description: Response to send, or null to continue (caller resumes the pipeline).
 
 

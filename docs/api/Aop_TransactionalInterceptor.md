@@ -1,4 +1,4 @@
-# 🧩 Class: TransactionalInterceptor
+# Class: TransactionalInterceptor
 
 **Full name:** [Azera\Aop\TransactionalInterceptor](../../src/Aop/TransactionalInterceptor.php)
 
@@ -12,30 +12,30 @@ in a database transaction.
 The connection role can be specified via the attribute argument
 (defaults to the write connection).
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/TransactionalInterceptor.php#L23)
+### __construct() · <small>[🗎](../../src/Aop/TransactionalInterceptor.php#L23)</small>
 
 `public function __construct(Azera\Db\DatabaseManager $dbManager): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$dbManager` | [DatabaseManager](Db_DatabaseManager.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### intercept() · [source](../../src/Aop/TransactionalInterceptor.php#L29)
+### intercept() · <small>[🗎](../../src/Aop/TransactionalInterceptor.php#L29)</small>
 
 `public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -44,9 +44,9 @@ The connection role can be specified via the attribute argument
 | `$args` | array | - |  |
 | `$next` | callable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

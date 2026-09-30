@@ -1,4 +1,4 @@
-# 🧩 Class: Advice
+# Class: Advice
 
 **Full name:** [Azera\Aop\Advice](../../src/Aop/Advice.php)
 
@@ -10,15 +10,13 @@ them via ReflectionMethod::getAttributes() and builds an interceptor
 chain for each advised method.
 
 Example:
-<code>
+```php
 #[\Attribute(\Attribute::TARGET_METHOD)]
 class Transactional extends Advice
 {
     public function __construct(public readonly ?string $connection = null) }
 }
-</code>
-
-## 🚀 Public methods
+```
 
 
 

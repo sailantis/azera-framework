@@ -1,4 +1,4 @@
-# 🔌 Interface: Store
+# Interface: Store
 
 **Full name:** [Azera\Orm\Storage\Store](../../src/Orm/Storage/Store.php)
 
@@ -12,9 +12,9 @@ metadata `store` (#[Entity(store: 'name')]) — the registry key
 EntityManager::setStore() maps to an instance. Third-party backends:
 implement this interface, register under a name, annotate #[Entity].
 
-## 🚀 Public methods
+## Public methods
 
-### txTarget() · [source](../../src/Orm/Storage/Store.php#L24)
+### txTarget() · <small>[🗎](../../src/Orm/Storage/Store.php#L24)</small>
 
 `public function txTarget(array $meta): string`
 
@@ -24,20 +24,20 @@ sharing one txTarget share one transaction target in flush().
 Borrowing stores (SQL) derive it from the write role; owning stores
 return a constant token (their connection is fixed per instance).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### insertOne() · [source](../../src/Orm/Storage/Store.php#L32)
+### insertOne() · <small>[🗎](../../src/Orm/Storage/Store.php#L32)</small>
 
 `public function insertOne(string $class, array $data): array`
 
@@ -45,27 +45,27 @@ Persist one entity: INSERT or UPDATE (upsert when flagged).
 
 Returns raw row(s) for backfill: ['row' => ?array, 'id' => int|string|null].
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$data` | array | - | column-name-keyed raw values |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### updateOne() · [source](../../src/Orm/Storage/Store.php#L41)
+### updateOne() · <small>[🗎](../../src/Orm/Storage/Store.php#L41)</small>
 
 `public function updateOne(string $class, array $data, array $id): array`
 
 Update one entity by PK values.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -73,14 +73,14 @@ Update one entity by PK values.
 | `$data` | array | - | column-name-keyed changed values |
 | `$id` | array | - | PK field => value |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### upsertOne() · [source](../../src/Orm/Storage/Store.php#L54)
+### upsertOne() · <small>[🗎](../../src/Orm/Storage/Store.php#L54)</small>
 
 `public function upsertOne(string $class, array $data): array`
 
@@ -92,101 +92,101 @@ DATABASE at write time: no prior SELECT, no insert-or-update guess.
 Returns raw row(s) for backfill, same contract as insertOne
 (RETURNING * when unset non-PK columns should refresh DB defaults).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$data` | array | - | column-name-keyed raw values (PK included) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### deleteOne() · [source](../../src/Orm/Storage/Store.php#L60)
+### deleteOne() · <small>[🗎](../../src/Orm/Storage/Store.php#L60)</small>
 
 `public function deleteOne(string $class, array $id): void`
 
 Delete one entity by PK values.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - | PK field => value |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### findBy() · [source](../../src/Orm/Storage/Store.php#L69)
+### findBy() · <small>[🗎](../../src/Orm/Storage/Store.php#L69)</small>
 
 `public function findBy(string $class, array $where): array`
 
 Read raw rows. Returns plain assoc rows (no ResultSet).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$where` | array | - | PK field => value, or field                          => value |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### findByPk() · [source](../../src/Orm/Storage/Store.php#L77)
+### findByPk() · <small>[🗎](../../src/Orm/Storage/Store.php#L77)</small>
 
 `public function findByPk(string $class, array $id): array|null`
 
 Read one raw row by PK values (null when missing).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - | PK field => value |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array|null
+- Type: `array`|`null`
 
 
 ---
 
-### count() · [source](../../src/Orm/Storage/Store.php#L83)
+### count() · <small>[🗎](../../src/Orm/Storage/Store.php#L83)</small>
 
 `public function count(string $class, array $where = []): int`
 
 Count matching rows.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$where` | array | `[]` | field => value |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### begin() · [source](../../src/Orm/Storage/Store.php#L95)
+### begin() · <small>[🗎](../../src/Orm/Storage/Store.php#L95)</small>
 
 `public function begin(array|null $meta = null): void`
 
@@ -198,20 +198,20 @@ begin() for an ALREADY-OPEN target must join it (no nesting).
 
 Null = the store's default target.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### commit() · [source](../../src/Orm/Storage/Store.php#L103)
+### commit() · <small>[🗎](../../src/Orm/Storage/Store.php#L103)</small>
 
 `public function commit(array|null $meta = null): void`
 
@@ -220,39 +220,39 @@ Commit the tx on $meta's write target — a tx THIS store began
 committed/rolled back by a store). Null meta commits EVERY tx the
 store began (the legacy bare-call semantic, generalized to the map).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### rollback() · [source](../../src/Orm/Storage/Store.php#L108)
+### rollback() · <small>[🗎](../../src/Orm/Storage/Store.php#L108)</small>
 
 `public function rollback(array|null $meta = null): void`
 
 Rollback — same target addressing as [`Store::commit()`](Orm_Storage_Store.md#commit).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### inTransaction() · [source](../../src/Orm/Storage/Store.php#L115)
+### inTransaction() · <small>[🗎](../../src/Orm/Storage/Store.php#L115)</small>
 
 `public function inTransaction(array|null $meta = null): bool`
 
@@ -260,20 +260,20 @@ Whether a transaction (or savepoint level) is active on $meta's
 write target — store-begun OR caller-opened (the EM joins either
 instead of double-beginning). Null meta: any of the store's targets.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### enrichMetadata() · [source](../../src/Orm/Storage/Store.php#L136)
+### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/Store.php#L136)</small>
 
 `public function enrichMetadata(array $meta, ReflectionClass $class): array`
 
@@ -292,16 +292,16 @@ the store would apply it. Resolved per column at compile time
 (metadata 'cast' => bool) — the write pipeline stays metadata-driven
 like everything else the EM consumes.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array | - | the freshly compiled generic metadata |
 | `$class` | ReflectionClass | - | reflection of the compiled class |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

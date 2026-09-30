@@ -1,4 +1,4 @@
-# 🧩 Class: RowSplitter
+# Class: RowSplitter
 
 **Full name:** [Azera\Orm\RowSplitter](../../src/Orm/RowSplitter.php)
 
@@ -10,41 +10,41 @@ NULL = no object), and to-many second queries executed on demand.
 
 All reads bypass ResultSet entirely: raw assoc rows in, entities out.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/RowSplitter.php#L16)
+### __construct() · <small>[🗎](../../src/Orm/RowSplitter.php#L16)</small>
 
 `public function __construct(Azera\Orm\Heap $heap): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$heap` | [Heap](Orm_Heap.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### split() · [source](../../src/Orm/RowSplitter.php#L27)
+### split() · <small>[🗎](../../src/Orm/RowSplitter.php#L27)</small>
 
 `public function split(array $row, array $plan): array`
 
 Hydrate root + joined to-one entities from one flat row.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$row` | array | - | assoc row keyed by generated column aliases |
 | `$plan` | array | - | HydrationMap::build() output |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 - Description: root + by-relation
 
 

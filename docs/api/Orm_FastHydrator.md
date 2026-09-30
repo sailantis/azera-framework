@@ -1,4 +1,4 @@
-# 🧩 Class: FastHydrator
+# Class: FastHydrator
 
 **Full name:** [Azera\Orm\FastHydrator](../../src/Orm/FastHydrator.php)
 
@@ -22,36 +22,36 @@ class only reshapes those arrays into paired lists.
 
 L1-cached per class like Metadata; nothing else to configure.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$class` · [source](../../src/Orm/FastHydrator.php)
-- `public` array `$fields` · [source](../../src/Orm/FastHydrator.php)
-- `public` array `$columns` · [source](../../src/Orm/FastHydrator.php)
-- `public` array `$pkFields` · [source](../../src/Orm/FastHydrator.php)
-- `public` array `$pkColumns` · [source](../../src/Orm/FastHydrator.php)
+- `public` string `$class` · <small>[🗎](../../src/Orm/FastHydrator.php)</small>
+- `public` array `$fields` · <small>[🗎](../../src/Orm/FastHydrator.php)</small>
+- `public` array `$columns` · <small>[🗎](../../src/Orm/FastHydrator.php)</small>
+- `public` array `$pkFields` · <small>[🗎](../../src/Orm/FastHydrator.php)</small>
+- `public` array `$pkColumns` · <small>[🗎](../../src/Orm/FastHydrator.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### for() · [source](../../src/Orm/FastHydrator.php#L122)
+### for() · <small>[🗎](../../src/Orm/FastHydrator.php#L122)</small>
 
 `public static function for(string $class): self`
 
 Per-class singleton plan (mirrors Metadata::for semantics).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: self
+- Type: `self`
 
 
 ---
 
-### hydrate() · [source](../../src/Orm/FastHydrator.php#L151)
+### hydrate() · <small>[🗎](../../src/Orm/FastHydrator.php#L151)</small>
 
 `public function hydrate(Azera\Orm\Heap $heap, array $row, bool $fresh = false): array`
 
@@ -71,7 +71,7 @@ writes keep their pending state; the DB never clobbers queued work.
 Cold path: build id + entity + snapshot in three tight list loops,
 attach once.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -79,14 +79,14 @@ attach once.
 | `$row` | array | - | raw assoc row keyed by COLUMN name |
 | `$fresh` | bool | `false` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### apply() · [source](../../src/Orm/FastHydrator.php#L262)
+### apply() · <small>[🗎](../../src/Orm/FastHydrator.php#L262)</small>
 
 `public function apply(object $entity, Azera\Orm\Node $node, array $row): void`
 
@@ -104,7 +104,7 @@ their previous values for the rest (partial rows — explicit
 columns() — stay consistent). Node state is NOT touched: callers
 guarantee the entity is not scheduled.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -112,20 +112,20 @@ guarantee the entity is not scheduled.
 | `$node` | [Node](Orm_Node.md) | - |  |
 | `$row` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### attach() · [source](../../src/Orm/FastHydrator.php#L301)
+### attach() · <small>[🗎](../../src/Orm/FastHydrator.php#L301)</small>
 
 `public function attach(Azera\Orm\Heap $heap, object $entity, array $id, array $data): Azera\Orm\Node`
 
 Attach a hydrated entity to the heap as MANAGED.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -134,14 +134,14 @@ Attach a hydrated entity to the heap as MANAGED.
 | `$id` | array | - |  |
 | `$data` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Node](Orm_Node.md)
 
 
 ---
 
-### put() · [source](../../src/Orm/FastHydrator.php#L340)
+### put() · <small>[🗎](../../src/Orm/FastHydrator.php#L340)</small>
 
 `public function put(object $entity, string $field, mixed $raw): mixed`
 
@@ -176,7 +176,7 @@ NULL handling, from the compiled `nullable` flag ALONE:
 A non-null value is always assigned; PHP's weak mode coerces a
 numeric string, and the cast has already decoded what needed it.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -184,22 +184,22 @@ numeric string, and the cast has already decoded what needed it.
 | `$field` | string | - |  |
 | `$raw` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### clear() · [source](../../src/Orm/FastHydrator.php#L367)
+### clear() · <small>[🗎](../../src/Orm/FastHydrator.php#L367)</small>
 
 `public static function clear(): void`
 
 Forget all compiled plans (tests).
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

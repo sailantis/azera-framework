@@ -1,20 +1,20 @@
-# 🧩 Class: ParsedProperty
+# Class: ParsedProperty
 
 **Full name:** [Azera\Sync\ParsedProperty](../../src/Sync/ModelParser.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$name` · [source](../../src/Sync/ModelParser.php)
-- `public` string|null `$type` · [source](../../src/Sync/ModelParser.php)
-- `public` string|null `$docComment` · [source](../../src/Sync/ModelParser.php)
+- `public` string `$name` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
+- `public` string|null `$type` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
+- `public` string|null `$docComment` · <small>[🗎](../../src/Sync/ModelParser.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/ModelParser.php#L236)
+### __construct() · <small>[🗎](../../src/Sync/ModelParser.php#L236)</small>
 
 `public function __construct(string $name, string|null $type, string|null $docComment): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -22,9 +22,9 @@
 | `$type` | string\|null | - |  |
 | `$docComment` | string\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

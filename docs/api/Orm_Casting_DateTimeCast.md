@@ -1,4 +1,4 @@
-# 🧩 Class: DateTimeCast
+# Class: DateTimeCast
 
 **Full name:** [Azera\Orm\Casting\DateTimeCast](../../src/Orm/Casting/DateTimeCast.php)
 
@@ -37,42 +37,42 @@ Snapshot contract: the property holds the decoded DateTimeImmutable,
 node->data holds the canonical string (encode(decode(raw)) round-trip)
 — diff() compares stable scalars.
 
-## 📌 Public Constants
+## Public Constants
 
 - **FORMAT** = `'Y-m-d H:i:s'`
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/DateTimeCast.php#L46)
+### encode() · <small>[🗎](../../src/Orm/Casting/DateTimeCast.php#L46)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/DateTimeCast.php#L55)
+### decode() · <small>[🗎](../../src/Orm/Casting/DateTimeCast.php#L55)</small>
 
 `public function decode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

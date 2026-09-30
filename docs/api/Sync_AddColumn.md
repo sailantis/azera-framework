@@ -1,17 +1,15 @@
-# 🧩 Class: AddColumn
+# Class: AddColumn
 
 **Full name:** [Azera\Sync\AddColumn](../../src/Sync/SchemaDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$column` · [source](../../src/Sync/SchemaDiff.php)
-- `public` string `$type` · [source](../../src/Sync/SchemaDiff.php)
-- `public` bool `$nullable` · [source](../../src/Sync/SchemaDiff.php)
-- `public` mixed `$default` · [source](../../src/Sync/SchemaDiff.php)
-- `public` string|null `$comment` · [source](../../src/Sync/SchemaDiff.php)
-- `public` string `$table` · [source](../../src/Sync/SchemaDiff.php)
-
-## 🚀 Public methods
+- `public` string `$column` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` string `$type` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` bool `$nullable` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` mixed `$default` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` string|null `$comment` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
+- `public` string `$table` · <small>[🗎](../../src/Sync/SchemaDiff.php)</small>
 
 
 

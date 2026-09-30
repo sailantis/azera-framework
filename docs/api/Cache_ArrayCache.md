@@ -1,4 +1,4 @@
-# 🧩 Class: ArrayCache
+# Class: ArrayCache
 
 **Full name:** [Azera\Cache\ArrayCache](../../src/Cache/ArrayCache.php)
 
@@ -15,31 +15,31 @@ TTL handling:
 
 Keys are validated to be non-empty, alphanumeric + `._-`, max 64 chars.
 
-## 🚀 Public methods
+## Public methods
 
-### get() · [source](../../src/Cache/ArrayCache.php#L30)
+### get() · <small>[🗎](../../src/Cache/ArrayCache.php#L30)</small>
 
 `public function get(string $key, mixed $default = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 | `$default` | mixed | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### set() · [source](../../src/Cache/ArrayCache.php#L48)
+### set() · <small>[🗎](../../src/Cache/ArrayCache.php#L48)</small>
 
 `public function set(string $key, mixed $value, DateInterval|int|null $ttl = null): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -47,121 +47,121 @@ Keys are validated to be non-empty, alphanumeric + `._-`, max 64 chars.
 | `$value` | mixed | - |  |
 | `$ttl` | DateInterval\|int\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### delete() · [source](../../src/Cache/ArrayCache.php#L60)
+### delete() · <small>[🗎](../../src/Cache/ArrayCache.php#L60)</small>
 
 `public function delete(string $key): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### clear() · [source](../../src/Cache/ArrayCache.php#L67)
+### clear() · <small>[🗎](../../src/Cache/ArrayCache.php#L67)</small>
 
 `public function clear(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### getMultiple() · [source](../../src/Cache/ArrayCache.php#L73)
+### getMultiple() · <small>[🗎](../../src/Cache/ArrayCache.php#L73)</small>
 
 `public function getMultiple(iterable $keys, mixed $default = null): iterable`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$keys` | iterable | - |  |
 | `$default` | mixed | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: iterable
+- Type: `iterable`
 
 
 ---
 
-### setMultiple() · [source](../../src/Cache/ArrayCache.php#L82)
+### setMultiple() · <small>[🗎](../../src/Cache/ArrayCache.php#L82)</small>
 
 `public function setMultiple(iterable $values, DateInterval|int|null $ttl = null): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$values` | iterable | - |  |
 | `$ttl` | DateInterval\|int\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### deleteMultiple() · [source](../../src/Cache/ArrayCache.php#L92)
+### deleteMultiple() · <small>[🗎](../../src/Cache/ArrayCache.php#L92)</small>
 
 `public function deleteMultiple(iterable $keys): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$keys` | iterable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### has() · [source](../../src/Cache/ArrayCache.php#L101)
+### has() · <small>[🗎](../../src/Cache/ArrayCache.php#L101)</small>
 
 `public function has(string $key): bool`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### gc() · [source](../../src/Cache/ArrayCache.php#L123)
+### gc() · <small>[🗎](../../src/Cache/ArrayCache.php#L123)</small>
 
 `public function gc(): void`
 
 Remove all expired entries. Called opportunistically; not required
 for correctness since expired entries are lazily purged on access.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

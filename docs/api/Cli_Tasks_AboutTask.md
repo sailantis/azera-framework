@@ -1,4 +1,4 @@
-# 🧩 Class: AboutTask
+# Class: AboutTask
 
 **Full name:** [Azera\Cli\Tasks\AboutTask](../../src/Cli/Tasks/AboutTask.php)
 
@@ -11,20 +11,20 @@ Shows framework version, PHP version, detected project root, resolved
 bootstrap class, registered database roles, view engine, and loaded
 extensions.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/AboutTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/AboutTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/AboutTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/AboutTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### runAction() · [source](../../src/Cli/Tasks/AboutTask.php#L21)
+### runAction() · <small>[🗎](../../src/Cli/Tasks/AboutTask.php#L21)</small>
 
 `public function runAction(): void`
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

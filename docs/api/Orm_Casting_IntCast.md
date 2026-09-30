@@ -1,39 +1,39 @@
-# 🧩 Class: IntCast
+# Class: IntCast
 
 **Full name:** [Azera\Orm\Casting\IntCast](../../src/Orm/Casting/IntCast.php)
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/IntCast.php#L33)
+### encode() · <small>[🗎](../../src/Orm/Casting/IntCast.php#L33)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/IntCast.php#L38)
+### decode() · <small>[🗎](../../src/Orm/Casting/IntCast.php#L38)</small>
 
 `public function decode(mixed $value): int|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int|null
+- Type: `int`|`null`
 
 
 

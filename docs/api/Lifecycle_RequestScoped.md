@@ -1,4 +1,4 @@
-# 🔌 Interface: RequestScoped
+# Interface: RequestScoped
 
 **Full name:** [Azera\Lifecycle\RequestScoped](../../src/Lifecycle/RequestScoped.php)
 
@@ -20,9 +20,9 @@ Infrastructure services that own persistent connections (database manager,
 cache/Redis backends, queue, logger, event dispatcher) can stay resident
 across requests and should NOT implement this interface.
 
-## 🚀 Public methods
+## Public methods
 
-### resetState() · [source](../../src/Lifecycle/RequestScoped.php#L36)
+### resetState() · <small>[🗎](../../src/Lifecycle/RequestScoped.php#L36)</small>
 
 `public function resetState(): void`
 
@@ -33,9 +33,9 @@ next one is read. The service may keep its persistent handles and
 connections, but must clear any data that belongs to the request that
 has just finished.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

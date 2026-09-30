@@ -1,10 +1,10 @@
-# 🧩 Class: Exception
+# Class: Exception
 
 **Full name:** [Azera\Exception](../../src/Exception.php)
 
 Base exception class for the Azera framework.
 
-## 🚀 Public methods
+## Public methods
 
 
 

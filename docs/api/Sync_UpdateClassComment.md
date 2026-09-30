@@ -1,14 +1,12 @@
-# 🧩 Class: UpdateClassComment
+# Class: UpdateClassComment
 
 **Full name:** [Azera\Sync\UpdateClassComment](../../src/Sync/ModelDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string|null `$oldComment` · [source](../../src/Sync/ModelDiff.php)
-- `public` string|null `$newComment` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$property` · [source](../../src/Sync/ModelDiff.php)
-
-## 🚀 Public methods
+- `public` string|null `$oldComment` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string|null `$newComment` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$property` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
 
 
 

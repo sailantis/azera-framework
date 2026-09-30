@@ -1,4 +1,4 @@
-# 🧩 Class: SyncQueue
+# Class: SyncQueue
 
 **Full name:** [Azera\Queue\SyncQueue](../../src/Queue/SyncQueue.php)
 
@@ -13,40 +13,40 @@ is a one-line bootstrap change with no code rewrite.
 SyncQueue is also the correct choice in tests and in single-request
 PHP-FPM deployments where no background worker is available.
 
-## 🚀 Public methods
+## Public methods
 
-### push() · [source](../../src/Queue/SyncQueue.php#L24)
+### push() · <small>[🗎](../../src/Queue/SyncQueue.php#L24)</small>
 
 `public function push(Azera\Queue\JobInterface $job, array $options = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$job` | [JobInterface](Queue_JobInterface.md) | - |  |
 | `$options` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### registerWorker() · [source](../../src/Queue/SyncQueue.php#L48)
+### registerWorker() · <small>[🗎](../../src/Queue/SyncQueue.php#L48)</small>
 
 `public function registerWorker(string $jobClass, callable|null $handler = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$jobClass` | string | - |  |
 | `$handler` | callable\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

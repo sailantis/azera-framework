@@ -1,4 +1,4 @@
-# 🧩 Class: FloatCast
+# Class: FloatCast
 
 **Full name:** [Azera\Orm\Casting\FloatCast](../../src/Orm/Casting/FloatCast.php)
 
@@ -31,38 +31,38 @@ allowlist unnecessary: `'0'`, `'0.00'`, `'0e0'`, `'.0'`, `'0.'` and
 is_numeric() covers every spelling at once. The `'0.0'` / `0.0`
 comparisons are not the validation — the chain below is.
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/FloatCast.php#L41)
+### encode() · <small>[🗎](../../src/Orm/Casting/FloatCast.php#L41)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/FloatCast.php#L46)
+### decode() · <small>[🗎](../../src/Orm/Casting/FloatCast.php#L46)</small>
 
 `public function decode(mixed $value): float|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: float|null
+- Type: `float`|`null`
 
 
 

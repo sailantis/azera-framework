@@ -1,33 +1,33 @@
-# 🧩 Class: FileBridge
+# Class: FileBridge
 
 **Full name:** [Azera\Boot\FileBridge](../../src/Boot/BootstrapResolver.php)
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Boot/BootstrapResolver.php#L94)
+### __construct() · <small>[🗎](../../src/Boot/BootstrapResolver.php#L94)</small>
 
 `public function __construct(mixed $callable): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$callable` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### boot() · [source](../../src/Boot/BootstrapResolver.php#L95)
+### boot() · <small>[🗎](../../src/Boot/BootstrapResolver.php#L95)</small>
 
 `public function boot(): void`
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

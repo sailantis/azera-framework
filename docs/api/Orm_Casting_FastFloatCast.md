@@ -1,4 +1,4 @@
-# 🧩 Class: FastFloatCast
+# Class: FastFloatCast
 
 **Full name:** [Azera\Orm\Casting\FastFloatCast](../../src/Orm/Casting/FastFloatCast.php)
 
@@ -28,38 +28,38 @@ Registered by NOTHING by default — the built-in 'float' is the
 strict FloatCast. This class only becomes active through an
 explicit register().
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/FastFloatCast.php#L36)
+### encode() · <small>[🗎](../../src/Orm/Casting/FastFloatCast.php#L36)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/FastFloatCast.php#L41)
+### decode() · <small>[🗎](../../src/Orm/Casting/FastFloatCast.php#L41)</small>
 
 `public function decode(mixed $value): float|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: float|null
+- Type: `float`|`null`
 
 
 

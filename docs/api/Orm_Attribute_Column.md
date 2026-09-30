@@ -1,4 +1,4 @@
-# 🧩 Class: Column
+# Class: Column
 
 **Full name:** [Azera\Orm\Attribute\Column](../../src/Orm/Attribute/Column.php)
 
@@ -83,22 +83,22 @@ nullable-bool pattern as `pk`):
   as raw text, or a driver-stringified numeric you do not want coerced).
   REFUSED on an ENUM-TYPED property (see `type` above).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string|null `$type` · [source](../../src/Orm/Attribute/Column.php)
-- `public` string|null `$name` · [source](../../src/Orm/Attribute/Column.php)
-- `public` bool|null `$nullable` · [source](../../src/Orm/Attribute/Column.php)
-- `public` bool `$persist` · [source](../../src/Orm/Attribute/Column.php)
-- `public` bool|null `$pk` · [source](../../src/Orm/Attribute/Column.php)
-- `public` bool|null `$cast` · [source](../../src/Orm/Attribute/Column.php)
+- `public` string|null `$type` · <small>[🗎](../../src/Orm/Attribute/Column.php)</small>
+- `public` string|null `$name` · <small>[🗎](../../src/Orm/Attribute/Column.php)</small>
+- `public` bool|null `$nullable` · <small>[🗎](../../src/Orm/Attribute/Column.php)</small>
+- `public` bool `$persist` · <small>[🗎](../../src/Orm/Attribute/Column.php)</small>
+- `public` bool|null `$pk` · <small>[🗎](../../src/Orm/Attribute/Column.php)</small>
+- `public` bool|null `$cast` · <small>[🗎](../../src/Orm/Attribute/Column.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Attribute/Column.php#L90)
+### __construct() · <small>[🗎](../../src/Orm/Attribute/Column.php#L90)</small>
 
 `public function __construct(string|null $type = null, string|null $name = null, bool|null $nullable = null, bool $persist = true, bool|null $pk = null, bool|null $cast = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -109,9 +109,9 @@ nullable-bool pattern as `pk`):
 | `$pk` | bool\|null | `null` |  |
 | `$cast` | bool\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

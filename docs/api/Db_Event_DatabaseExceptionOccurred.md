@@ -1,4 +1,4 @@
-# 🧩 Class: DatabaseExceptionOccurred
+# Class: DatabaseExceptionOccurred
 
 **Full name:** [Azera\Db\Event\DatabaseExceptionOccurred](../../src/Db/Event/DatabaseExceptionOccurred.php)
 
@@ -9,20 +9,20 @@ Listeners can use this for error logging, alerting, or metrics. The
 exception may be re-thrown after processing; this event fires before
 that decision is made.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` PDOException `$exception` · [source](../../src/Db/Event/DatabaseExceptionOccurred.php)
-- `public readonly` string|null `$sql` · [source](../../src/Db/Event/DatabaseExceptionOccurred.php)
-- `public readonly` array|null `$params` · [source](../../src/Db/Event/DatabaseExceptionOccurred.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/DatabaseExceptionOccurred.php)
+- `public readonly` PDOException `$exception` · <small>[🗎](../../src/Db/Event/DatabaseExceptionOccurred.php)</small>
+- `public readonly` string|null `$sql` · <small>[🗎](../../src/Db/Event/DatabaseExceptionOccurred.php)</small>
+- `public readonly` array|null `$params` · <small>[🗎](../../src/Db/Event/DatabaseExceptionOccurred.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/DatabaseExceptionOccurred.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/DatabaseExceptionOccurred.php#L18)
+### __construct() · <small>[🗎](../../src/Db/Event/DatabaseExceptionOccurred.php#L18)</small>
 
 `public function __construct(Azera\Db\Database $database, PDOException $exception, string|null $sql = null, array|null $params = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -31,9 +31,9 @@ that decision is made.
 | `$sql` | string\|null | `null` |  |
 | `$params` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

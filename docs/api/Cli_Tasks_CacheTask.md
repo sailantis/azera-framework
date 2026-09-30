@@ -1,4 +1,4 @@
-# 🧩 Class: CacheTask
+# Class: CacheTask
 
 **Full name:** [Azera\Cli\Tasks\CacheTask](../../src/Cli/Tasks/CacheTask.php)
 
@@ -23,35 +23,35 @@ Examples:
   cache:clear --only=clarity --path=/tmp/my-cache
   cache:status
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/CacheTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/CacheTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/CacheTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/CacheTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### clearAction() · [source](../../src/Cli/Tasks/CacheTask.php#L37)
+### clearAction() · <small>[🗎](../../src/Cli/Tasks/CacheTask.php#L37)</small>
 
 `public function clearAction(): void`
 
 Clear all known caches.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### statusAction() · [source](../../src/Cli/Tasks/CacheTask.php#L70)
+### statusAction() · <small>[🗎](../../src/Cli/Tasks/CacheTask.php#L70)</small>
 
 `public function statusAction(): void`
 
 Show information about existing cache files.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

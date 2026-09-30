@@ -1,4 +1,4 @@
-# 🧩 Class: Metadata
+# Class: Metadata
 
 **Full name:** [Azera\Orm\Metadata](../../src/Orm/Metadata.php)
 
@@ -72,9 +72,9 @@ Compile-time vs runtime: source/schema/idFields are resolved ONCE here
 connection-role setters (setDefaultReadRole/...) remain per-request
 dynamic — they sit ABOVE the #[Connection] attribute in precedence.
 
-## 🚀 Public methods
+## Public methods
 
-### useCache() · [source](../../src/Orm/Metadata.php#L128)
+### useCache() · <small>[🗎](../../src/Orm/Metadata.php#L128)</small>
 
 `public static function useCache(Psr\SimpleCache\CacheInterface|null $cache, int|null $ttl = null): void`
 
@@ -88,21 +88,21 @@ typically `cacheSalt()` with a deploy hash, or a TTL:
     Metadata::useCache(new ApcuCache(), ttl: 86400);
     Metadata::cacheSalt(ENV['DEPLOY_HASH']);
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$cache` | Psr\SimpleCache\CacheInterface\|null | - | backend or null to disable |
 | `$ttl` | int\|null | `null` | seconds for stored entries (null = backend default) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### cacheSalt() · [source](../../src/Orm/Metadata.php#L140)
+### cacheSalt() · <small>[🗎](../../src/Orm/Metadata.php#L140)</small>
 
 `public static function cacheSalt(string|null $salt): void`
 
@@ -112,39 +112,39 @@ per deploy: a build hash, git SHA, config version) to force a
 full recompile of every model — the old keys are simply never
 requested again (TTL or backend eviction reclaims their space).
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$salt` | string\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### for() · [source](../../src/Orm/Metadata.php#L150)
+### for() · <small>[🗎](../../src/Orm/Metadata.php#L150)</small>
 
 `public static function for(string $class): array`
 
 Compile (or fetch from cache) metadata for a class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### clear() · [source](../../src/Orm/Metadata.php#L171)
+### clear() · <small>[🗎](../../src/Orm/Metadata.php#L171)</small>
 
 `public static function clear(): void`
 
@@ -155,27 +155,27 @@ wired, only THIS component's keys are deleted (tracked in a small
 index entry) — never the whole shared cache segment, which the
 application may be using for unrelated data.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### clearL1() · [source](../../src/Orm/Metadata.php#L190)
+### clearL1() · <small>[🗎](../../src/Orm/Metadata.php#L190)</small>
 
 `public static function clearL1(): void`
 
 Forget only the L1 (per-process) tier — any wired L2 stays warm.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### isCompiling() · [source](../../src/Orm/Metadata.php#L202)
+### isCompiling() · <small>[🗎](../../src/Orm/Metadata.php#L202)</small>
 
 `public static function isCompiling(string $class): bool`
 
@@ -184,15 +184,15 @@ metadata-backed accessors check this and fall back to the raw
 convention, so an override calling parent::source()/idFields()
 during compilation cannot recurse into compile() again.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 

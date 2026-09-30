@@ -1,4 +1,4 @@
-# 🧩 Class: CsrfMiddleware
+# Class: CsrfMiddleware
 
 **Full name:** [Azera\Security\CsrfMiddleware](../../src/Security/CsrfMiddleware.php)
 
@@ -15,64 +15,64 @@ GET, HEAD, and OPTIONS requests are always allowed through.
 The middleware is opt-in: register it in the pipeline only when you
 want CSRF protection. It carries no cost when not wired.
 
-## 📌 Public Constants
+## Public Constants
 
 - **SESSION_KEY** = `'_csrf_token'`
 - **TOKEN_NAME** = `'_csrf_token'`
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Security/CsrfMiddleware.php#L43)
+### __construct() · <small>[🗎](../../src/Security/CsrfMiddleware.php#L43)</small>
 
 `public function __construct(string $tokenName = '_csrf_token', array $guardedMethods = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$tokenName` | string | `'_csrf_token'` | Name of the field / header / cookie that<br>carries the submitted token. Defaults to `TOKEN_NAME`. |
 | `$guardedMethods` | array | `[]` | HTTP methods that require<br>a valid token. Defaults to the common state-changing methods. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### process() · [source](../../src/Security/CsrfMiddleware.php#L48)
+### process() · <small>[🗎](../../src/Security/CsrfMiddleware.php#L48)</small>
 
 `public function process(Azera\AppContext $context, callable $next): Azera\Http\Response|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$context` | [AppContext](AppContext.md) | - |  |
 | `$next` | callable | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Response](Http_Response.md)|null
+- Type: [Response](Http_Response.md)|`null`
 
 
 ---
 
-### ensureToken() · [source](../../src/Security/CsrfMiddleware.php#L84)
+### ensureToken() · <small>[🗎](../../src/Security/CsrfMiddleware.php#L84)</small>
 
 `public function ensureToken(Azera\Http\Session $session): string`
 
 Get (and lazily generate) the current CSRF token from the session.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$session` | [Session](Http_Session.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: The CSRF token.
 
 

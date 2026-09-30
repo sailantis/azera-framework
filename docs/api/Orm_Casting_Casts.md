@@ -1,4 +1,4 @@
-# 🧩 Class: Casts
+# Class: Casts
 
 **Full name:** [Azera\Orm\Casting\Casts](../../src/Orm/Casting/Casts.php)
 
@@ -45,29 +45,29 @@ Semantics:
   Metadata::clear() afterwards — FastHydrator compiles the decode plan
   per class once.
 
-## 🚀 Public methods
+## Public methods
 
-### register() · [source](../../src/Orm/Casting/Casts.php#L72)
+### register() · <small>[🗎](../../src/Orm/Casting/Casts.php#L72)</small>
 
 `public static function register(string $type, Azera\Orm\Casting\Cast $cast): void`
 
 Register (or replace) a cast for a column type.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$type` | string | - |  |
 | `$cast` | [Cast](Orm_Casting_Cast.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### for() · [source](../../src/Orm/Casting/Casts.php#L91)
+### for() · <small>[🗎](../../src/Orm/Casting/Casts.php#L91)</small>
 
 `public static function for(string $type): Azera\Orm\Casting\Cast|null`
 
@@ -78,20 +78,20 @@ Resolution order: an explicit registration, then the memoized
 derived answer, then — for a BACKED ENUM class-string — the cast
 derived from the type itself. Everything else is cast-free.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$type` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Cast](Orm_Casting_Cast.md)|null
+- Type: [Cast](Orm_Casting_Cast.md)|`null`
 
 
 ---
 
-### forColumn() · [source](../../src/Orm/Casting/Casts.php#L126)
+### forColumn() · <small>[🗎](../../src/Orm/Casting/Casts.php#L126)</small>
 
 `public static function forColumn(array $col): Azera\Orm\Casting\Cast|null`
 
@@ -103,42 +103,42 @@ resolved policy says suppress (mongo's castExclusions, or an
 explicit #[Column(cast: false)]). Every write AND read site goes
 through this, so encode/decode always agree on what is shaped.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$col` | array | - | the metadata column entry |
 
-**➡️ Return value**
+**Return value**
 
-- Type: [Cast](Orm_Casting_Cast.md)|null
+- Type: [Cast](Orm_Casting_Cast.md)|`null`
 
 
 ---
 
-### types() · [source](../../src/Orm/Casting/Casts.php#L141)
+### types() · <small>[🗎](../../src/Orm/Casting/Casts.php#L141)</small>
 
 `public static function types(): array`
 
 Registered type names (tests). DERIVED enum casts are absent by
 design — they are resolved on demand, not registered.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### clear() · [source](../../src/Orm/Casting/Casts.php#L151)
+### clear() · <small>[🗎](../../src/Orm/Casting/Casts.php#L151)</small>
 
 `public static function clear(): void`
 
 Drop the registry (tests) — built-ins re-register on next use.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

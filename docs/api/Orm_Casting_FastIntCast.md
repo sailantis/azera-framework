@@ -1,4 +1,4 @@
-# 🧩 Class: FastIntCast
+# Class: FastIntCast
 
 **Full name:** [Azera\Orm\Casting\FastIntCast](../../src/Orm/Casting/FastIntCast.php)
 
@@ -27,38 +27,38 @@ Differences from IntCast:
 Registered by NOTHING by default — the built-in 'int' is the strict
 IntCast. This class only becomes active through an explicit register().
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/FastIntCast.php#L35)
+### encode() · <small>[🗎](../../src/Orm/Casting/FastIntCast.php#L35)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/FastIntCast.php#L40)
+### decode() · <small>[🗎](../../src/Orm/Casting/FastIntCast.php#L40)</small>
 
 `public function decode(mixed $value): int|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int|null
+- Type: `int`|`null`
 
 
 

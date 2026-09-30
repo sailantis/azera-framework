@@ -1,4 +1,4 @@
-# 🧩 Class: JsonCast
+# Class: JsonCast
 
 **Full name:** [Azera\Orm\Casting\JsonCast](../../src/Orm/Casting/JsonCast.php)
 
@@ -28,38 +28,38 @@ holds the RAW JSON string — diff() compares the stable string form.
 Reordering a JSON list reorders the encoded string and therefore counts
 as a change (PHP `===` on list-likes is order-sensitive): accepted.
 
-## 🚀 Public methods
+## Public methods
 
-### encode() · [source](../../src/Orm/Casting/JsonCast.php#L34)
+### encode() · <small>[🗎](../../src/Orm/Casting/JsonCast.php#L34)</small>
 
 `public function encode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### decode() · [source](../../src/Orm/Casting/JsonCast.php#L52)
+### decode() · <small>[🗎](../../src/Orm/Casting/JsonCast.php#L52)</small>
 
 `public function decode(mixed $value): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$value` | mixed | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

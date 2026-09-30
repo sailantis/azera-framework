@@ -1,4 +1,4 @@
-# 🧩 Class: Document
+# Class: Document
 
 **Full name:** [Azera\Orm\Document](../../src/Orm/Document.php)
 
@@ -14,9 +14,9 @@ The EM's heap-node diff is authoritative — hydrated documents are
 heap-tracked, so persist() schedules an UPDATE only when fields actually
 changed.
 
-## 🚀 Public methods
+## Public methods
 
-### store() · [source](../../src/Orm/Document.php#L28)
+### store() · <small>[🗎](../../src/Orm/Document.php#L28)</small>
 
 `public function store(): string`
 
@@ -25,14 +25,14 @@ EntityManager::setStore() maps to an instance). Mirrors the
 #[Entity(store: ...)] attribute; the attribute is the authority
 (it compiles into metadata).
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### save() · [source](../../src/Orm/Document.php#L39)
+### save() · <small>[🗎](../../src/Orm/Document.php#L39)</small>
 
 `public function save(): bool`
 
@@ -42,67 +42,67 @@ The EM's heap-node diff is authoritative (hydrated documents are
 heap-tracked with a baseline snapshot), so we schedule FIRST,
 check whether anything was actually queued, and only then flush.
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### delete() · [source](../../src/Orm/Document.php#L54)
+### delete() · <small>[🗎](../../src/Orm/Document.php#L54)</small>
 
 `public function delete(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### hasChanged() · [source](../../src/Orm/Document.php#L86)
+### hasChanged() · <small>[🗎](../../src/Orm/Document.php#L86)</small>
 
 `public function hasChanged(): bool`
 
 Whether any field differs from the heap baseline (untracked entity:
 true when any metadata column has a set value).
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### changedData() · [source](../../src/Orm/Document.php#L97)
+### changedData() · <small>[🗎](../../src/Orm/Document.php#L97)</small>
 
 `public function changedData(): array`
 
 Field-name-keyed map of values that differ from the heap baseline
 (untracked entity: all set values).
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### loadState() · [source](../../src/Orm/Document.php#L106)
+### loadState() · <small>[🗎](../../src/Orm/Document.php#L106)</small>
 
 `public function loadState(): static`
 
 Revert all properties to the values recorded in the heap node
 snapshot (the loadState() replacement). No-op for untracked entities.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### refresh() · [source](../../src/Orm/Document.php#L117)
+### refresh() · <small>[🗎](../../src/Orm/Document.php#L117)</small>
 
 `public function refresh(): static|null`
 
@@ -111,9 +111,9 @@ IN PLACE (current values + synced snapshot). Returns $this, or NULL
 when the row is gone in storage (detached). Throws for untracked
 documents and documents with scheduled unflushed writes.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static|null
+- Type: `static`|`null`
 
 
 

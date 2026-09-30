@@ -1,4 +1,4 @@
-# 🧩 Class: PdoStore
+# Class: PdoStore
 
 **Full name:** [Azera\Orm\Storage\PdoStore](../../src/Orm/Storage/PdoStore.php)
 
@@ -27,13 +27,13 @@ tx PER DISTINCT write target (flushAll() commits them independently);
 legacy Model/QB writes on an already-begun target join via the shared
 Database instance.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Storage/PdoStore.php#L48)
+### __construct() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L48)</small>
 
 `public function __construct(Azera\Db\DatabaseManager|null $dbm = null, string $readRole = 'read', string $writeRole = 'write'): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -41,14 +41,14 @@ Database instance.
 | `$readRole` | string | `'read'` |  |
 | `$writeRole` | string | `'write'` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### txTarget() · [source](../../src/Orm/Storage/PdoStore.php#L61)
+### txTarget() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L61)</small>
 
 `public function txTarget(array $meta): string`
 
@@ -56,42 +56,42 @@ Connection identity for tx grouping in flush(): the class's write
 role (#[Connection] override wins over the constructor default) —
 two classes sharing a write role share one transaction target.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### insertOne() · [source](../../src/Orm/Storage/PdoStore.php#L91)
+### insertOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L91)</small>
 
 `public function insertOne(string $class, array $data): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$data` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### updateOne() · [source](../../src/Orm/Storage/PdoStore.php#L137)
+### updateOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L137)</small>
 
 `public function updateOne(string $class, array $data, array $id): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -99,104 +99,104 @@ two classes sharing a write role share one transaction target.
 | `$data` | array | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### upsertOne() · [source](../../src/Orm/Storage/PdoStore.php#L148)
+### upsertOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L148)</small>
 
 `public function upsertOne(string $class, array $data): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$data` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### deleteOne() · [source](../../src/Orm/Storage/PdoStore.php#L182)
+### deleteOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L182)</small>
 
 `public function deleteOne(string $class, array $id): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### findBy() · [source](../../src/Orm/Storage/PdoStore.php#L190)
+### findBy() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L190)</small>
 
 `public function findBy(string $class, array $where): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$where` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### findByPk() · [source](../../src/Orm/Storage/PdoStore.php#L199)
+### findByPk() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L199)</small>
 
 `public function findByPk(string $class, array $id): array|null`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$id` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array|null
+- Type: `array`|`null`
 
 
 ---
 
-### count() · [source](../../src/Orm/Storage/PdoStore.php#L205)
+### count() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L205)</small>
 
 `public function count(string $class, array $where = []): int`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$class` | string | - |  |
 | `$where` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 
 
 ---
 
-### begin() · [source](../../src/Orm/Storage/PdoStore.php#L223)
+### begin() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L223)</small>
 
 `public function begin(array|null $meta = null): void`
 
@@ -208,54 +208,54 @@ write roles aliasing one connection share ONE tx, one BEGIN in the
 log). Caller-opened txs are never recorded here: they are joined
 implicitly by routing and never committed/rolled back by this store.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### commit() · [source](../../src/Orm/Storage/PdoStore.php#L240)
+### commit() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L240)</small>
 
 `public function commit(array|null $meta = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### rollback() · [source](../../src/Orm/Storage/PdoStore.php#L248)
+### rollback() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L248)</small>
 
 `public function rollback(array|null $meta = null): void`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### inTransaction() · [source](../../src/Orm/Storage/PdoStore.php#L262)
+### inTransaction() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L262)</small>
 
 `public function inTransaction(array|null $meta = null): bool`
 
@@ -264,33 +264,33 @@ store-begun OR caller-opened (flush()/flushAll() join either, and
 must not double-begin over a caller tx). Bare form: any tx this
 store began, else the constructor-default write connection.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 ---
 
-### enrichMetadata() · [source](../../src/Orm/Storage/PdoStore.php#L509)
+### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L509)</small>
 
 `public function enrichMetadata(array $meta, ReflectionClass $class): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$meta` | array | - |  |
 | `$class` | ReflectionClass | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

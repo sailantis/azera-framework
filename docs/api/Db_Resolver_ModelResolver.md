@@ -1,4 +1,4 @@
-# 🧩 Class: ModelResolver
+# Class: ModelResolver
 
 **Full name:** [Azera\Db\Resolver\ModelResolver](../../src/Db/Resolver/ModelResolver.php)
 
@@ -21,48 +21,48 @@ fresh via `AppContext::dbManager()` on every call. Implementing
 [`RequestScoped`](Lifecycle_RequestScoped.md) ensures the cache is cleared after every request in a
 persistent worker, so no state leaks from one request into the next.
 
-## 🚀 Public methods
+## Public methods
 
-### resolve() · [source](../../src/Db/Resolver/ModelResolver.php#L35)
+### resolve() · <small>[🗎](../../src/Db/Resolver/ModelResolver.php#L35)</small>
 
 `public function resolve(string $name): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### clearCache() · [source](../../src/Db/Resolver/ModelResolver.php#L52)
+### clearCache() · <small>[🗎](../../src/Db/Resolver/ModelResolver.php#L52)</small>
 
 `public function clearCache(): void`
 
 Clear the model instance cache (useful for testing).
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### resetState() · [source](../../src/Db/Resolver/ModelResolver.php#L61)
+### resetState() · <small>[🗎](../../src/Db/Resolver/ModelResolver.php#L61)</small>
 
 `public function resetState(): void`
 
 Request-scoped hook: clear the model instance cache after each request
 in a persistent worker so no state leaks into the next request.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

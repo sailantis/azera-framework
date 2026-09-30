@@ -1,4 +1,4 @@
-# 🧩 Class: EventDispatcher
+# Class: EventDispatcher
 
 **Full name:** [Azera\Event\EventDispatcher](../../src/Event/EventDispatcher.php)
 
@@ -14,41 +14,41 @@ Priority: higher priority numbers run first (default 0). Listeners with
 the same priority run in registration order.
 
 Example:
-<code>
+```php
 $dispatcher = new EventDispatcher();
 $dispatcher->listen(UserCreated::class, function (UserCreated $e) {
     // send welcome email
 });
 $dispatcher->listen(UserCreated::class, SendWelcomeEmailListener::class, priority: 10);
 $dispatcher->dispatch(new UserCreated($user));
-</code>
+```
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Event/EventDispatcher.php#L58)
+### __construct() · <small>[🗎](../../src/Event/EventDispatcher.php#L58)</small>
 
 `public function __construct(Azera\AppContext|null $context = null): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$context` | [AppContext](AppContext.md)\|null | `null` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### listen() · [source](../../src/Event/EventDispatcher.php#L71)
+### listen() · <small>[🗎](../../src/Event/EventDispatcher.php#L71)</small>
 
 `public function listen(string $eventClass, callable|string $handler, int $priority = 0): void`
 
 Register a listener for an event class.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -56,26 +56,26 @@ Register a listener for an event class.
 | `$handler` | callable\|string | - | A callable, or a class-string resolved<br>via AppContext (must implement __invoke). |
 | `$priority` | int | `0` | Higher runs first (default 0). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### dispatch() · [source](../../src/Event/EventDispatcher.php#L77)
+### dispatch() · <small>[🗎](../../src/Event/EventDispatcher.php#L77)</small>
 
 `public function dispatch(object $event): object`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$event` | object | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: object
+- Type: `object`
 
 
 

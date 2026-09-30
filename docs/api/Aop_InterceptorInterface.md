@@ -1,4 +1,4 @@
-# 🔌 Interface: InterceptorInterface
+# Interface: InterceptorInterface
 
 **Full name:** [Azera\Aop\InterceptorInterface](../../src/Aop/InterceptorInterface.php)
 
@@ -16,7 +16,7 @@ last interceptor). Interceptors can:
 - Catch/transform exceptions thrown by `$next()`
 
 Example:
-<code>
+```php
 class TransactionalInterceptor implements InterceptorInterface
 {
     public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed
@@ -32,17 +32,17 @@ class TransactionalInterceptor implements InterceptorInterface
         }
     }
 }
-</code>
+```
 
-## 🚀 Public methods
+## Public methods
 
-### intercept() · [source](../../src/Aop/InterceptorInterface.php#L52)
+### intercept() · <small>[🗎](../../src/Aop/InterceptorInterface.php#L52)</small>
 
 `public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
 
 Intercept a method invocation.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -51,9 +51,9 @@ Intercept a method invocation.
 | `$args` | array | - | The method arguments (may be modified). |
 | `$next` | callable | - | Callable that invokes the next handler.<br>Receives the (possibly modified) args array and returns the method result. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 - Description: The method result (or a replacement value).
 
 

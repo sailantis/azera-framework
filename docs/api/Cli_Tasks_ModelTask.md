@@ -1,4 +1,4 @@
-# 🧩 Class: ModelTask
+# Class: ModelTask
 
 **Full name:** [Azera\Cli\Tasks\ModelTask](../../src/Cli/Tasks/ModelTask.php)
 
@@ -69,14 +69,14 @@ Examples:
   model:list                                               # list all models + tables
   model:list     src/Models --missing                      # also show uncovered tables
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Tasks/ModelTask.php)
-- `public` array `$options` · [source](../../src/Cli/Tasks/ModelTask.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Tasks/ModelTask.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Tasks/ModelTask.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### listAction() · [source](../../src/Cli/Tasks/ModelTask.php#L91)
+### listAction() · <small>[🗎](../../src/Cli/Tasks/ModelTask.php#L91)</small>
 
 `public function listAction(string $dir = ''): void`
 
@@ -84,40 +84,40 @@ List all model files in a directory together with their mapped database
 table. With --missing, also list database tables that have no
 corresponding model file yet.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$dir` | string | `''` | Directory to scan (optional – defaults to App\Models via PSR-4) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### syncAllAction() · [source](../../src/Cli/Tasks/ModelTask.php#L190)
+### syncAllAction() · <small>[🗎](../../src/Cli/Tasks/ModelTask.php#L190)</small>
 
 `public function syncAllAction(string $dir = ''): void`
 
 Scan a directory recursively, find all PHP files that extend Model,
 and sync each one against the database.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$dir` | string | `''` | Directory to scan (optional – defaults to App\\Models via PSR-4) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### syncAction() · [source](../../src/Cli/Tasks/ModelTask.php#L295)
+### syncAction() · <small>[🗎](../../src/Cli/Tasks/ModelTask.php#L295)</small>
 
 `public function syncAction(string $file = ''): void`
 
@@ -128,35 +128,35 @@ class name. Short and qualified class names are resolved to file paths
 via the PSR-4 autoloading map. Use --directory=<dir> to narrow the search
 when two classes share the same short name.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$file` | string | `''` | File path, short class name, or fully-qualified class name (required) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### newAction() · [source](../../src/Cli/Tasks/ModelTask.php#L341)
+### newAction() · <small>[🗎](../../src/Cli/Tasks/ModelTask.php#L341)</small>
 
 `public function newAction(string $className = '', string $dir = ''): void`
 
 Scaffold a new model class from a database table and immediately sync its properties.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$className` | string | `''` | Short class name without namespace (e.g. User) |
 | `$dir` | string | `''` | Target directory for the new file (optional – defaults to App\\Models via PSR-4) |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 

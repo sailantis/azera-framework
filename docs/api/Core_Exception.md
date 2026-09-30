@@ -1,8 +1,8 @@
-# 🧩 Class: Exception
+# Class: Exception
 
 **Full name:** [Azera\Core\Exception](../../src/Core/Exception.php)
 
-## 🚀 Public methods
+## Public methods
 
 
 

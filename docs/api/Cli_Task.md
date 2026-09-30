@@ -1,4 +1,4 @@
-# 🧩 Class: Task
+# Class: Task
 
 **Full name:** [Azera\Cli\Task](../../src/Cli/Task.php)
 
@@ -7,319 +7,319 @@ Base class for all CLI task classes.
 Extend this class to create a CLI task. Public methods ending in "Action"
 are automatically discoverable by [`Console`](Cli_Console.md).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` [Console](Cli_Console.md) `$console` · [source](../../src/Cli/Task.php)
-- `public` array `$options` · [source](../../src/Cli/Task.php)
+- `public` [Console](Cli_Console.md) `$console` · <small>[🗎](../../src/Cli/Task.php)</small>
+- `public` array `$options` · <small>[🗎](../../src/Cli/Task.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### write() · [source](../../src/Cli/Task.php#L32)
+### write() · <small>[🗎](../../src/Cli/Task.php#L32)</small>
 
 `public function write(string $text = ''): void`
 
 Write text without a newline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### writeln() · [source](../../src/Cli/Task.php#L38)
+### writeln() · <small>[🗎](../../src/Cli/Task.php#L38)</small>
 
 `public function writeln(string $text = ''): void`
 
 Write a line of text with a newline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### stderr() · [source](../../src/Cli/Task.php#L44)
+### stderr() · <small>[🗎](../../src/Cli/Task.php#L44)</small>
 
 `public function stderr(string $text = ''): void`
 
 Write to STDERR without a newline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### stderrln() · [source](../../src/Cli/Task.php#L50)
+### stderrln() · <small>[🗎](../../src/Cli/Task.php#L50)</small>
 
 `public function stderrln(string $text = ''): void`
 
 Write to STDERR with a newline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### stdout() · [source](../../src/Cli/Task.php#L56)
+### stdout() · <small>[🗎](../../src/Cli/Task.php#L56)</small>
 
 `public function stdout(string $text = ''): void`
 
 Write to STDOUT without a newline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### stdoutln() · [source](../../src/Cli/Task.php#L62)
+### stdoutln() · <small>[🗎](../../src/Cli/Task.php#L62)</small>
 
 `public function stdoutln(string $text = ''): void`
 
 Write to STDOUT with a newline.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | `''` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### line() · [source](../../src/Cli/Task.php#L68)
+### line() · <small>[🗎](../../src/Cli/Task.php#L68)</small>
 
 `public function line(string $text): void`
 
 Plain message with no styling. Newline is appended.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### info() · [source](../../src/Cli/Task.php#L74)
+### info() · <small>[🗎](../../src/Cli/Task.php#L74)</small>
 
 `public function info(string $text): void`
 
 Informational message (cyan). Newline is appended.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### success() · [source](../../src/Cli/Task.php#L80)
+### success() · <small>[🗎](../../src/Cli/Task.php#L80)</small>
 
 `public function success(string $text): void`
 
 Success message (green). Newline is appended.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### warn() · [source](../../src/Cli/Task.php#L86)
+### warn() · <small>[🗎](../../src/Cli/Task.php#L86)</small>
 
 `public function warn(string $text): void`
 
 Warning message (yellow). Newline is appended.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### error() · [source](../../src/Cli/Task.php#L92)
+### error() · <small>[🗎](../../src/Cli/Task.php#L92)</small>
 
 `public function error(string $text): void`
 
 Error message (white on red) to STDERR. Newline is appended.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### muted() · [source](../../src/Cli/Task.php#L98)
+### muted() · <small>[🗎](../../src/Cli/Task.php#L98)</small>
 
 `public function muted(string $text): void`
 
 Muted / dimmed text (gray). Newline is appended.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$text` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### option() · [source](../../src/Cli/Task.php#L124)
+### option() · <small>[🗎](../../src/Cli/Task.php#L124)</small>
 
 `public function option(string $key, mixed $default = null): mixed`
 
 Retrieve a parsed option value by key, with an optional default.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$key` | string | - | The option name (without leading dashes). |
 | `$default` | mixed | `null` | The default value to return if the option is not set. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 - Description: The option value or the default if not set.
 
 
 ---
 
-### context() · [source](../../src/Cli/Task.php#L133)
+### context() · <small>[🗎](../../src/Cli/Task.php#L133)</small>
 
 `public function context(): Azera\AppContext`
 
 Get the current AppContext instance. Useful for accessing services.
 
-**➡️ Return value**
+**Return value**
 
 - Type: [AppContext](AppContext.md)
 
 
 ---
 
-### getMiddlewares() · [source](../../src/Cli/Task.php#L185)
+### getMiddlewares() · <small>[🗎](../../src/Cli/Task.php#L185)</small>
 
 `public function getMiddlewares(): array`
 
 Get the middleware for the task. Used by the Console to build the
 middleware pipeline when dispatching an action.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### getActionMiddlewares() · [source](../../src/Cli/Task.php#L196)
+### getActionMiddlewares() · <small>[🗎](../../src/Cli/Task.php#L196)</small>
 
 `public function getActionMiddlewares(string $action): array`
 
 Get the middleware for a specific action. Used by the Console to build
 the middleware pipeline when dispatching an action.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$action` | string | - | The resolved PHP method name (e.g. "runAction"). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 ---
 
-### getInterceptors() · [source](../../src/Cli/Task.php#L206)
+### getInterceptors() · <small>[🗎](../../src/Cli/Task.php#L206)</small>
 
 `public function getInterceptors(): array`
 
 Get the AOP interceptors for this task. Used by the Console to wrap the
 action method in an interceptor chain.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 

@@ -1,15 +1,13 @@
-# 🧩 Class: AddAccessor
+# Class: AddAccessor
 
 **Full name:** [Azera\Sync\AddAccessor](../../src/Sync/ModelDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$phpType` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$methodName` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$visibility` · [source](../../src/Sync/ModelDiff.php)
-- `public` string `$property` · [source](../../src/Sync/ModelDiff.php)
-
-## 🚀 Public methods
+- `public` string `$phpType` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$methodName` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$visibility` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
+- `public` string `$property` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
 
 
 

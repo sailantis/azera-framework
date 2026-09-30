@@ -1,4 +1,4 @@
-# 🧩 Class: QueryExecuted
+# Class: QueryExecuted
 
 **Full name:** [Azera\Db\Event\QueryExecuted](../../src/Db/Event/QueryExecuted.php)
 
@@ -8,20 +8,20 @@ Carries the executed SQL, bound parameters, and the wall-clock duration
 in milliseconds. Useful for query logging, slow-query detection, and
 debugging.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` string `$sql` · [source](../../src/Db/Event/QueryExecuted.php)
-- `public readonly` array|null `$params` · [source](../../src/Db/Event/QueryExecuted.php)
-- `public readonly` float `$durationMs` · [source](../../src/Db/Event/QueryExecuted.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/QueryExecuted.php)
+- `public readonly` string `$sql` · <small>[🗎](../../src/Db/Event/QueryExecuted.php)</small>
+- `public readonly` array|null `$params` · <small>[🗎](../../src/Db/Event/QueryExecuted.php)</small>
+- `public readonly` float `$durationMs` · <small>[🗎](../../src/Db/Event/QueryExecuted.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/QueryExecuted.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/QueryExecuted.php#L16)
+### __construct() · <small>[🗎](../../src/Db/Event/QueryExecuted.php#L16)</small>
 
 `public function __construct(Azera\Db\Database $database, string $sql, array|null $params, float $durationMs): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -30,9 +30,9 @@ debugging.
 | `$params` | array\|null | - |  |
 | `$durationMs` | float | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

@@ -1,29 +1,29 @@
-# 🧩 Class: ResolvedRoute
+# Class: ResolvedRoute
 
 **Full name:** [Azera\Core\ResolvedRoute](../../src/Core/ResolvedRoute.php)
 
 ResolvedRoute represents the fully resolved route and execution context
 used by the dispatcher to invoke the matched controller and action.
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` string|null `$namespace` · [source](../../src/Core/ResolvedRoute.php)
-- `public readonly` string `$controller` · [source](../../src/Core/ResolvedRoute.php)
-- `public readonly` string `$action` · [source](../../src/Core/ResolvedRoute.php)
-- `public readonly` array `$params` · [source](../../src/Core/ResolvedRoute.php)
-- `public readonly` array `$vars` · [source](../../src/Core/ResolvedRoute.php)
-- `public readonly` array `$groups` · [source](../../src/Core/ResolvedRoute.php)
-- `public readonly` array `$override` · [source](../../src/Core/ResolvedRoute.php)
+- `public readonly` string|null `$namespace` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
+- `public readonly` string `$controller` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
+- `public readonly` string `$action` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
+- `public readonly` array `$params` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
+- `public readonly` array `$vars` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
+- `public readonly` array `$groups` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
+- `public readonly` array `$override` · <small>[🗎](../../src/Core/ResolvedRoute.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Core/ResolvedRoute.php#L22)
+### __construct() · <small>[🗎](../../src/Core/ResolvedRoute.php#L22)</small>
 
 `public function __construct(string|null $namespace, string $controller, string $action, array $params, array $vars, array $groups, array $override): mixed`
 
 Create a new ResolvedRoute instance with the given parameters.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -35,9 +35,9 @@ Create a new ResolvedRoute instance with the given parameters.
 | `$groups` | array | - | List of middleware groups to apply for this route. |
 | `$override` | array | - | Associative array of route overrides (e.g. ['controller' => 'OtherController', 'action' => 'otherAction']). |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

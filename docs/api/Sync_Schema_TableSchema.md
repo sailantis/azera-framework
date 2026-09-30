@@ -1,21 +1,21 @@
-# 🧩 Class: TableSchema
+# Class: TableSchema
 
 **Full name:** [Azera\Sync\Schema\TableSchema](../../src/Sync/Schema/SchemaProvider.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$name` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` string|null `$comment` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` array `$columns` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` array `$indexes` · [source](../../src/Sync/Schema/SchemaProvider.php)
+- `public` string `$name` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` string|null `$comment` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` array `$columns` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` array `$indexes` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/Schema/SchemaProvider.php#L23)
+### __construct() · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php#L23)</small>
 
 `public function __construct(string $name, string|null $comment, array $columns, array $indexes): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -24,9 +24,9 @@
 | `$columns` | array | - |  |
 | `$indexes` | array | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

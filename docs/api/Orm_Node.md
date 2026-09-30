@@ -1,4 +1,4 @@
-# 🧩 Class: Node
+# Class: Node
 
 **Full name:** [Azera\Orm\Node](../../src/Orm/Node.php)
 
@@ -12,7 +12,7 @@ dirty diffing, and the persistence lifecycle state.
 The data array holds SCALAR row values only (the raw store representation) —
 not PHP objects. Objects would break both the diff and the L2 cache story.
 
-## 📌 Public Constants
+## Public Constants
 
 - **NEW** = `1`
 - **MANAGED** = `2`
@@ -22,21 +22,21 @@ not PHP objects. Objects would break both the diff and the L2 cache story.
 - **DELETED** = `6`
 - **SCHEDULED_UPSERT** = `7`
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` string `$class` · [source](../../src/Orm/Node.php)
-- `public readonly` array `$id` · [source](../../src/Orm/Node.php)
-- `public` array `$data` · [source](../../src/Orm/Node.php)
-- `public` int `$state` · [source](../../src/Orm/Node.php)
-- `public` array `$changedFields` · [source](../../src/Orm/Node.php)
+- `public readonly` string `$class` · <small>[🗎](../../src/Orm/Node.php)</small>
+- `public readonly` array `$id` · <small>[🗎](../../src/Orm/Node.php)</small>
+- `public` array `$data` · <small>[🗎](../../src/Orm/Node.php)</small>
+- `public` int `$state` · <small>[🗎](../../src/Orm/Node.php)</small>
+- `public` array `$changedFields` · <small>[🗎](../../src/Orm/Node.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Orm/Node.php#L39)
+### __construct() · <small>[🗎](../../src/Orm/Node.php#L39)</small>
 
 `public function __construct(string $class, array $id, array $data, int $state = 1, array $changedFields = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -46,20 +46,20 @@ not PHP objects. Objects would break both the diff and the L2 cache story.
 | `$state` | int | `1` |  |
 | `$changedFields` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### isScheduled() · [source](../../src/Orm/Node.php#L47)
+### isScheduled() · <small>[🗎](../../src/Orm/Node.php#L47)</small>
 
 `public function isScheduled(): bool`
 
-**➡️ Return value**
+**Return value**
 
-- Type: bool
+- Type: `bool`
 
 
 

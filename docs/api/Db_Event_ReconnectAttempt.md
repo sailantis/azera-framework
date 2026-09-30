@@ -1,24 +1,24 @@
-# 🧩 Class: ReconnectAttempt
+# Class: ReconnectAttempt
 
 **Full name:** [Azera\Db\Event\ReconnectAttempt](../../src/Db/Event/ReconnectAttempt.php)
 
 Dispatched before each reconnection attempt in
 [`Database::handleReconnect()`](Db_Database.md#handlereconnect).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` int `$attempt` · [source](../../src/Db/Event/ReconnectAttempt.php)
-- `public readonly` float `$delaySeconds` · [source](../../src/Db/Event/ReconnectAttempt.php)
-- `public readonly` Throwable|null `$cause` · [source](../../src/Db/Event/ReconnectAttempt.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/ReconnectAttempt.php)
+- `public readonly` int `$attempt` · <small>[🗎](../../src/Db/Event/ReconnectAttempt.php)</small>
+- `public readonly` float `$delaySeconds` · <small>[🗎](../../src/Db/Event/ReconnectAttempt.php)</small>
+- `public readonly` Throwable|null `$cause` · <small>[🗎](../../src/Db/Event/ReconnectAttempt.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/ReconnectAttempt.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/ReconnectAttempt.php#L14)
+### __construct() · <small>[🗎](../../src/Db/Event/ReconnectAttempt.php#L14)</small>
 
 `public function __construct(Azera\Db\Database $database, int $attempt, float $delaySeconds, Throwable|null $cause): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -27,9 +27,9 @@ Dispatched before each reconnection attempt in
 | `$delaySeconds` | float | - |  |
 | `$cause` | Throwable\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

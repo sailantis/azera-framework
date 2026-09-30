@@ -1,4 +1,4 @@
-# 🧩 Class: StemplerAdapter
+# Class: StemplerAdapter
 
 **Full name:** [Azera\Core\Engines\Adapters\StemplerAdapter](../../src/Core/Engines/Adapters/StemplerAdapter.php)
 
@@ -46,26 +46,26 @@ frameworks.
 Cache location: `sys_get_temp_dir()/stempler_cache` (override with
 `setCachePath()`). Pass an empty string to disable caching.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L81)
+### __construct() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L81)</small>
 
 `public function __construct(array $vars = []): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$vars` | array | `[]` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### setCachePath() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L111)
+### setCachePath() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L111)</small>
 
 `public function setCachePath(string $path): static`
 
@@ -78,33 +78,33 @@ afterwards rebuilds them. Without that, a cache path set after the first
 render would be silently ignored — the same trap the Twig adapter
 documents.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$path` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getCachePath() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L122)
+### getCachePath() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L122)</small>
 
 `public function getCachePath(): string`
 
 Get the currently configured cache directory.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 
 
 ---
 
-### flushCache() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L135)
+### flushCache() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L135)</small>
 
 `public function flushCache(): static`
 
@@ -115,56 +115,56 @@ Compiled templates are PHP CLASSES loaded into the current process
 its own: a class already declared cannot be redeclared, which is what
 makes this a no-op for a process that has already rendered.
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### render() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L146)
+### render() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L146)</small>
 
 `public function render(string $view, array $vars = []): string`
 
 Render a view (and optional layout) and return the result.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to render. |
 | `$vars` | array | `[]` | Additional variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered content.
 
 
 ---
 
-### renderPartial() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L159)
+### renderPartial() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L159)</small>
 
 `public function renderPartial(string $view, array $vars = []): string`
 
 Render a partial view (without applying a layout) and return the output.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$view` | string | - | View name to resolve and render. |
 | `$vars` | array | `[]` | Variables for this render call. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered HTML/output.
 
 
 ---
 
-### renderLayout() · [source](../../src/Core/Engines/Adapters/StemplerAdapter.php#L172)
+### renderLayout() · <small>[🗎](../../src/Core/Engines/Adapters/StemplerAdapter.php#L172)</small>
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 
@@ -174,7 +174,7 @@ Stempler has its own inheritance (`<extends path="..."/>`), so an
 Azera-level layout is rendered as an ordinary template with the content
 handed to it.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -182,9 +182,9 @@ handed to it.
 | `$content` | string | - | Previously rendered content. |
 | `$vars` | array | `[]` | Additional variables to pass to the layout. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Rendered layout output.
 
 

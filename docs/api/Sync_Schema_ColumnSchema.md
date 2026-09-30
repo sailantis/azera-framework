@@ -1,23 +1,23 @@
-# 🧩 Class: ColumnSchema
+# Class: ColumnSchema
 
 **Full name:** [Azera\Sync\Schema\ColumnSchema](../../src/Sync/Schema/SchemaProvider.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$name` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` string `$type` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` bool `$nullable` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` mixed `$default` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` bool `$primary` · [source](../../src/Sync/Schema/SchemaProvider.php)
-- `public` string|null `$comment` · [source](../../src/Sync/Schema/SchemaProvider.php)
+- `public` string `$name` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` string `$type` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` bool `$nullable` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` mixed `$default` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` bool `$primary` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
+- `public` string|null `$comment` · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Sync/Schema/SchemaProvider.php#L36)
+### __construct() · <small>[🗎](../../src/Sync/Schema/SchemaProvider.php#L36)</small>
 
 `public function __construct(string $name, string $type, bool $nullable, mixed $default, bool $primary, string|null $comment): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -28,9 +28,9 @@
 | `$primary` | bool | - |  |
 | `$comment` | string\|null | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

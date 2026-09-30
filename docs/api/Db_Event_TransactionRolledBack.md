@@ -1,23 +1,23 @@
-# 🧩 Class: TransactionRolledBack
+# Class: TransactionRolledBack
 
 **Full name:** [Azera\Db\Event\TransactionRolledBack](../../src/Db/Event/TransactionRolledBack.php)
 
 Dispatched after a transaction (or savepoint) has been rolled back via
 [`Database::rollback()`](Db_Database.md#rollback).
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` bool `$nesting` · [source](../../src/Db/Event/TransactionRolledBack.php)
-- `public readonly` int `$level` · [source](../../src/Db/Event/TransactionRolledBack.php)
-- `public readonly` [Database](Db_Database.md) `$database` · [source](../../src/Db/Event/TransactionRolledBack.php)
+- `public readonly` bool `$nesting` · <small>[🗎](../../src/Db/Event/TransactionRolledBack.php)</small>
+- `public readonly` int `$level` · <small>[🗎](../../src/Db/Event/TransactionRolledBack.php)</small>
+- `public readonly` [Database](Db_Database.md) `$database` · <small>[🗎](../../src/Db/Event/TransactionRolledBack.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Event/TransactionRolledBack.php#L13)
+### __construct() · <small>[🗎](../../src/Db/Event/TransactionRolledBack.php#L13)</small>
 
 `public function __construct(Azera\Db\Database $database, bool $nesting, int $level): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
@@ -25,9 +25,9 @@ Dispatched after a transaction (or savepoint) has been rolled back via
 | `$nesting` | bool | - |  |
 | `$level` | int | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

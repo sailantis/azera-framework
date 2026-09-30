@@ -1,4 +1,4 @@
-# 🧩 Class: Log
+# Class: Log
 
 **Full name:** [Azera\Aop\Log](../../src/Aop/Log.php)
 
@@ -8,36 +8,36 @@ The [`LogInterceptor`](Aop_LogInterceptor.md) logs method entry, exit, duration,
 any exceptions. Useful for debugging and audit trails.
 
 Example:
-<code>
+```php
 #[Advised]
 class PaymentService
 {
     #[Log(level: 'info')]
     public function processPayment(Payment $p): Result { ... }
 }
-</code>
+```
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public readonly` string `$level` · [source](../../src/Aop/Log.php)
-- `public readonly` bool `$logArgs` · [source](../../src/Aop/Log.php)
+- `public readonly` string `$level` · <small>[🗎](../../src/Aop/Log.php)</small>
+- `public readonly` bool `$logArgs` · <small>[🗎](../../src/Aop/Log.php)</small>
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Aop/Log.php#L24)
+### __construct() · <small>[🗎](../../src/Aop/Log.php#L24)</small>
 
 `public function __construct(string $level = 'info', bool $logArgs = false): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$level` | string | `'info'` |  |
 | `$logArgs` | bool | `false` |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 

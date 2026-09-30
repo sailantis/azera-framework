@@ -1,12 +1,10 @@
-# 🧩 Class: DiffOperation
+# Class: DiffOperation
 
 **Full name:** [Azera\Sync\DiffOperation](../../src/Sync/ModelDiff.php)
 
-## 🌍 Public Properties
+## Public Properties
 
-- `public` string `$property` · [source](../../src/Sync/ModelDiff.php)
-
-## 🚀 Public methods
+- `public` string `$property` · <small>[🗎](../../src/Sync/ModelDiff.php)</small>
 
 
 

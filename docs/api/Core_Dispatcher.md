@@ -1,25 +1,25 @@
-# 🧩 Class: Dispatcher
+# Class: Dispatcher
 
 **Full name:** [Azera\Core\Dispatcher](../../src/Core/Dispatcher.php)
 
 Dispatcher is responsible for handling the execution of controller actions based on the current routing information. It builds a middleware pipeline, and invokes the action, returning a Response object. It supports global and group-based middleware, as well as controller and action-specific middleware.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Core/Dispatcher.php#L23)
+### __construct() · <small>[🗎](../../src/Core/Dispatcher.php#L23)</small>
 
 `public function __construct(): mixed`
 
 Create a new Dispatcher and bind it to the current [`AppContext`](AppContext.md) singleton.
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### addMiddleware() · [source](../../src/Core/Dispatcher.php#L39)
+### addMiddleware() · <small>[🗎](../../src/Core/Dispatcher.php#L39)</small>
 
 `public function addMiddleware(Azera\Core\MiddlewareInterface $mw): void`
 
@@ -28,20 +28,20 @@ Register a middleware that runs on every dispatched request.
 Global middleware is prepended to the pipeline before any group,
 controller, or action middleware.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$mw` | [MiddlewareInterface](Core_MiddlewareInterface.md) | - | Middleware instance to add. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### defineMiddlewareGroup() · [source](../../src/Core/Dispatcher.php#L56)
+### defineMiddlewareGroup() · <small>[🗎](../../src/Core/Dispatcher.php#L56)</small>
 
 `public function defineMiddlewareGroup(string $name, array $middleware): void`
 
@@ -51,144 +51,144 @@ Groups are applied after global middleware and before controller/action
 middleware. If several middleware groups are active for a route, they are
 applied in the order they are listed on the route.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - | Unique group name (e.g. "auth", "admin"). |
 | `$middleware` | array | - | Array of middleware definitions accepted by the pipeline normalizer. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### getBaseNamespace() · [source](../../src/Core/Dispatcher.php#L70)
+### getBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L70)</small>
 
 `public function getBaseNamespace(): string`
 
 Get the base namespace for controllers.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: The base namespace for controllers.
 
 
 ---
 
-### setBaseNamespace() · [source](../../src/Core/Dispatcher.php#L81)
+### setBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L81)</small>
 
 `public function setBaseNamespace(string $baseNamespace): static`
 
 Set the base namespace for controllers. This namespace will be prefixed to all controller class names when dispatching.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$baseNamespace` | string | - | The base namespace for controllers (e.g. "App\\Controllers") |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
 
 ---
 
-### getDefaultController() · [source](../../src/Core/Dispatcher.php#L92)
+### getDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L92)</small>
 
 `public function getDefaultController(): string`
 
 Get the default controller name used when a route doesn't provide one.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Default controller class name (without namespace)
 
 
 ---
 
-### setDefaultController() · [source](../../src/Core/Dispatcher.php#L103)
+### setDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L103)</small>
 
 `public function setDefaultController(string $defaultController): static`
 
 Set the default controller name.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$defaultController` | string | - | Controller class name to use as default |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - [InvalidArgumentException](Cache_InvalidArgumentException.md)  If given name is empty
 
 
 ---
 
-### getDefaultAction() · [source](../../src/Core/Dispatcher.php#L117)
+### getDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L117)</small>
 
 `public function getDefaultAction(): string`
 
 Get the default action name used when a route doesn't provide one.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Default action method name
 
 
 ---
 
-### setDefaultAction() · [source](../../src/Core/Dispatcher.php#L128)
+### setDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L128)</small>
 
 `public function setDefaultAction(string $defaultAction): static`
 
 Set the default action name.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$defaultAction` | string | - | Action method name to use as default |
 
-**➡️ Return value**
+**Return value**
 
-- Type: static
+- Type: `static`
 
-**⚠️ Throws**
+**Throws**
 
 - [InvalidArgumentException](Cache_InvalidArgumentException.md)  If given name is empty
 
 
 ---
 
-### dispatch() · [source](../../src/Core/Dispatcher.php#L145)
+### dispatch() · <small>[🗎](../../src/Core/Dispatcher.php#L145)</small>
 
 `public function dispatch(array $routeInfo): Azera\Http\Response`
 
 Dispatch a request to the appropriate controller and action based on the provided routing information. This method will determine the controller class and action method to invoke, build the middleware pipeline, and execute the controller action, returning the resulting Response.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$routeInfo` | array | - | An associative array containing routing information, including 'namespace', 'controller', 'action', and any route parameters. |
 
-**➡️ Return value**
+**Return value**
 
 - Type: [Response](Http_Response.md)
 
-**⚠️ Throws**
+**Throws**
 
 - [ControllerNotFoundException](Core_Exceptions_ControllerNotFoundException.md)
 - [InvalidControllerException](Core_Exceptions_InvalidControllerException.md)

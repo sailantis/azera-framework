@@ -1,4 +1,4 @@
-# 🔌 Interface: JobInterface
+# Interface: JobInterface
 
 **Full name:** [Azera\Queue\JobInterface](../../src/Queue/JobInterface.php)
 
@@ -9,7 +9,7 @@ retry configuration (tries, backoff) can be overridden by implementing
 the corresponding methods.
 
 Example:
-<code>
+```php
 class SyncStripeSeatsJob implements JobInterface
 {
     public function __construct(private string $subscriptionId) }
@@ -22,57 +22,57 @@ class SyncStripeSeatsJob implements JobInterface
 
     public function tries(): int { return 3; }
 }
-</code>
+```
 
-## 🚀 Public methods
+## Public methods
 
-### handle() · [source](../../src/Queue/JobInterface.php#L37)
+### handle() · <small>[🗎](../../src/Queue/JobInterface.php#L37)</small>
 
 `public function handle(): void`
 
 Perform the job's work.
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
-**⚠️ Throws**
+**Throws**
 
 - Throwable  On failure. The worker will retry if attempts remain.
 
 
 ---
 
-### tries() · [source](../../src/Queue/JobInterface.php#L44)
+### tries() · <small>[🗎](../../src/Queue/JobInterface.php#L44)</small>
 
 `public function tries(): int`
 
 Maximum number of attempts (including the first).
 
-**➡️ Return value**
+**Return value**
 
-- Type: int
+- Type: `int`
 - Description: Default 1 (no retries).
 
 
 ---
 
-### backoff() · [source](../../src/Queue/JobInterface.php#L52)
+### backoff() · <small>[🗎](../../src/Queue/JobInterface.php#L52)</small>
 
 `public function backoff(): array|int`
 
 Seconds (or array of seconds for progressive backoff) to wait
 before each retry.
 
-**➡️ Return value**
+**Return value**
 
-- Type: array|int
+- Type: `array`|`int`
 - Description: Default 0 (no delay).
 
 
 ---
 
-### retryUntil() · [source](../../src/Queue/JobInterface.php#L62)
+### retryUntil() · <small>[🗎](../../src/Queue/JobInterface.php#L62)</small>
 
 `public function retryUntil(): int|null`
 
@@ -81,56 +81,56 @@ Retry until a specific time or condition.
 Return a Unix timestamp to cap retries, or null to rely on
 `tries()` only.
 
-**➡️ Return value**
+**Return value**
 
-- Type: int|null
+- Type: `int`|`null`
 - Description: Default null.
 
 
 ---
 
-### failed() · [source](../../src/Queue/JobInterface.php#L69)
+### failed() · <small>[🗎](../../src/Queue/JobInterface.php#L69)</small>
 
 `public function failed(Throwable $exception): void`
 
 Called when the job fails all attempts.
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$exception` | Throwable | - | The last exception thrown. |
 
-**➡️ Return value**
+**Return value**
 
-- Type: void
+- Type: `void`
 
 
 ---
 
-### id() · [source](../../src/Queue/JobInterface.php#L77)
+### id() · <small>[🗎](../../src/Queue/JobInterface.php#L77)</small>
 
 `public function id(): string|null`
 
 A unique identifier for the job, used for idempotency and
 deduplication. Return null to disable deduplication.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string|null
+- Type: `string`|`null`
 
 
 ---
 
-### queue() · [source](../../src/Queue/JobInterface.php#L84)
+### queue() · <small>[🗎](../../src/Queue/JobInterface.php#L84)</small>
 
 `public function queue(): string`
 
 The queue name to push the job onto.
 
-**➡️ Return value**
+**Return value**
 
-- Type: string
+- Type: `string`
 - Description: Default 'default'.
 
 

@@ -1,4 +1,4 @@
-# 🧩 Class: MappingResolver
+# Class: MappingResolver
 
 **Full name:** [Azera\Db\Resolver\MappingResolver](../../src/Db/Resolver/MappingResolver.php)
 
@@ -9,38 +9,38 @@ Each entry in the mapping provides a `source` (table name), optional
 or individual `read`/`write` overrides). No model hydration is available —
 `modelClass` and `idFields` are always null.
 
-## 🚀 Public methods
+## Public methods
 
-### __construct() · [source](../../src/Db/Resolver/MappingResolver.php#L19)
+### __construct() · <small>[🗎](../../src/Db/Resolver/MappingResolver.php#L19)</small>
 
 `public function __construct(Azera\Db\ModelMapping $mapping): mixed`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$mapping` | [ModelMapping](Db_ModelMapping.md) | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: mixed
+- Type: `mixed`
 
 
 ---
 
-### resolve() · [source](../../src/Db/Resolver/MappingResolver.php#L25)
+### resolve() · <small>[🗎](../../src/Db/Resolver/MappingResolver.php#L25)</small>
 
 `public function resolve(string $name): array`
 
-**🧭 Parameters**
+**Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$name` | string | - |  |
 
-**➡️ Return value**
+**Return value**
 
-- Type: array
+- Type: `array`
 
 
 
