@@ -1,20 +1,19 @@
 # Models & ORM
 
-**Work with database records as objects** - Discover Azera's Active Record implementation for elegant database interactions. Learn about model configuration, static query helpers, CRUD operations, relations with eager loading, state tracking, and read/write connections.
+**Database records as objects** – Active Record models, queries, state tracking, relations, and read/write connections.
 
-Azera models use an Active Record style API backed by the
-`Azera\Orm\EntityManager` (identity map + write pipeline). `Model` and
-`Document` are thin facades over it — and because the `#[Entity]` /
-`#[Column]` attributes carry the configuration, the EntityManager alone
-is also a complete persistence API. See
-[Two Ways to the Same Pipeline](#two-ways-to-the-same-pipeline) below for
-the side-by-side comparison and the EM-direct usage.
+Azera models are Active Record objects backed by the `Azera\Orm\EntityManager`
+(identity map + write pipeline). `Model` and `Document` are thin facades over
+it — and because the `#[Entity]` / `#[Column]` attributes carry the
+configuration, the EntityManager alone is also a complete persistence API. See
+[Two Ways to the Same Pipeline](#two-ways-to-the-same-pipeline) for the
+side-by-side comparison.
 
 ---
 
 ## Define a Model
 
-Extend `Azera\Orm\Model` and declare public properties for your table columns. No registration or mapping is needed — Azera infers the table name from the class name automatically.
+Extend `Azera\Orm\Model` and declare public properties for your table columns. The table name is inferred from the class name.
 
 ```php
 <?php
@@ -520,7 +519,7 @@ Metadata::cacheSalt($_ENV['DEPLOY_HASH']);
 
 ## Query Builder
 
-`Model::query()` returns a `Query` builder pre-scoped to the model's table and read connection. Use it for anything beyond simple lookups.
+`Model::query()` returns a `Query` builder pre-scoped to the model's table and read connection.
 
 ```php
 // Optional table alias
@@ -573,8 +572,7 @@ the remaining composite key fields must be set manually before saving.
 
 ## Relations & Eager Loading
 
-Relations are declared as attributes on typed properties. The property name
-is the relation name used with `with()`:
+Relations are declared as attributes on typed properties; the property name is the relation name used with `with()`:
 
 ```php
 use Azera\Orm\Attribute\BelongsTo;
@@ -651,40 +649,24 @@ $user = User::create([
 // $user->id is populated after insert (auto-increment or RETURNING)
 ```
 
-### `forceCreate()` — bypass ID guards
-
-Removed. Use `upsert()` (atomic INSERT ... ON CONFLICT DO UPDATE) when you
-control the data, or `create()` when you don't.
-
 ### `upsert()` — atomic create-or-update
 
 ```php
 User::upsert(['id' => 7, 'username' => 'renna', 'email' => 'r@example.com']);
 ```
 
-One `INSERT ... ON CONFLICT (id) DO UPDATE SET` statement — the DATABASE
-decides insert vs update at write time (no SELECT, no unique-violation
-race under concurrency). All ID fields must be present (they form the
-conflict target); on conflict, all non-ID fields are updated.
+One `INSERT ... ON CONFLICT (id) DO UPDATE SET` statement — the database decides insert vs update at write time (no SELECT, no unique-violation race under concurrency). All ID fields must be present (they form the conflict target); on conflict, all non-ID fields are updated as `EXCLUDED` references - the fastest shape on SQLite, where including the PK in SET would force an internal DELETE+INSERT.
 
-Routed through the EntityManager: the model lands in the identity map
-(`User::find(7)` returns the same instance afterwards) and the statement
-joins any open flush transaction. The `DO UPDATE SET` writes non-ID
-columns only, as `EXCLUDED` references — the fastest shape on SQLite
-(including the PK in SET forces an internal DELETE+INSERT there).
+The model lands in the identity map (`User::find(7)` returns the same instance afterwards) and the statement joins any open flush transaction.
 
-### `firstOrCreate()` — find or insert
+### `firstOrCreate()` / `updateOrCreate()`
 
 ```php
 $user = User::firstOrCreate(
     ['email' => 'john@example.com'],   // conditions to find by
     ['username' => 'john']              // extra values if creating
 );
-```
 
-### `updateOrCreate()` — find, update or insert
-
-```php
 $user = User::updateOrCreate(
     ['email' => 'john@example.com'],   // conditions to find by
     ['username' => 'johnny']            // values to set on update or merge on create
@@ -710,20 +692,9 @@ $user->email = 'new@example.com';
 $user->save(); // UPDATE users SET email = ? WHERE id = 123
 ```
 
-```php
-$user = new User();
-$user->username = 'bob';
-$user->email = 'bob@example.com';
-$user->save(); // INSERT INTO users ...
-// $user->id is set after insert
-```
-
 ### `insert()` / `update()` — removed
 
-Removed in favor of ONE write pipeline: `save()` (diff INSERT or UPDATE
-through the EntityManager) and `upsert()` (single atomic
-INSERT ... ON CONFLICT DO UPDATE statement, also through the
-EntityManager).
+Removed in favor of one write pipeline: `save()` (diff INSERT or UPDATE) and `upsert()` (atomic INSERT ... ON CONFLICT DO UPDATE), both through the EntityManager.
 
 ### `delete()`
 
@@ -733,24 +704,9 @@ $user->delete(); // DELETE FROM users WHERE id = ?
 
 ### `flush()` — single-connection atomic flush
 
-`save()` persists through the EntityManager and flushes with the CURRENT
-flush cycle — every write lands in ONE transaction on ONE connection
-target: all scheduled classes must resolve to one store instance AND one
-connection target on it, otherwise the flush spans two connections and
-throws (a cross-connection transaction does not exist):
-
-```php
-$em->flush();  // or simply Model::save() — same write pipeline
-```
-
-The error names the two targets and the escape hatch — persist through
-separate EntityManagers, split the flush, or use `flushAll()` below.
+`save()` persists through the EntityManager and flushes with the current flush cycle — every write lands in ONE transaction on ONE connection target. All scheduled classes must resolve to one store instance and one connection target on it, otherwise the flush spans two connections and throws (a cross-connection transaction does not exist). The error names the two targets and the escape hatch — persist through separate EntityManagers, split the flush, or use `flushAll()` below.
 
 ### `flushAll()` — multi-connection flush
-
-When a write set legitimately spans connections (SQL + mongo, or several
-`#[Connection(write: …)]` roles on one store), `flushAll()` executes the
-whole scheduled set across EVERY target:
 
 ```php
 $em->flushAll();   // Model: AppContext::instance()->entityManager()->flushAll()
@@ -764,20 +720,12 @@ $em->flushAll();   // Model: AppContext::instance()->entityManager()->flushAll()
 | Failure         | full rollback                 | all txs begun SO FAR roll back; already-committed groups stay (best-effort all-or-nothing) |
 | Multi-target    | throws                        | works                                                                                      |
 
-Cross-connection atomicity does not exist anywhere (two-phase commit is
-not modeled) — `flushAll()` trades strict atomicity for reachability,
-matching `flush()`'s failure shape as closely as physically possible.
-Prefer `flush()` when the whole write set shares one connection target.
+Cross-connection atomicity does not exist anywhere (two-phase commit is not modeled) — `flushAll()` trades strict atomicity for reachability. Prefer `flush()` when the whole write set shares one connection target.
 
 Two store/connection facts worth knowing:
 
-- **Role aliases collapse.** Two `#[Connection(write: …)]` roles that
-  resolve to the SAME `Database` share ONE transaction (one `BEGIN`) —
-  same connection, same tx, atomically coupled by the database itself.
-- **A tx pins only its own target.** Reads on the transaction's
-  connection see its uncommitted writes; reads resolving to OTHER
-  connections run autocommit (a tx no longer hijacks unrelated
-  roles' traffic).
+- **Role aliases collapse.** Roles that resolve to the SAME `Database` share one transaction — same connection, same tx, atomically coupled by the database itself.
+- **A tx pins only its own target.** Reads on the transaction's connection see its uncommitted writes; reads resolving to other connections run autocommit.
 
 ---
 
@@ -994,9 +942,9 @@ $db = $user->writeConnection();  // Database (write role)
 
 ## Using ModelMapping Without Model Classes
 
-`ModelMapping` lets you query the database using logical model names without defining PHP model classes. This is useful for rapid prototyping, dynamic table mappings, or when you need query-builder convenience for tables that don't warrant a full Active Record class.
+`ModelMapping` resolves logical model names in queries without PHP model classes. `ModelMapping` only affects `Query`-level operations — the Active Record helpers (`User::find()`, `User::create()`, …) still require a class extending `Model`.
 
-In the new resolver system, a `MappingResolver` wraps the mapping and is registered in `AppContext` (typically as part of a `ChainResolver` alongside a `ModelResolver`).
+A `MappingResolver` wraps the mapping and is registered in `AppContext`, typically as part of a `ChainResolver` alongside a `ModelResolver`. See [Table Resolvers](05-DATABASE-QUERIES.md#table-resolvers) for the full resolver picture.
 
 ### Register a mapping
 
@@ -1028,37 +976,11 @@ AppContext::instance()->set(TableResolver::class, new ChainResolver(
 ));
 ```
 
-Once registered, use the logical name wherever `Query` accepts a table or model reference:
-
-```php
-// Query::new() uses the AppContext default resolver (the chain above)
-$results = Query::new()
-    ->table('User')
-    ->where('status', 'active')
-    ->select();
-
-// Joins also use logical names
-$results = Query::new()
-    ->table('User')
-    ->join('Order', Condition::new()->where('User.id = Order.user_id'))
-    ->columns(['User.id', 'User.email', 'Order.total'])
-    ->select();
-```
-
-For a one-off mapping without registering globally, use `Query::using()`:
-
-```php
-use Azera\Db\Resolver\MappingResolver;
-
-$results = Query::new()
-    ->using(new MappingResolver($mapping))
-    ->table('User')
-    ->select();
-```
+Once registered, use the logical name wherever `Query` accepts a table or model reference. For a one-off mapping without registering globally, use `Query::new()->using(new MappingResolver($mapping))`.
 
 ### Auto-generated table names
 
-Pass `true` as the value to let `ModelMapping` derive the table name automatically from the model name (snake_case, or pluralized when `usePluralTableNames` is enabled):
+Pass `true` as the value to derive the table name from the model name (snake_case, pluralized when `usePluralTableNames` is enabled):
 
 ```php
 ModelMapping::usePluralTableNames(true); // User → users, AdminUser → admin_users
@@ -1086,12 +1008,7 @@ $mapping = (new ModelMapping())
 Each mapping entry can specify connection roles:
 
 - `connection` — sets both read and write to the same role
-- `read` — overrides the read connection role
-- `write` — overrides the write connection role
-
-When `read`/`write` are set, they take precedence over `connection`.
-
-> **Note:** `ModelMapping` only affects `Query`-level operations. The Active Record helpers (`User::find()`, `User::create()`, etc.) still require a PHP class that extends `Model`.
+- `read` / `write` — individual overrides; take precedence over `connection`
 
 ## Related
 

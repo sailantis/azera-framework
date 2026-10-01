@@ -1,6 +1,6 @@
 ﻿# Security
 
-Azera provides building blocks for secure applications: parameterised queries, authenticated encryption, and safe cookie handling. This page documents those features and the additional measures — CSRF, output escaping, mass-assignment guards — that every application must apply itself.
+Building blocks for secure applications: parameterised queries, authenticated cookie encryption, and safe cookie handling. The remaining measures — output escaping, CSRF, password hashing — are documented per feature; Clarity templates auto-escape (see [Clarity Engine](03b-CLARITY-ENGINE.md#security-sandbox)), plain PHP templates do not.
 
 ## SQL Injection Protection
 
@@ -44,7 +44,7 @@ User::query()->orderBy($col);
 
 ## XSS – Output Escaping
 
-Azera's `ViewEngine` renders plain PHP templates and does **not** auto-escape output. You are responsible for escaping every dynamic value before printing it.
+The default `ClarityEngine` auto-escapes every `{{ }}` output. `NativeEngine` renders plain PHP templates and does **not** escape — you are responsible for escaping every dynamic value before printing it:
 
 ```php
 <!-- views/profile/show.php -->
@@ -94,7 +94,7 @@ function csrf_verify(): void
     $provided = AppContext::instance()->request()->post('_csrf', '');
 
     if (!$expected || !hash_equals($expected, $provided)) {
-        Response::status(403)->body('Invalid CSRF token')->send();
+        Response::status(403)->send();
         exit;
     }
 }
@@ -115,9 +115,9 @@ class CsrfMiddleware implements MiddlewareInterface
 }
 ```
 
-````
-
 Always use `hash_equals()` for token comparison to prevent timing attacks.
+
+Azera also ships a ready-made `Azera\Security\CsrfMiddleware` — see [Security (Enterprise)](18-SECURITY-ENTERPRISE.md) before hand-rolling this.
 
 ## Password Storage
 
@@ -137,25 +137,11 @@ if (password_needs_rehash($storedHash, PASSWORD_DEFAULT)) {
     $storedHash = password_hash($plainPassword, PASSWORD_DEFAULT);
     // persist the new hash
 }
-````
-
-Never store or log plain-text passwords.
-
-## Mass-Assignment Guard
-
-`Model::create()` and related methods respect the `$fillable` property. Only listed fields are written to the database.
-
-```php
-class User extends Model
-{
-    protected array $fillable = ['name', 'email']; // 'is_admin' intentionally excluded
-}
-
-// Safe – only 'name' and 'email' are written even if $_POST contains 'is_admin'
-User::create($request->post());
 ```
 
-`Model::upsert()` writes values as provided (no `$fillable` concept — the model has no mass-assignment guard). Use it only with data you fully control — never with raw request input.
+A `Azera\Security\Hasher` wrapper is available — see [Security (Enterprise)](18-SECURITY-ENTERPRISE.md).
+
+Never store or log plain-text passwords.
 
 ## Cookies and Encryption
 
@@ -166,8 +152,8 @@ use Azera\Http\Cookie;
 
 $cookie = Cookie::make('auth')
     ->set($token)
-    ->encrypted()               // authenticated encryption via Crypt
-    ->key($secretKey)           // optional: explicit key (falls back to app key)
+    ->encrypted()               // authenticated encryption via libsodium/OpenSSL
+    ->key($secretKey)           // recommended: explicit key (default derives from php_uname())
     ->expires(time() + 3_600)
     ->secure(true)              // HTTPS only – enable in production
     ->httpOnly(true)            // not accessible from JavaScript (default)
@@ -184,8 +170,8 @@ $ctx->cookies()->delete('auth');
 | --------------------------------------- | ------------------------------------------- |
 | `set(mixed $value): static`             | Set the cookie value                        |
 | `value(mixed $default = null): mixed`   | Read the current value (decrypts if needed) |
-| `encrypted(bool $state = true): static` | Enable/disable encryption via `Crypt`       |
-| `key(?string $key): static`             | Encryption key (falls back to app key)      |
+| `encrypted(bool $state = true): static` | Enable/disable authenticated encryption     |
+| `key(?string $key): static`             | Encryption key (default derives from uname) |
 | `expires(int $timestamp): static`       | Expiry Unix timestamp (0 = session)         |
 | `path(string $path): static`            | Cookie path (default `/`)                   |
 | `domain(string $domain): static`        | Cookie domain                               |
@@ -194,32 +180,22 @@ $ctx->cookies()->delete('auth');
 | `send(): static`                        | Queue the `Set-Cookie` header               |
 | `delete(): void`                        | Delete by sending a past-expiry header      |
 
-## Crypt Helper
+## Encryption Internals
 
-`Azera\Crypt` provides static authenticated encryption. It auto-selects the best available cipher (libsodium ChaCha20-Poly1305 preferred, AES-256-GCM via OpenSSL as fallback). Decryption returns `null` if the ciphertext was tampered with.
-
-**`Crypt` is a static-only class — never instantiate it.**
+Encryption is `Azera\Http\Cookie`'s own machinery: authenticated encryption via libsodium ChaCha20-Poly1305 (preferred) or AES-256-GCM via OpenSSL as fallback. When `->encrypted()` is set, `send()` encrypts and `value()` decrypts transparently; a tampered ciphertext decrypts to `null`.
 
 ```php
-use Azera\Crypt;
+use Azera\Http\Cookie;
 
-$encrypted = Crypt::encrypt('hello', $secretKey);
-$plain     = Crypt::decrypt($encrypted, $secretKey); // null on failure or tamper
-
-// Explicit cipher
-Crypt::encrypt($value, $key, Crypt::CIPHER_CHACHA20_POLY1305);
-Crypt::encrypt($value, $key, Crypt::CIPHER_AES_256_GCM);
-Crypt::encrypt($value, $key, Crypt::CIPHER_AUTO); // default
-
-// Availability checks
-Crypt::hasSodium();          // bool
-Crypt::hasOpenSSL();         // bool
-Crypt::getAvailableCipher(); // string constant
+// Cipher is selected automatically; check with Cookie::getAvailableCipher()
+Cookie::getAvailableCipher(); // Cookie::CIPHER_CHACHA20_POLY1305 or CIPHER_AES_256_GCM
 ```
+
+Store non-cookie secrets (database columns, tokens) with libsodium or `password_hash` — Azera's encryption helpers are scoped to cookie values.
 
 ### Key generation
 
-Generate a cryptographically random key once, store it outside source control, and load it at runtime via an environment variable.
+Generate a cryptographically random key once, store it outside source control, and load it at runtime via an environment variable. Pass it explicitly with `->key($key)`, since the default (a hash of `php_uname()`) ties cookies to a single machine.
 
 ```php
 // Generate once (run in a CLI script or tinker session)

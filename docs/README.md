@@ -42,8 +42,8 @@ straight into the area you need.
 
 - [CLI Tasks](08-CLI-TASKS.md) — Building `*Task` classes, option parsing
   and the `model-sync` built-in.
-- [Security](09-SECURITY.md) — CSRF, password hashing and authenticated
-  encryption with `Azera\Crypt`.
+- [Security](09-SECURITY.md) — SQL-injection safety, CSRF, output escaping,
+  password hashing, and encrypted cookies.
 - [Logging](10-LOGGING.md) — Event-based logging hooks for the database
   and the application.
 
@@ -58,9 +58,8 @@ straight into the area you need.
 
 Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4 and
 CakePHP 5 on an identical full-stack workload — routing, controller, ORM
-query (SQLite), template render, response — and on a real server, not a
-simulated one. Two summaries are reproduced here, one per deployment
-model:
+query (SQLite), template render, response — on a real server. Two
+summaries are published, one per deployment model:
 
 - [RoadRunner](19-BENCHMARKS-SUMMARY-ROADRUNNER.md) — a resident worker,
   where the framework boots once and serves every request.
@@ -72,6 +71,6 @@ The complete report — every framework's feature races, endpoint by
 endpoint, with the resident-worker memory charts — is published at
 <https://sailantis.github.io/azera-competition/benchmarks/>.
 
-The numbers on these pages are generated from the benchmark's own result
-JSON, never transcribed, so a chart and the table beside it cannot
-disagree.
+The numbers on these pages are generated from the benchmark's own
+result JSON, never transcribed, so a chart and the table beside it
+cannot disagree.

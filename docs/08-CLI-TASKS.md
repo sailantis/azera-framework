@@ -1,6 +1,6 @@
 # CLI Tasks
 
-**Build command-line tools** – Create powerful CLI applications for cron jobs, database migrations, data imports, and maintenance scripts. Tasks are auto-discovered from PSR-4 namespaces, receive parsed options, and can produce color-highlighted output via a simple output API.
+**Command-line tools** – tasks are auto-discovered from PSR-4 namespaces, receive parsed options, and produce color-highlighted output.
 
 Azera provides `Azera\Cli\Console` (dispatcher + help system) and `Azera\Cli\Task` (base class for every task).
 
@@ -143,11 +143,11 @@ php console.php echo "Hi there"     # calls runAction("Hi there")
 php console.php echo run "Hi"      # calls runAction("Hi") explicitly
 ```
 
-In this case, `"Hi there"` is treated as the first positional parameter to `runAction()`, not as an action name. The action method name (`runAction`, `listAction`, …) is irrelevant — whichever method is the task's only action is the one that runs.
+In this case, `"Hi there"` is treated as the first positional parameter to `runAction()`, not as an action name — whichever method is the task's only action is the one that runs.
 
 #### Help display
 
-A single-action task's action name is shown in help **unless the action is `run`**. By convention, `run` means "execute the task itself" — it never adds information the task name doesn't already convey, so it is suppressed to keep the output clean. Any other verb (`compile`, `ingest-postfix`, `diff`, `list`, …) was chosen to describe what the task does and is shown.
+A single-action task's action name is shown in help **unless the action is `run`**. By convention, `run` means "execute the task itself" — the name adds nothing the task name doesn't already convey, so it is suppressed. Any other verb (`compile`, `diff`, `list`, …) describes what the task does and is shown.
 
 A `run`-action task shows no `Actions:` section and a bare usage line:
 
@@ -297,7 +297,7 @@ protected array $interceptors = [
 
 ### Example: log action start/end globally
 
-The old `beforeAction`/`afterAction` hooks can be expressed as a middleware. A middleware receives the `AppContext` and a `$next` callable — it runs code **before** `$next()`, delegates, then runs code **after** it returns. Any task that extends this base task automatically gets the logging:
+A middleware receives the `AppContext` and a `$next` callable — it runs code **before** `$next()`, delegates, then runs code **after** it returns. Every task extending this base task logs around its actions:
 
 ```php
 <?php
@@ -357,7 +357,7 @@ All output methods are available inside a task via `$this->…`. They delegate t
 
 ### RGB Color Styles
 
-You can use RGB color styles for custom output. The `Console::color()` and `Console::style()` methods accept RGB values or hex codes:
+`Console::color()` and `Console::style()` accept RGB values or hex codes:
 
 ```php
 $console->style('Hex', '#ff00ff');                  // hex foreground
@@ -366,10 +366,9 @@ $console->style('Custom RGB', $console->color(255, 0, 128));         // foregrou
 $console->style('Custom BG', $console->color(0, 128, 255, true));    // background RGB
 ```
 
-You can combine named styles and RGB/hex styles:
+You can combine named styles and RGB/hex styles (named styles act as fallback for unsupported terminals):
 
 ```php
-// RGB color with named style fallback (e.g., for unsupported terminals)
 $console->style('Magenta text', 'bold', 'bmagenta', '#ff60ff');
 ```
 
@@ -396,7 +395,7 @@ public function importAction(string $file = ''): void
 
 ## Help System
 
-The built-in help system is parsing automatically **PHPDoc comments** on the task class and its action methods. To show the help page for a task, run:
+The built-in help system parses the **PHPDoc comments** on the task class and its action methods. To show the help page for a task, run:
 
 ```
 php console.php help                 # overview: all tasks + actions + descriptions

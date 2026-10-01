@@ -1,6 +1,6 @@
 # MVC Routing
 
-**Map URLs to controllers** - Master Azera's routing system to define URL patterns, handle parameters, group routes, and apply middleware. Learn how to create RESTful routes, named routes, and custom parameter validation.
+**Map URLs to controllers** – patterns, parameters, groups, named routes, and middleware.
 
 `Azera\Core\Router` matches URI + HTTP method to controller/action metadata.
 `Azera\Core\Dispatcher` executes that route and returns a `Response`.
@@ -31,11 +31,9 @@ if ($route !== null) {
 
 ## Route Patterns
 
-The Router supports several pattern styles to match different URL structures. You can use static paths for exact matches, named parameters to capture URL segments, and type constraints to validate parameter formats.
-
 ### Static
 
-Static routes match exact paths and are the fastest to resolve:
+Exact matches, fastest to resolve:
 
 ```php
 $router->add('GET', '/about', 'PageController::aboutAction');
@@ -43,7 +41,7 @@ $router->add('GET', '/about', 'PageController::aboutAction');
 
 ### Named Parameters
 
-Capture dynamic segments from the URL as parameters passed to your controller action:
+Capture dynamic segments as parameters passed to your controller action:
 
 ```php
 $router->add('GET', '/blog/{slug}', 'BlogController::showAction');
@@ -51,7 +49,7 @@ $router->add('GET', '/blog/{slug}', 'BlogController::showAction');
 
 ### Typed Parameters
 
-Add type constraints to validate parameters automatically. This helps prevent invalid data from reaching your controllers and makes routes more self-documenting.
+Type constraints validate parameters before they reach your controller.
 
 Built-in types:
 
@@ -73,7 +71,7 @@ $router->add('GET', '/items/{slug}', 'ItemController::showAction'); // any singl
 
 #### Regex Type
 
-Use the `regex` type to match URL segments against a custom regular expression pattern. This is useful when the built-in types don't meet your needs. The pattern should be a valid PCRE regex without delimiters.
+Match a segment against a custom PCRE pattern (no delimiters). The pattern is matched against individual URL segments only, not across segment boundaries.
 
 ```php
 // Match ISO date format
@@ -83,7 +81,7 @@ $router->add('GET', '/articles/{date:regex(\d{4}-\d{2}-\d{2})}', 'ArticleControl
 $router->add('GET', '/api/{namespace:regex(v[1-2])}/users', 'ApiController::usersAction');
 ```
 
-The regex pattern is matched using PCRE's `preg_match()` function. Ensure your pattern is specific enough to avoid unintended matches, and remember that the pattern is matched against individual URL segments only, not across segment boundaries.
+The regex pattern is matched using PCRE's `preg_match()` function.
 
 ### Optional Parameters
 
@@ -143,7 +141,7 @@ $router->add('GET', '/admin/{controller}', 'AdminController::manageAction');
 
 ## HTTP Methods
 
-Routes can be restricted to specific HTTP methods for proper RESTful API design. You can specify a single method, an array of methods, or `*` or null to match all common methods (GET, POST, PUT, DELETE, PATCH, OPTIONS).
+A single method, an array of methods, or `*`/null to match all common methods (GET, POST, PUT, DELETE, PATCH, OPTIONS).
 
 ```php
 $router->add('GET', '/users', 'UserController::listAction');
@@ -152,8 +150,6 @@ $router->add('*', '/health', 'HealthController::statusAction');
 ```
 
 ## Named Routes and URL Generation
-
-Named routes let you generate URLs programmatically without hardcoding paths. This makes refactoring routes easier and keeps your codebase maintainable.
 
 ```php
 $router->add('GET', '/users/{id:int}', 'UserController::viewAction')
@@ -165,8 +161,6 @@ $url = $router->urlFor('user.view', ['id' => 42], ['tab' => 'profile']);
 
 ## Custom Parameter Types
 
-Define your own validation rules for route parameters. This is useful for application-specific formats like slugs, SKUs, or reference codes.
-
 ```php
 $router->type('slug', fn(string $v) => preg_match('/^[a-z0-9-]+$/', $v));
 $router->add('GET', '/posts/{slug:slug}', 'PostController::showAction');
@@ -174,7 +168,7 @@ $router->add('GET', '/posts/{slug:slug}', 'PostController::showAction');
 
 ## Route Priority
 
-When multiple routes could match the same URL, the Router picks the most specific one automatically — no manual ordering is required. Specificity is scored per segment:
+When multiple routes could match the same URL, the Router picks the most specific one — specificity is scored per segment:
 
 | Segment kind                                | Score |
 | ------------------------------------------- | ----- |
@@ -259,16 +253,7 @@ $groups = $route->groups; // Middleware groups
 $override = $route->override; // Handler overrides
 ```
 
-## Important Notes
-
-- Router focuses purely on pattern matching - no namespace or defaults
-- Dispatcher handles controller resolution, defaults, and namespace logic
-- Use `Router::match(...)` then `Dispatcher::dispatch(...)`
-- Route info is stored in `AppContext->route` during dispatch
-
-## Dispatcher Argument Resolution
-
-The Dispatcher resolves action method parameters in the following order for each parameter:
+The Dispatcher resolves action method parameters in the following order:
 
 1. **By name from route variables** – if a route variable matches the parameter name, its value is used and cast to the declared type when possible.
 2. **By type from DI (AppContext)** – if the parameter has a class or interface type hint that is registered in `AppContext` (or is an instantiable class), it is auto-wired.
@@ -277,9 +262,9 @@ The Dispatcher resolves action method parameters in the following order for each
 
 If none of the above apply, a `RuntimeException` is thrown.
 
-### Wildcard Parameters
+## Wildcard Parameters
 
-A wildcard segment (`{segments:*}`) captures all remaining path segments as an `array`. To receive this value in an action, declare the parameter either as variadic or typed as `array`:
+A wildcard segment (`{segments:*}`) captures all remaining path segments as an `array`:
 
 ```php
 $router->add('GET', '/files/{params:*}', 'FileController::readAction');
@@ -292,17 +277,14 @@ class FileController extends Controller
         $path = implode('/', $params); // e.g. 'images/2026/photo.jpg'
         // ...
     }
-
-    // Alternative: receive all segments as a plain array
-    // public function readAction(array $params): Response { ... }
 }
 ```
 
-### DI Injection Example
+The parameter can also be declared plain `array` to receive all segments at once.
 
-Parameters that can't be matched by name fall through to DI resolution. Here is a full cycle example:
+## DI Injection Example
 
-#### 1. Define a Service
+Parameters that can't be matched by name fall through to DI resolution:
 
 ```php
 // src/Services/Greeter.php
@@ -317,20 +299,14 @@ class Greeter
 }
 ```
 
-#### 2. Register the Service in AppContext
-
 ```php
 use Azera\AppContext;
 use App\Services\Greeter;
 
 $ctx = AppContext::instance();
-// Register Greeter as a lazy service. It will be instantiated once, on first request.
+// Lazy singleton: instantiated once, on first request.
 $ctx->set(Greeter::class, fn() => new Greeter());
-// Or register an already-built singleton instance.
-// $ctx->set(Greeter::class, new Greeter());
 ```
-
-#### 3. Inject and Use in a Controller Action
 
 ```php
 use App\Services\Greeter;
@@ -346,8 +322,6 @@ class WelcomeController extends Controller
     }
 }
 ```
-
-#### 4. Route Example
 
 ```php
 $router->add('GET', '/hello/{name}', 'WelcomeController::helloAction');

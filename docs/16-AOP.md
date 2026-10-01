@@ -1,14 +1,12 @@
 # AOP — Aspect-Oriented Programming
 
-Azera's AOP subsystem lets you apply cross-cutting concerns (transactions, caching, retry, logging) declaratively via PHP 8 attributes, without boilerplate in your business logic.
+Cross-cutting concerns (transactions, caching, retry, logging) applied declaratively via PHP 8 attributes.
 
-## Three Levels
+Three approaches, from simplest to most automated:
 
-Azera offers three approaches, from simplest to most automated:
-
-1. **Pipeline helper** — explicit, no proxy, full control
+1. **Pipeline helper** — wrap a single callable, no proxy
 2. **Proxy-based AOP** — `#[Advised]` + method attributes, automatic interception
-3. **Direct interceptor usage** — compose interceptors manually
+3. **Custom interceptors** — compose interceptors manually
 
 ## Pipeline Helper
 
@@ -19,8 +17,6 @@ $result = $ctx->pipeline()
     ->through([new RetryInterceptor(3)])
     ->call(fn() => $service->chargeCard(100));
 ```
-
-This is useful when you want interception on a single operation without marking a class `#[Advised]`.
 
 ## Proxy-Based AOP
 

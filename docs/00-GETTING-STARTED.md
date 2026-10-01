@@ -1,6 +1,6 @@
 # Getting Started
 
-**First steps** - This guide sets up a minimal Azera project with MVC routing, models, and CLI tasks.
+**First steps** — set up a minimal Azera project with MVC routing, models, and CLI tasks.
 
 ## Requirements
 
@@ -31,8 +31,6 @@ your-project/
 ```
 
 ## Minimal Web Bootstrap
-
-This is the core entry point for web requests. It sets up the application context, configures routing, matches the incoming request, and dispatches it to the appropriate controller.
 
 Create [public/index.php](../public/index.php):
 
@@ -86,8 +84,6 @@ $response->send();
 ```
 
 ## Minimal Controller
-
-Controllers handle the business logic for your routes. They receive parameters from the router and return responses in various formats.
 
 Create [app/Controllers/IndexController.php](../app/Controllers/IndexController.php):
 
@@ -157,7 +153,7 @@ return $this->view()->renderPartial('partials/flash', ['message' => 'Saved!']);
 
 ## Minimal Model
 
-Models represent your database tables and provide an object-oriented way to interact with data. Define public properties that match your table columns.
+Models are Active Record classes: declare public properties that match your table columns.
 
 Create [app/Models/User.php](../app/Models/User.php):
 
@@ -191,7 +187,7 @@ $exists = User::exists(['email' => 'alice@example.com']);
 
 ## Middleware
 
-Middleware classes implement `Azera\Core\MiddlewareInterface` and run before (and after) every controller action. Register global middleware on the dispatcher:
+Middleware runs before (and after) every controller action. Register global middleware on the dispatcher:
 
 ```php
 $dispatcher->addMiddleware(new SessionMiddleware());  // built-in: starts PHP session

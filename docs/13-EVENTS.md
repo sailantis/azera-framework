@@ -1,6 +1,6 @@
 # Events
 
-Azera provides PSR-14 compatible event dispatching through `AppContext::events()`. The dispatcher resolves listeners by event class name — including parent classes and implemented interfaces — so a listener for a base event catches all subtypes.
+PSR-14 compatible event dispatching through `AppContext::events()`. The dispatcher resolves listeners by event class name — including parent classes and implemented interfaces — so a listener for a base event catches all subtypes.
 
 ## PSR-14 Interfaces
 
@@ -86,7 +86,7 @@ $ctx->events()->dispatch($event);
 
 ### Listener resolution
 
-The dispatcher resolves listeners for the event's class, all parent classes, and all implemented interfaces. This means you can listen to a base class or interface and catch all subtypes:
+The dispatcher resolves listeners for the event's class, all parent classes, and all implemented interfaces:
 
 ```php
 // Listen to an interface — catches all events implementing it

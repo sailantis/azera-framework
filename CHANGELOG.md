@@ -76,7 +76,7 @@ with the packaging and tooling a published library is expected to carry.
   absolute path leaked into `CacheInterceptor`'s key, pushed it past
   `ArrayCache`'s 64-character limit, and made every cached pipeline call throw
   `InvalidArgumentException: Cache key must be non-empty and at most 64
-  characters`. The pipeline now reflects a named class, and over-long keys are
+characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
 [Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.1.0...HEAD

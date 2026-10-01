@@ -1,6 +1,6 @@
 # Queues
 
-Azera provides a minimal queue abstraction for deferring work. The `QueueInterface` contract supports both synchronous (inline) and asynchronous (background) processing, letting you swap drivers without changing application code.
+A minimal queue abstraction for deferring work: synchronous (inline) or asynchronous (background) processing behind one contract, so drivers are swappable without application changes.
 
 There is no PHP-FIG standard for queues, so Azera defines its own contracts.
 
@@ -85,8 +85,6 @@ The retry policy is only honored by async backends (the companion `Worker`). `Sy
 $ctx->queue(); // throws LogicException
 ```
 
-Register a queue:
-
 ```php
 use Azera\Queue\QueueInterface;
 use Azera\Queue\SyncQueue;
@@ -100,7 +98,7 @@ $ctx->set(QueueInterface::class, fn() => new SyncQueue());
 
 ## SyncQueue
 
-`SyncQueue` processes jobs immediately when `push()` is called. It's useful for development and testing — the job's `handle()` runs in the same process, so you can debug with full stack traces:
+Processes jobs immediately when `push()` is called — useful for development and testing, with full stack traces:
 
 ```php
 use Azera\Queue\SyncQueue;

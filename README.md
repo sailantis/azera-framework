@@ -14,7 +14,7 @@ A lightweight, fast PHP framework for building modern Web applications and CLI t
 
 **Flexible Architecture** - Use as much or as little as you need. Mix and match components freely.
 
-**Secure by Default** - SQL injection protection via prepared statements, CSRF protection, encryption helpers, and security best practices built in.
+**Secure by Default** - SQL injection protection via prepared statements, session-safe cookie encryption, and hardened defaults throughout.
 
 **Developer Friendly** - Intuitive APIs, clear error messages, and comprehensive documentation.
 
@@ -52,16 +52,14 @@ A lightweight, fast PHP framework for building modern Web applications and CLI t
   - Rich color output and styled help pages
   - Option parsing and argument separation
   - Built-in help and task listing
-- **ModelSync Task (`model-sync`)** - Built-in CLI task for synchronizing PHP models with the database schema, generating migration/migration-like changes and optionally applying them.
+- **ModelSync Task (`model-sync`)** - Built-in CLI task for synchronizing PHP models with the database schema, optionally applying changes and scaffolding new models.
 
 ### Additional Features
 
 - **Validation** - Fluent field rules with type coercion, nested list/object validation, and error collection
-- **Security** - CSRF tokens, password hashing, encryption (Sodium/OpenSSL)
-- **Logging** - Event-based logging hooks for database and application events
-- **Pagination** - Built-in query pagination with automatic total-count queries
-- **Exception Handling** - Structured exception hierarchy
-- **AppContext** - Centralized service container for shared resources
+- **Security** - CSRF middleware, rate limiting, password hashing, encryption (Sodium/OpenSSL)
+- **Logging** - PSR-3 logging, typed PSR-14 database events
+- **Pagination, AOP and queues** - Built-in pagination, attribute-driven interceptors, task queues
 
 ## Benchmarks
 
@@ -98,8 +96,6 @@ composer require sailantis/azera-framework
 
 ### Web Application (MVC)
 
-Create a simple web application with routing and controllers:
-
 ```php
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
@@ -110,50 +106,31 @@ use Azera\Http\Response;
 use Azera\Core\Dispatcher;
 use Azera\Core\Router;
 
-// Application context holds shared services
-// Dispatcher, Controllers, Query Builders and Models access the AppContext
-// singleton for database connections, request data, etc. like in this example.
-// This allows flexible configuration and easy access to services throughout
-// the application without tight coupling.
+// AppContext holds shared services: database connections, the request,
+// the view engine — accessed by models, queries, and controllers alike.
 $ctx = AppContext::instance();
 
-// Register database connection as a lazy service
-// The label 'default' is used to identify this connection. The first
-// registered connection becomes the default connection. You can register
-// multiple connections with different names and roles (e.g. 'read', 'write')
-// for read/write splitting. The closure allows for lazy initialization,
-// so the connection is only created when first accessed.
+// Lazy database registration: the connection is created on first use.
 $ctx->dbManager()->set('default',
     fn() => new Database('mysql:host=localhost;dbname=myapp', 'user', 'pass')
 );
 
-// Configure routing
-// Define routes with HTTP method, path pattern, and controller action.
-// The pattern can include named parameters (e.g. {name}) which will be
-// passed to the controller action as arguments. The controller action is
-// specified as 'ControllerClass::methodName' or as array syntax
-// ['controller' => 'ControllerClass', 'action' => 'methodName'] for more
-// complex cases.
+// Routing: named parameters become action arguments.
 $router = $ctx->router();
 $router->add('GET', '/hello/{name}', 'IndexController::helloAction');
 
-// Match the incoming request
+// Match and dispatch
 $path = $ctx->request()->getPath();
 $method = $ctx->request()->getMethod();
 $route = $router->match($path, $method);
 
 if ($route === null) {
-    // No route matched - return 404
     Response::status(404)->send();
     exit;
 }
 
-// Dispatcher handles controller resolution and middleware
 $dispatcher = new Dispatcher();
-// Dispatch the request to the appropriate controller action
-$response = $dispatcher->dispatch($route);
-// Send the response to the client
-$response->send();
+$dispatcher->dispatch($route)->send();
 ```
 
 Controller example:
@@ -175,10 +152,10 @@ class IndexController extends Controller
 
 ### Working with Models
 
-Define and use Active Record style models:
+Active Record style models over `Azera\Orm\Model`:
 
 ```php
-class User extends \Azera\Core\Model
+class User extends \Azera\Orm\Model
 {
     public int $id;
     public string $username;
@@ -190,7 +167,7 @@ class User extends \Azera\Core\Model
 $user = User::find(1);
 
 // Update and save
-$user->email = 'john@example.com';
+$user->email = 'john@example.com';   // diffed — the UPDATE sends only the change
 $user->save();
 
 // Create new record
@@ -198,45 +175,23 @@ $newUser = User::create([
     'username' => 'jane',
     'email' => 'jane@example.com',
 ]);
-$newUser->save();
 
-// Delete record
 $newUser->delete();
 
-// Count records
-$count = User::count(['status' => 'active']);
-
-// Check existence
-$exists = User::exists(['email' => 'john@example.com']);
+$user->count(['status' => 'active']);
+$user->exists(['email' => 'john@example.com']);
 
 // Query with conditions
 $users = User::query()
-    // Column/value style
     ->where('status', 'active')
-    // Inline parameters
-    ->where('status = :status', ['status' => 'active'])
     ->orderBy('created_at DESC')
     ->limit(10)
     ->select();
-
-// Insert data
-User::query()->insert([
-    'username' => 'john',
-    'email' => 'john@example.com',
-]);
-
-// Update records
-User::query()
-    ->where('id', 42)
-    ->update(['status' => 'inactive']);
-
-// Delete records
-User::query()->where('status', 'spam')->delete();
 ```
 
 ### Validating Input
 
-Azera includes a fluent validation component. Fields are required by default; call `->optional()` or `->default()` where needed.
+Fields are required by default; call `->optional()` or `->default()` where needed.
 
 ```php
 use Azera\Validation\Validator;
@@ -256,32 +211,17 @@ $data = $v->validated(); // only validated, coerced fields
 User::create($data);
 ```
 
-Or throw on failure instead of branching:
-
-```php
-use Azera\Validation\ValidationException;
-
-try {
-    $data = $v->validate(); // throws ValidationException on failure
-} catch (ValidationException $e) {
-    return Response::json(['errors' => $e->errors()], 422);
-}
-```
-
 ### Paginating Results
 
 `Paginator` wraps any `Query`, handles `LIMIT`/`OFFSET`, and runs an automatic total-count query.
 
 ```php
-use Azera\Db\Paginator;
+$paginator = User::query()
+    ->where('status', 'active')
+    ->orderBy('name')
+    ->paginate(page: (int)($_GET['page'] ?? 1), pageSize: 20);
 
-$paginator = new Paginator(
-    User::query()->where('status', 'active')->orderBy('name'),
-    page: (int)($_GET['page'] ?? 1),
-    pageSize: 20
-);
-
-$users = $paginator->execute();  // array of items for the current page
+$users = $paginator->entities();  // identity-mapped User instances
 
 $totalItems  = $paginator->totalItems();
 $lastPage    = $paginator->lastPage();
@@ -298,7 +238,7 @@ Build complex queries with joins, subqueries, and aggregations.
 use Azera\Db\Sql;
 
 // Subquery: select the latest order date for each user
-$latestOrder = Sql::subquery(
+$latestOrder = Sql::subQuery(
     Order::query('o2')
         ->where('o2.user_id = u.id')
         ->orderBy('o2.created_at DESC')
@@ -348,13 +288,9 @@ $report = User::query()
     ->select();
 ```
 
-#### Using ModelMapping for Dynamic Model References
-
-`ModelMapping` lets you reference model names in queries without full Active Record classes — useful for dynamic schemas or reporting queries. See [Database Queries](docs/05-DATABASE-QUERIES.md) for the complete API.
-
 #### Using the Query Builder Directly on Tables
 
-For queries that don't belong to any model, start with `Query::raw()` and specify the table manually:
+For queries that don't belong to any model, start with `Query::raw()`:
 
 ```php
 $results = Query::raw()
@@ -469,29 +405,27 @@ your-project/
 
 ## Documentation
 
-Comprehensive guides and references:
+Guides and references under [docs/](docs/README.md):
 
-- **[Getting Started](docs/00-GETTING-STARTED.md)** - Set up your first Azera project
-- **[Architecture](docs/01-ARCHITECTURE.md)** - Understand core components and design principles
-- **[MVC Routing](docs/02-CORE-ROUTING.md)** - Define routes, patterns, and middleware
-- **[Controllers & Views](docs/03-CONTROLLERS-VIEWS.md)** - Build controllers and render views
-- **[Clarity Templates](docs/03b-CLARITY-ENGINE.md)** - Sandboxed template engine with auto-escaping and inheritance
-- **[Models & ORM](docs/04-MODELS-ORM.md)** - Work with Active Record models
-- **[Database Queries](docs/05-DATABASE-QUERIES.md)** - Master the query builder
-- **[HTTP Request](docs/06-HTTP-REQUEST.md)** - Handle requests, uploads, and headers
-- **[Validation](docs/07-VALIDATION.md)** - Validate and coerce request input
-- **[CLI Tasks](docs/08-CLI-TASKS.md)** - Create command-line tools
-- **[Security](docs/09-SECURITY.md)** - Best practices and security features
-- **[Logging](docs/10-LOGGING.md)** - Application and database logging
-- **[Cookbook](docs/11-COOKBOOK.md)** - Practical recipes and examples
-- **[Benchmarks](docs/README.md#benchmarks)** - How Azera compares to Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5
-- **[API Reference](docs/api/README.md)** - Complete API documentation
+- **[Getting Started](docs/00-GETTING-STARTED.md)** — Set up your first Azera project
+- **[Architecture](docs/01-ARCHITECTURE.md)** — Core components and design principles
+- **[MVC Routing](docs/02-CORE-ROUTING.md)** — Routes, patterns, and middleware
+- **[Controllers & Views](docs/03-CONTROLLERS-VIEWS.md)** — Controllers and view rendering
+- **[Clarity Templates](docs/03b-CLARITY-ENGINE.md)** — Sandboxed template engine with auto-escaping and inheritance
+- **[Models & ORM](docs/04-MODELS-ORM.md)** — Active Record models
+- **[Database Queries](docs/05-DATABASE-QUERIES.md)** — The query builder
+- **[HTTP Request](docs/06-HTTP-REQUEST.md)** — Requests, uploads, and headers
+- **[Validation](docs/07-VALIDATION.md)** — Validate and coerce request input
+- **[CLI Tasks](docs/08-CLI-TASKS.md)** — Command-line tools
+- **[Security](docs/09-SECURITY.md)** — Best practices and security features
+- **[Logging](docs/10-LOGGING.md)** — Application and database logging
+- **[Cookbook](docs/11-COOKBOOK.md)** — Practical recipes
+- **[Benchmarks](docs/README.md#benchmarks)** — How Azera compares to Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5
+- **[API Reference](docs/api/README.md)** — Every public class
 
 ## Key Concepts
 
 ### AppContext - Service Container
-
-Centralized access to shared services via a singleton service container:
 
 ```php
 use Azera\AppContext;
@@ -512,17 +446,12 @@ $ctx->set(App\Services\StripeService::class, new App\Services\StripeService());
 $ctx->set(App\Services\BillingService::class, fn() => new App\Services\BillingService());
 
 // Access services anywhere
-$ctx = AppContext::instance();
-$request = $ctx->request();
-$cookies = $ctx->cookies();
 $stripe = $ctx->get(App\Services\StripeService::class);
 ```
 
-Registered callables are treated as zero-argument lazy factories. They are executed on first lookup and the returned object is cached for the rest of the request lifecycle.
+Registered callables are zero-argument lazy factories: executed on first lookup, cached for the request lifecycle. Unregistered class names are auto-wired via reflection.
 
 ### Middleware Pipeline
-
-Add custom logic to the request/response cycle:
 
 ```php
 $dispatcher = new Dispatcher();
@@ -532,8 +461,6 @@ $response = $dispatcher->dispatch($route);
 ```
 
 ### Read/Write Database Splitting
-
-Separate read and write connections for scalability:
 
 ```php
 $mgr = AppContext::instance()->dbManager();
@@ -563,33 +490,21 @@ Azera uses PHPUnit for testing:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
-
-When contributing:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Write tests for new functionality
-4. Ensure all tests pass
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+Contributions are welcome — feel free to submit pull requests or open issues. When contributing, fork the repository, create a feature branch, write tests for new functionality, and ensure the test suite passes before opening a pull request.
 
 ## Examples
 
-Check out the `examples/` directory for complete working examples:
+Complete working examples live in the `examples/` directory:
 
-- **[AdvancedQueryBuilderExample.php](examples/AdvancedQueryBuilderExample.php)** - Complex queries with joins, subqueries, window functions, and aggregations. Perfect for learning sophisticated query patterns.
-- **[CompositeKeyExamples.php](examples/CompositeKeyExamples.php)** - Working with models that have composite primary keys, such as many-to-many junction tables and multi-tenant databases.
-- **[ModelLoadMethodsExample.php](examples/ModelLoadMethodsExample.php)** - Using convenience methods like `find()`, `findOne()`, `findAll()`, `exists()`, and `count()` for retrieving model data.
-- **[ReadWriteConnectionExample.php](examples/ReadWriteConnectionExample.php)** - Setting up separate read and write database connections for master/replica configurations and improved scalability.
-- **[SaveCreateUpdateExample.php](examples/SaveCreateUpdateExample.php)** - Complete CRUD operations including `create()`, `save()`, `delete()`, and tracking changes with `hasChanged()`.
-- **[SqlNodeExample.php](examples/SqlNodeExample.php)** - Advanced SQL expressions using the `Sql` class for raw SQL, functions, subqueries, and complex conditions within the query builder.
-- **[ModelSyncExample/](examples/ModelSyncExample/)** - A CLI application example demonstrating task auto-discovery, custom namespaces, and the built-in `model-sync` task features.
+- **[AdvancedQueryBuilderExample.php](examples/AdvancedQueryBuilderExample.php)** - Complex queries with joins, subqueries, window functions, and aggregations.
+- **[CompositeKeyExamples.php](examples/CompositeKeyExamples.php)** - Models with composite primary keys: junction tables and multi-tenant databases.
+- **[ModelLoadMethodsExample.php](examples/ModelLoadMethodsExample.php)** - The `find()`, `findOne()`, `findAll()`, `exists()`, and `count()` load helpers.
+- **[ReadWriteConnectionExample.php](examples/ReadWriteConnectionExample.php)** - Master/replica setups with separate read and write connections.
+- **[SaveCreateUpdateExample.php](examples/SaveCreateUpdateExample.php)** - CRUD operations with `create()`, `save()`, `delete()`, and `hasChanged()`.
+- **[SqlNodeExample.php](examples/SqlNodeExample.php)** - SQL expressions with the `Sql` class: raw fragments, functions, subqueries, complex conditions.
+- **[ModelSyncExample/](examples/ModelSyncExample/)** - CLI application demonstrating task auto-discovery and the built-in `model-sync` task.
 
 ## Philosophy
-
-Azera is designed with these principles:
 
 - **Simplicity over magic** - Explicit is better than implicit
 - **Performance** - Minimal overhead and memory footprint

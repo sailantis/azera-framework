@@ -1,6 +1,6 @@
 # Security (Enterprise)
 
-Azera provides CSRF protection, rate limiting, password hashing, and authentication contracts for building secure applications. All components are opt-in — they carry zero cost when not wired.
+CSRF protection, rate limiting, password hashing, and authentication contracts. All components are opt-in — zero cost when not wired.
 
 ## CSRF Protection
 
@@ -68,7 +68,7 @@ When no session is available, the middleware fails closed — state-changing req
 
 ## Rate Limiter
 
-`Azera\Security\RateLimiter` uses a PSR-16 `CacheInterface` for storage, so it works with `ArrayCache` in development and Redis/Memcached in production.
+`Azera\Security\RateLimiter` stores counters in any PSR-16 `CacheInterface` — `ArrayCache` in development, Redis/Memcached in production.
 
 ### Usage
 

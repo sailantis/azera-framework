@@ -1,8 +1,6 @@
 # Architecture
 
-**Understanding Azera's design** - Learn how Azera's core components fit together, from the AppContext service container to the MVC layer, database abstraction, and CLI tools. This guide explains the framework's architectural principles and design decisions.
-
-This document outlines how core Azera components work together.
+**How Azera fits together** – from the `AppContext` service container to the MVC layer, the database abstraction, and the CLI tools.
 
 ![Azera Overall Architecture](images/architecture-overview.svg)
 
@@ -15,8 +13,6 @@ This document outlines how core Azera components work together.
 - Simple composition through `AppContext`
 
 ## Main Components
-
-Azera is organized into distinct layers, each handling a specific concern. Understanding these components helps you leverage the framework effectively.
 
 ### `AppContext`
 
@@ -67,8 +63,6 @@ Custom services can be registered with `$ctx->set($id, new MyService())` or `$ct
 
 ## Request Flow (Web)
 
-Understanding the request lifecycle helps you know where to hook in custom logic. Each request follows a clear path from router to controller to response.
-
 ```text
 HTTP Request
   -> Router::match()
@@ -87,9 +81,7 @@ HTTP Request
 
 ## Data Flow
 
-Azera offers flexibility in how you interact with the database. Choose the approach that fits your needs - models for object-oriented work, or Query for direct table access.
-
-Two common entry points:
+Two entry points into the database: models for object-oriented work, `Query` for direct table access.
 
 ```php
 // Model-centric
@@ -143,7 +135,7 @@ Azera provides opt-in enterprise subsystems that use PSR interfaces directly (no
 | Queue     | —      | `queue()`  | throws if unregistered |
 | Config    | —      | `config()` | empty `Config`         |
 
-All subsystems are **zero-cost when unused** — each accessor lazily returns a no-op default that does nothing, so calling code can always invoke `$ctx->logger()->info(...)` or `$ctx->events()->dispatch(...)` without null-checks. Register real implementations via `$ctx->set(InterfaceClass::class, $factory)` to activate them.
+All subsystems are **zero-cost when unused** — each accessor lazily returns a no-op default, so calling code can always invoke `$ctx->logger()->info(...)` or `$ctx->events()->dispatch(...)` without null-checks. Register real implementations via `$ctx->set(InterfaceClass::class, $factory)` to activate them.
 
 ### AOP (Aspect-Oriented Programming)
 

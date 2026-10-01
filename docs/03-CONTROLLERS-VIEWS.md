@@ -1,6 +1,6 @@
 # Controllers & Views
 
-**Build your application logic and presentation** - Learn how to create controllers that handle requests, use dependency injection, work with the view engine, and render templates with layouts. Includes lifecycle hooks, middleware, and best practices.
+**Request handling and presentation** – controllers, dependency injection, view rendering, layouts, and middleware.
 
 Controllers coordinate request handling and return responses. View rendering is handled by `Azera\Core\ViewEngine`.
 
@@ -70,7 +70,7 @@ All helpers delegate to `AppContext` and are available anywhere inside the contr
 
 ## Returning Responses
 
-The `Dispatcher` automatically converts controller return values into HTTP responses:
+The `Dispatcher` converts controller return values into HTTP responses:
 
 | Return type                  | Response produced                        |
 | ---------------------------- | ---------------------------------------- |
@@ -80,6 +80,7 @@ The `Dispatcher` automatically converts controller return values into HTTP respo
 | `int`                        | status-only response (e.g. `return 403`) |
 | `null`                       | `204 No Content`                         |
 
+The same table is repeated in [Architecture](01-ARCHITECTURE.md#request-flow-web); this page is the reference.
 ```php
 use Azera\Http\Response;
 
@@ -132,7 +133,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
     {
         $response = $next($context); // run the action (and earlier middleware)
         if ($response instanceof Response) {
-            $response->header('X-Frame-Options', 'DENY');
+            $response->setHeader('X-Frame-Options', 'DENY');
         }
         return $response;
     }
@@ -161,29 +162,6 @@ interface MiddlewareInterface
 ```
 
 Return `null` (or `$next($context)`) to pass control to the next layer. Return a `Response` to short-circuit the rest of the pipeline.
-
-### Writing a Middleware
-
-```php
-<?php
-namespace App\Middleware;
-
-use Azera\AppContext;
-use Azera\Http\Response;
-use Azera\Core\MiddlewareInterface;
-
-class AuthMiddleware implements MiddlewareInterface
-{
-    public function process(AppContext $context, callable $next): ?Response
-    {
-        if (!$context->session()?->get('user_id')) {
-            return Response::redirect('/login');
-        }
-
-        return $next($context);
-    }
-}
-```
 
 ### Global Middleware
 
@@ -269,7 +247,7 @@ All three places (`$middlewares`, `$actionMiddlewares`, group arrays) accept the
 
 The `ViewEngine` API is shared by all engines. The default engine is `ClarityEngine`, which compiles `.clarity.html` templates with auto-escaping, template inheritance, and a filter pipeline. See [Clarity Engine](03b-CLARITY-ENGINE.md) for the full syntax reference.
 
-Configure the view service in your bootstrap:
+In the bootstrap:
 
 ```php
 use Azera\AppContext;
@@ -327,7 +305,7 @@ The `ViewEngine` resolves view names to filesystem paths using the following rul
 
 ## View Variables
 
-Variables can be set globally on the `ViewEngine` (available in every view) or passed per render:
+Variables can be set globally on the `ViewEngine` or passed per render:
 
 ```php
 // Global — available in all views rendered through this engine
@@ -360,8 +338,6 @@ echo $this->view()->renderPartial('mail::welcome', ['user' => $user]);
 ---
 
 ## Validating Input
-
-Validate and coerce request data with `Azera\Validation\Validator` before using it in your controller logic or passing it to a model.
 
 ```php
 use Azera\Validation\Validator;

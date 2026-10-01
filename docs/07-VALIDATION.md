@@ -1,6 +1,6 @@
 # Validation
 
-Azera includes a fluent input validation component that validates and coerces associative arrays (such as form POST data or decoded JSON) against a set of declarative field rules.
+A fluent input validator: validate and coerce associative arrays (form POST data, decoded JSON) against declarative field rules.
 
 ## Quick Start
 
@@ -44,13 +44,11 @@ $v->field('role')->default('viewer');      // missing key uses 'viewer'; implied
 $v->field('count')->int()->default(0);
 ```
 
-`default()` only applies when the field is **absent** from the input. When the key is present, the supplied value is validated and coerced normally. The default is included in `validated()` as-is — no rules are applied to it — so make sure it already matches the expected type.
-
-`default()` implicitly makes a field optional. Calling `->optional()` alongside is allowed but redundant.
+`default()` only applies when the field is **absent** from the input; a present key is validated and coerced normally. The default is included in `validated()` as-is — no rules are applied to it, so make sure it already matches the expected type. `default()` implicitly makes a field optional; calling `->optional()` alongside is allowed but redundant.
 
 ## Type Coercion
 
-Type rules coerce the raw string value to the target PHP type. If coercion is not possible, the field fails immediately and subsequent rules for that field are skipped.
+Type rules coerce the raw string value to the target PHP type. If coercion is not possible, the field fails and the remaining rules for it are skipped.
 
 | Rule         | Accepts                                         | PHP type produced |
 | ------------ | ----------------------------------------------- | ----------------- |
@@ -269,12 +267,10 @@ $v = (new Validator($data))->setTranslator($myTranslator);
 
 ## Controller Integration
 
-### Branch on failure
-
 ```php
 class UserController extends Controller
 {
-    public function createAction(): array
+    public function createAction(): Response|array
     {
         $v = new Validator($this->request()->post());
         $v->field('name')->string()->min(2)->max(100);
@@ -282,38 +278,11 @@ class UserController extends Controller
         $v->field('role')->in(['admin', 'editor', 'viewer']);
 
         if ($v->fails()) {
-            return ['success' => false, 'errors' => $v->errors()];
+            return Response::json(['errors' => $v->errors()], 422);
         }
 
         $user = User::create($v->validated());
-        return ['success' => true, 'id' => $user->id];
-    }
-}
-```
-
-### Throw in a helper method
-
-```php
-class UserController extends Controller
-{
-    public function createAction(): Response
-    {
-        try {
-            $data = $this->validateCreate($this->request()->post());
-        } catch (ValidationException $e) {
-            return Response::json(['errors' => $e->errors()], 422);
-        }
-
-        $user = User::create($data);
         return Response::json(['id' => $user->id], 201);
-    }
-
-    private function validateCreate(array $input): array
-    {
-        $v = new Validator($input);
-        $v->field('name')->string()->min(2)->max(100);
-        $v->field('email')->email()->max(255);
-        return $v->validate(); // throws on failure
     }
 }
 ```

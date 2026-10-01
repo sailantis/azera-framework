@@ -2,7 +2,7 @@
 
 ![Clarity Logo](images/clarity-dsl-logo-opt.svg)
 
-**A sandboxed, compiled template engine for Azera** – Clarity compiles `.clarity.html` files into PHP classes that are cached on disk. Templates can only access variables passed to `render()` and registered filters; arbitrary PHP code is intentionally disallowed.
+**Sandboxed and compiled** – Clarity compiles `.clarity.html` files into cached PHP classes. Templates can only access variables passed to `render()` and registered filters; arbitrary PHP code is intentionally disallowed.
 
 ---
 
@@ -57,8 +57,6 @@ $ctx->view()->setViewPath(__DIR__ . '/../views');
 
 ## Output Tags
 
-Enclose any Clarity expression in double curly braces to print it:
-
 ```html
 <p>Hello, {{ user.name }}!</p>
 ```
@@ -78,8 +76,7 @@ Enclose any Clarity expression in double curly braces to print it:
 
 ### Variable Access
 
-Access is **strict**: the operator states what the value IS, and the engine emits
-exactly that read. There is no conversion of objects to arrays before rendering.
+Access is **strict**: the operator states what the value IS, and the engine emits exactly that read. Objects are never converted to arrays before rendering.
 
 | Syntax                        | Meaning                                  | Emits                      |
 | ----------------------------- | ---------------------------------------- | -------------------------- |
@@ -149,8 +146,6 @@ A nested ternary in the else-branch must be parenthesised, because PHP rejects
 
 ### Collection Literals
 
-Clarity supports array and object literals directly inside expressions:
-
 ```twig
 {{ [1, 2, user.id] |> json |> raw }}
 {{ { name: user.name, active: user.active } |> json |> raw }}
@@ -159,8 +154,6 @@ Clarity supports array and object literals directly inside expressions:
 Object keys must be fixed identifiers or quoted strings.
 
 ### Spread Operator
-
-Array and object literals support the spread operator:
 
 ```twig
 {{ [1, ...items, 99] |> json |> raw }}
@@ -217,8 +210,6 @@ Filters with arguments use parentheses after the filter name:
 
 ### Custom Filters
 
-Register additional filters in your bootstrap:
-
 ```php
 $ctx->view()->addFilter('currency', fn($v, string $sym = '€') =>
     number_format($v, 2) . ' ' . $sym
@@ -241,7 +232,7 @@ Use them in templates:
 
 ## Lambda Expressions
 
-The `map`, `filter`, and `reduce` filters accept a **lambda expression** or a **filter reference** as their callable argument. This keeps templates secure: arbitrary PHP callables cannot be injected through template variables.
+The `map`, `filter`, and `reduce` filters accept a **lambda expression** or a **filter reference** as their callable argument. Arbitrary PHP callables cannot be injected through template variables.
 
 ### Lambda syntax
 
@@ -249,7 +240,7 @@ The `map`, `filter`, and `reduce` filters accept a **lambda expression** or a **
 param => expression
 ```
 
-The parameter name becomes a local variable bound to the current element. The body is a full Clarity expression — it can access outer template variables and even use the filter pipeline (`|>`).
+The parameter is bound to the current element; the body is a full Clarity expression — it can access outer template variables and use the filter pipeline (`|>`).
 
 ```twig
 {# Extract a field from every item #}
@@ -275,7 +266,7 @@ The parameter name becomes a local variable bound to the current element. The bo
 
 ### Filter references
 
-A quoted string resolves to a registered Clarity filter, allowing you to reuse existing filters as callbacks:
+A quoted string resolves to a registered Clarity filter, so existing filters can be reused as callbacks:
 
 ```twig
 {# 'upper' is a built-in filter #}
@@ -354,7 +345,7 @@ Ranges can use variables:
 
 ## Template Inheritance
 
-Clarity implements block-based template inheritance. A child template extends a parent layout and overrides named blocks.
+A child template extends a parent layout and overrides named blocks.
 
 **Parent layout** (`layouts/main.clarity.html`):
 
@@ -391,16 +382,12 @@ Clarity implements block-based template inheritance. A child template extends a 
 
 ## Includes
 
-Embed another template inline using `{% include %}`. The included file shares the current variable scope.
+Embed another template inline with `{% include %}`. The included file shares the current variable scope and is inlined at compile time (no separate render call). Recursive include chains are rejected during compilation.
 
 ```twig
 {% include "partials/nav" %}
 {% include "partials/user_card" %}
 ```
-
-Included files are compiled and inlined at compile time. They do not create a separate render call.
-
-Recursive include chains are rejected during compilation.
 
 ### Dynamic Include Function
 
@@ -459,9 +446,7 @@ The `content` variable is automatically injected into the layout template when a
 
 ## Caching
 
-Compiled PHP classes are written to the cache directory and served from there on subsequent requests. OPcache picks them up transparently, so warm-path rendering requires no file I/O.
-
-Cache files are **automatically invalidated** when any source file they depend on (the template itself, extended layouts, included partials) is modified.
+Compiled PHP classes are served from the cache directory; OPcache picks them up transparently. Cache files are **automatically invalidated** when any source file they depend on (the template itself, extended layouts, included partials) is modified.
 
 ```php
 // Custom cache location
@@ -487,7 +472,7 @@ Clarity templates have **no access to PHP**:
 
 ---
 
-**Benchmark Results**
+Benchmark results
 
 A micro-benchmark in the `azera-competition` repository compares Clarity
 (compiled templates) with the other mainstream PHP template engines rendering
@@ -503,7 +488,7 @@ Clarity is measured against other PHP template engines rendering the same page, 
 
 ![Template engine benchmark](images/benchmarks/view-engine/render-time.svg)
 
-Rows are ordered by median, fastest first. Two engines sitting next to each other at the top of the table are not thereby ranked: a difference of a few percent is still within the spread of a single engine's own runs, and a gap that small is a tie, not a win.
+Rows are ordered by median, fastest first. A gap of a few percent is a tie, not a win — it is within a single engine's own run-to-run spread.
 
 | Engine | First render (ms) | Mean (ms) | Median (ms) | Min (ms) | p95 (ms) | Retained (MB) | Peak (MB) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -518,7 +503,7 @@ Rows are ordered by median, fastest first. Two engines sitting next to each othe
 
 **Budget** — 10,000 renders × 30 runs, 200 items per render
 
-**Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs x iterations-per-run timed renders. No order: each (engine, page) cell is measured in its own process, so measurement order cannot affect a cell. The first render was measured as one render in a fresh process with a cold template cache: engine class loading, template compile, cache write and one render.
+**Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs × iterations-per-run timed renders. Each cell is measured in its own process, so measurement order cannot affect it. The first render was measured in a fresh process with a cold template cache: engine class loading, template compile, cache write and one render.
 
 **Engines** — Clarity dev-main (0a1c64d) · NativeEngine (Azera) dev-main (v0.1.0+dirty) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2
 

@@ -35,13 +35,12 @@ $ua = $request->server('HTTP_USER_AGENT', '');
 
 ### Checking Parameter Existence
 
-Use the `has*` helpers instead of comparing the return value to `null`, since a field might legitimately hold `null` or `0`.
+Use the `has*` helpers instead of comparing the return value to `null`, since a field might legitimately hold `null` or `0`:
 
 ```php
-$request->hasInput('token');        // isset in $_GET + $_POST
-$request->hasQuery('page');    // isset in $_GET
-$request->hasPost('_method');  // isset in $_POST
-$request->hasServer('HTTPS');  // isset in $_SERVER
+$request->hasInput('token');     // isset in $_GET + $_POST
+$request->hasQuery('page');      // isset in $_GET
+$request->hasPost('_method');    // isset in $_POST
 ```
 
 ---
@@ -59,7 +58,7 @@ $request->isJson();    // true for Content-Type: application/json or Accept: app
 $request->isAjax();    // true for fetch/axios/jQuery XHR (see note below)
 ```
 
-> **Method override** – `method()` recognises an `X-HTTP-Method-Override` header sent with a POST request and returns the overridden method (e.g. `'PUT'`), which allows method tunnelling through form submissions.
+> **Method override** – `method()` recognises an `X-HTTP-Method-Override` header (or a `_method` body field) sent with a POST request and returns the overridden method, which allows method tunnelling through form submissions.
 
 > **AJAX detection** – `isAjax()` returns `true` when any of the following is present: `Content-Type: application/json`, `Accept: application/json`, or `X-Requested-With: XMLHttpRequest`.
 
@@ -95,7 +94,7 @@ $languages   = $request->languages();
 $bestLang    = $request->bestLanguage();             // e.g. 'en'
 
 // Accept-Charset
-$charsets    = $request->clientCharsets();
+$charsets    = $request->charsets();
 $bestCharset = $request->bestCharset();              // e.g. 'utf-8'
 ```
 
@@ -152,9 +151,9 @@ foreach ($request->files('docs') as $doc) {
 | Method                 | Returns  | Description                                                 |
 | ---------------------- | -------- | ----------------------------------------------------------- |
 | `isValid()`            | `bool`   | `true` when `UPLOAD_ERR_OK`                                 |
-| `clientFilename()`  | `string` | Original filename from the browser (sanitise before use)    |
-| `clientMediaType()` | `string` | MIME type reported by the client (not verified server-side) |
-| `size()`            | `int`    | File size in bytes                                          |
+| `clientFilename()`     | `string` | Original filename from the browser (sanitise before use)    |
+| `clientMediaType()`    | `string` | MIME type reported by the client (not verified server-side) |
+| `size()`               | `int`    | File size in bytes                                          |
 | `moveTo(string $path)` | `void`   | Move to destination; throws `\RuntimeException` on failure  |
 
 ---

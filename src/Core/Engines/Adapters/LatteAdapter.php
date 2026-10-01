@@ -28,6 +28,11 @@ use Azera\Core\ViewEngine;
  *     ->setSandboxMode(true);
  * ```
  *
+ * NOTE the name collision: this is *Latte's* `setPolicy()`/`setSandboxMode()`,
+ * not Clarity's. Clarity replaced its own `setSandboxMode()` with a
+ * `Clarity\Engine\Policy` object (see {@see \Azera\Core\Engines\ClarityEngine}),
+ * and the two engines' policies are unrelated types.
+ *
  * Cache location: `sys_get_temp_dir()/latte_cache` (override with
  * {@see setCachePath()}). Pass an empty string to disable caching.
  */

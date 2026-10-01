@@ -1,10 +1,10 @@
 # Config
 
-Azera provides a lightweight configuration service with dot-notation access for reading hierarchical configuration arrays.
+A lightweight configuration service with dot-notation access for hierarchical configuration arrays.
 
 ## The `config()` accessor
 
-`AppContext::config()` returns a `Config` instance. When none is registered, it lazily creates an empty one:
+When none is registered, `AppContext::config()` lazily creates an empty one:
 
 ```php
 $ctx->config()->get('db.dsn', 'sqlite::memory:');
@@ -24,16 +24,12 @@ $ctx->set(Config::class, fn() => new Config($configArray));
 
 ### `get(string $key, mixed $default = null): mixed`
 
-Retrieve a value using dot notation:
-
 ```php
 $dsn = $ctx->config()->get('db.dsn');
 $debug = $ctx->config()->get('app.debug', false); // default if missing
 ```
 
 ### `set(string $key, mixed $value): void`
-
-Set a value using dot notation:
 
 ```php
 $ctx->config()->set('cache.driver', 'redis');
@@ -72,7 +68,7 @@ $ctx->config()->merge([
 
 ### `scope(string $prefix): Config`
 
-Returns a scoped Config that automatically prefixes all keys:
+A scoped Config automatically prefixes all keys:
 
 ```php
 $stripeConfig = $ctx->config()->scope('stripe');

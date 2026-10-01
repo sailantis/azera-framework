@@ -1,6 +1,6 @@
 # Cache
 
-Azera provides PSR-16 compatible simple caching through `AppContext::cache()`. The cache stores arbitrary serializable values with an optional time-to-live (TTL).
+PSR-16 compatible caching through `AppContext::cache()` for arbitrary serializable values with an optional TTL.
 
 ## PSR-16 Interface
 
@@ -75,39 +75,7 @@ try {
 }
 ```
 
-## Using with AOP
+## Used By
 
-The `#[Cache]` attribute caches method return values automatically:
-
-```php
-use Azera\Aop\Advised;
-use Azera\Aop\Cache;
-
-#[Advised]
-class ExpensiveService
-{
-    #[Cache(ttl: 60, key: 'item_count')]
-    public function countItems(): int
-    {
-        // This runs only on cache miss; result cached for 60 seconds
-        return Item::count();
-    }
-}
-```
-
-See [AOP](16-AOP.md) for details.
-
-## Using with RateLimiter
-
-The `RateLimiter` uses any `CacheInterface` for storage:
-
-```php
-use Azera\Security\RateLimiter;
-
-$limiter = new RateLimiter($ctx->cache());
-if (!$limiter->limit('login:' . $ip, 5, 60)) {
-    return Response::json(['error' => 'Too many attempts'], 429);
-}
-```
-
-See [Security](18-SECURITY-ENTERPRISE.md) for details.
+- `#[Cache]` AOP advice caches method return values through `AppContext::cache()` — see [AOP](16-AOP.md).
+- `RateLimiter` stores its counters in any `CacheInterface`; use a persistent backend (Redis/Memcached) for multi-process rate limiting — see [Security (Enterprise)](18-SECURITY-ENTERPRISE.md).

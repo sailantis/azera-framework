@@ -1,12 +1,10 @@
 # Cookbook
 
-**Practical solutions to common problems** - A collection of real-world recipes and patterns for everyday tasks like pagination, authentication, file uploads, API responses, caching, and more. Copy, adapt, and use in your projects.
-
-Practical recipes built with the current Azera API.
+**Practical recipes** – pagination, soft delete, transactions, subqueries, and more, built with the current Azera API.
 
 ## 1) Paginated Listing
 
-Pagination is essential for large datasets. Use `Azera\Db\Paginator` to paginate any query builder. The paginator runs a count() query first, then fetches the requested page using `LIMIT/OFFSET`.
+See [Pagination with Paginator](05-DATABASE-QUERIES.md#pagination-with-paginator) for the full API:
 
 ```php
 $paginator = User::query()
@@ -15,22 +13,9 @@ $paginator = User::query()
     ->paginate(page: 2, pageSize: 20);
 
 $users = $paginator->entities(); // identity-mapped User instances for page 2
-
-$meta = [
-    'currentPage' => $paginator->currentPage(),
-    'previousPage' => $paginator->previousPage(),
-    'nextPage' => $paginator->nextPage(),
-    'lastPage' => $paginator->lastPage(),
-    'pageSize' => $paginator->pageSize(),
-    'totalItems' => $paginator->totalItems(),
-    'firstItem' => $paginator->firstItem(),
-    'lastItem' => $paginator->lastItem(),
-];
 ```
 
 ## 2) Find or Create
-
-Atomically find an existing record or create it if it doesn't exist. Useful for ensuring unique constraints while avoiding race conditions.
 
 ```php
 $user = User::firstOrCreate(
@@ -41,8 +26,6 @@ $user = User::firstOrCreate(
 
 ## 3) Update or Create
 
-Similar to find or create, but always updates the record with new data if it exists. Perfect for upsert operations.
-
 ```php
 $user = User::updateOrCreate(
     ['email' => 'jane@example.com'],
@@ -51,8 +34,6 @@ $user = User::updateOrCreate(
 ```
 
 ## 4) Search by Dynamic Filters
-
-Build flexible search queries that adapt based on which filters the user provides. Only add conditions for present filters to keep queries efficient.
 
 ```php
 $query = User::query();
@@ -74,8 +55,6 @@ $rows = $query->orderBy('id DESC')->select();
 
 ## 5) Safe Bulk Update
 
-Update multiple records that match a condition. Always use WHERE clauses to prevent accidentally modifying all rows.
-
 ```php
 $affected = User::query()
     ->where('last_login < :cutoff', ['cutoff' => '2025-01-01'])
@@ -84,10 +63,10 @@ $affected = User::query()
 
 ## 6) Soft Delete Pattern
 
-Instead of permanently deleting records, mark them as deleted with a timestamp. This allows recovery and maintains referential integrity.
+Mark records as deleted with a timestamp instead of permanently deleting them:
 
 ```php
-class Post extends \Azera\Core\Model
+class Post extends \Azera\Orm\Model
 {
     public int $id;
     public string $title;
@@ -101,9 +80,9 @@ class Post extends \Azera\Core\Model
 }
 ```
 
-## 7) Transaction with Multiple Writes
+Every read then needs `->where('deleted_at', null)` — see recipe 4.
 
-Wrap related database operations in a transaction to ensure data consistency. If any operation fails, all changes are rolled back.
+## 7) Transaction with Multiple Writes
 
 ```php
 use Azera\AppContext;
@@ -136,8 +115,6 @@ try {
 
 ## 8) Read/Write Split
 
-Distribute database load by routing reads to replicas and writes to the primary server. Azera automatically uses the appropriate connection.
-
 ```php
 use Azera\AppContext;
 use Azera\Db\Database;
@@ -155,8 +132,6 @@ $user->save(); // write
 
 ## 9) Route + Dispatcher Integration
 
-Connect routing to the dispatcher for a complete request handling flow. This is the core pattern of any Azera web application.
-
 ```php
 $router->add('GET', '/users/{id:int}', 'UserController::viewAction');
 $route = $router->match('/users/7', 'GET');
@@ -168,8 +143,6 @@ if ($route !== null) {
 ```
 
 ## 10) CLI Cleanup Task
-
-Create maintenance tasks for scheduled cleanup operations. Perfect for cron jobs that need to trim old data.
 
 ```php
 class CleanupTask extends \Azera\Cli\Task
@@ -189,7 +162,7 @@ class CleanupTask extends \Azera\Cli\Task
 
 ## 11) Subquery as Derived Table (FROM)
 
-Use a `Query` instance as the `FROM` source to pre-aggregate or pre-filter data before the outer query processes it. Bind parameters from the subquery are automatically carried over — no manual merging required.
+See [FROM Subquery](05-DATABASE-QUERIES.md#from-subquery) — a `Query` as the `FROM` source; bind parameters carry over automatically:
 
 ```php
 use Azera\Db\Query;
@@ -213,7 +186,7 @@ $topCustomers = Query::raw()
 
 ## 12) Subquery in JOIN
 
-Join any pre-built `Query` directly. Works with `join()`, `leftJoin()`, `innerJoin()`, `rightJoin()`, and `crossJoin()`. Provide an alias as the second argument so the outer query can reference it in conditions and columns.
+See [Subquery in JOIN](05-DATABASE-QUERIES.md#subquery-in-join) — any join method accepts a `Query` instance:
 
 ```php
 use Azera\Db\Query;
@@ -331,7 +304,7 @@ class ArticleController extends Controller
 
 ## 15) Session-based Authentication
 
-A complete login/logout flow with an auth middleware guard. The session is activated by `SessionMiddleware` in the dispatcher setup.
+The session is activated by `SessionMiddleware` in the dispatcher setup:
 
 ```php
 // bootstrap — register the session middleware once
@@ -356,20 +329,20 @@ class AuthController extends Controller
         }
 
         $this->session()->set('user_id', $user->id);
-        $this->session()->regenerate(); // prevent session fixation
+        session_regenerate_id(true); // prevent session fixation
 
         return ['ok' => true];
     }
 
     public function logoutAction(): Response
     {
-        $this->session()->destroy();
+        $this->session()->clear();
         return Response::redirect('/login');
     }
 }
 ```
 
-Protect any controller by attaching an auth middleware to its `$middleware` property:
+Protect any controller by attaching an auth middleware to its `$middlewares` property:
 
 ```php
 use Azera\Http\Response;
@@ -402,7 +375,16 @@ class AccountController extends Controller
 
 ## 16) CSRF Protection
 
-Azera has no built-in CSRF middleware — implement token-based protection yourself. The pattern below stores a token in the session and validates it on every state-changing request.
+Azera ships a built-in `Azera\Security\CsrfMiddleware` (synchronizer token pattern) — see [Security (Enterprise)](18-SECURITY-ENTERPRISE.md):
+
+```php
+use Azera\Security\CsrfMiddleware;
+
+$dispatcher->addMiddleware(new CsrfMiddleware());
+$token = (new CsrfMiddleware())->ensureToken($ctx->session());  // pass to the view
+```
+
+A hand-rolled session-token variant:
 
 ```php
 // helpers.php — include in your bootstrap
@@ -448,7 +430,7 @@ public function process(AppContext $context, callable $next): ?Response
 
 ## 17) File Upload
 
-Access uploaded files through `Request::getUploadedFile()` (single) or `Request::getUploadedFiles()` (all). Each entry is an `UploadedFile` instance.
+Access uploaded files through `Request::file()` (single) or `Request::files()` (all). Each entry is an `UploadedFile` instance — see [File Uploads](06-HTTP-REQUEST.md#file-uploads).
 
 ```php
 use Azera\Http\Response;
@@ -458,22 +440,22 @@ class AvatarController extends Controller
 {
     public function uploadAction(): Response|array
     {
-        $file = $this->request()->getUploadedFile('avatar');
+        $file = $this->request()->file('avatar');
 
         if ($file === null || !$file->isValid()) {
             return Response::json(['error' => 'No valid file uploaded'], 422);
         }
 
         $allowed = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!in_array($file->getMimeType(), $allowed, true)) {
+        if (!in_array($file->clientMediaType(), $allowed, true)) {
             return Response::json(['error' => 'Only JPEG, PNG, and WebP are allowed'], 422);
         }
 
-        if ($file->getSize() > 2 * 1024 * 1024) { // 2 MB
+        if ($file->size() > 2 * 1024 * 1024) { // 2 MB
             return Response::json(['error' => 'File must be under 2 MB'], 422);
         }
 
-        $filename = bin2hex(random_bytes(16)) . '.' . $file->getExtension();
+        $filename = bin2hex(random_bytes(8)) . '-' . basename($file->clientFilename());
         $dest     = __DIR__ . '/../../public/uploads/' . $filename;
 
         $file->moveTo($dest);
@@ -506,7 +488,7 @@ class ApiKeyMiddleware implements MiddlewareInterface
 
     public function process(AppContext $context, callable $next): ?Response
     {
-        $key = $context->request()->getServer('HTTP_X_API_KEY', '');
+        $key = $context->request()->server('HTTP_X_API_KEY', '');
 
         if (!in_array($key, $this->validKeys, true)) {
             return Response::json(['error' => 'Unauthorized'], 401);
@@ -534,40 +516,19 @@ $router->add('GET', '/api/users', 'Api\UserController::indexAction');
 
 ## 19) Encrypting Sensitive Data
 
-Use `Azera\Crypt` to store sensitive fields (tokens, personal data, secrets) encrypted at rest. Keys should be 32 bytes of random data, loaded from an environment variable or secrets manager — never hard-coded.
+Use the same authenticated encryption the encrypted cookie uses — libsodium ChaCha20-Poly1305 (preferred) or AES-256-GCM via OpenSSL. Keys should be 32 bytes of random data, loaded from an environment variable or secrets manager — never hard-coded. See [Security](09-SECURITY.md#encryption-internals).
 
 ```php
-use Azera\Crypt;
-
-$key = base64_decode($_ENV['ENCRYPTION_KEY']); // 32-byte key stored in the environment
-
-// Encrypt before saving
-$user->recovery_token = Crypt::encrypt($plainToken, $key);
-$user->save();
-
-// Decrypt after loading
-$plain = Crypt::decrypt($user->recovery_token, $key);
-if ($plain === null) {
-    // null means the ciphertext was tampered with or the key does not match
-    throw new \RuntimeException('Token integrity check failed');
-}
-```
-
-Generate a key once and store it securely:
-
-```bash
+// Generate a key once and store it securely:
 php -r "echo base64_encode(random_bytes(32)) . PHP_EOL;"
 ```
 
-`Crypt` selects the best cipher available at runtime (libsodium ChaCha20-Poly1305 preferred, AES-256-GCM via OpenSSL as fallback). You do not need to care about cipher selection unless you have specific compliance requirements.
-
 ## 20) Transactional Service with AOP
-
-Replace manual `begin/commit/rollback` boilerplate with `#[Transactional]`. Mark the class with `#[Advised]` and register it for autowiring:
 
 ```php
 use Azera\Aop\Advised;
 use Azera\Aop\Transactional;
+use Azera\Aop\TransactionalInterceptor;
 
 #[Advised]
 class OrderService
@@ -584,13 +545,8 @@ class OrderService
         return $order;
     }
 }
-```
 
-Register the service for autowiring (class string, not a factory) and register the interceptor:
-
-```php
-use Azera\Aop\TransactionalInterceptor;
-
+// bootstrap
 $ctx->registerInterceptor(Transactional::class, new TransactionalInterceptor($ctx->dbManager()));
 $ctx->set(OrderService::class); // autowired — proxy generated
 ```
@@ -599,11 +555,10 @@ No manual `begin/commit/rollback` — the interceptor handles it. See [AOP](16-A
 
 ## 21) Caching Method Results
 
-Cache expensive method results with `#[Cache]`:
-
 ```php
 use Azera\Aop\Advised;
 use Azera\Aop\Cache;
+use Azera\Aop\CacheInterceptor;
 
 #[Advised]
 class ReportService
@@ -615,13 +570,8 @@ class ReportService
         return $this->buildExpensiveReport($type, $date);
     }
 }
-```
 
-Register the cache interceptor:
-
-```php
-use Azera\Aop\CacheInterceptor;
-
+// bootstrap
 $ctx->registerInterceptor(Cache::class, new CacheInterceptor($ctx->cache()));
 ```
 
@@ -629,7 +579,7 @@ The `{type}` and `{date}` placeholders are interpolated from the method argument
 
 ## 22) Dispatching Events
 
-Dispatch typed events and listen for them:
+See [Events](13-EVENTS.md) for the full listener API:
 
 ```php
 // Event class
@@ -647,11 +597,10 @@ $ctx->events()->dispatch(new OrderShipped($order->id, $tracking));
 // Listen (in bootstrap)
 $dispatcher->listen(OrderShipped::class, function (OrderShipped $event) use ($ctx) {
     $ctx->logger()->info('Order shipped', ['id' => $event->orderId]);
-    // Send notification email, update external API, etc.
 });
 ```
 
-Class-string listeners are autowired through AppContext:
+Class-string listeners are autowired through AppContext (constructor dependencies injected):
 
 ```php
 class ShipNotificationListener
@@ -667,11 +616,7 @@ class ShipNotificationListener
 $dispatcher->listen(OrderShipped::class, ShipNotificationListener::class);
 ```
 
-See [Events](13-EVENTS.md).
-
 ## 23) Rate Limiting an Endpoint
-
-Protect endpoints against abuse with `RateLimiter`:
 
 ```php
 use Azera\Security\RateLimiter;
@@ -688,32 +633,18 @@ if (!$limiter->limit('api:' . $ip, 100, 60)) {
 
 ## 24) CSRF Protection
 
-Add `CsrfMiddleware` to the pipeline to protect state-changing requests:
+The built-in middleware handles it — see [CSRF Protection](18-SECURITY-ENTERPRISE.md#csrf-protection):
 
 ```php
 use Azera\Security\CsrfMiddleware;
 
 $dispatcher->addMiddleware(new CsrfMiddleware());
+$token = (new CsrfMiddleware())->ensureToken($ctx->session());  // pass to the view
 ```
-
-In views, include the token in forms:
-
-```html
-<input type="hidden" name="_csrf_token" value="{{ csrf_token }}" />
-```
-
-Generate the token in the controller:
-
-```php
-$session = $ctx->session();
-$token = (new CsrfMiddleware())->ensureToken($session);
-```
-
-See [Security](18-SECURITY-ENTERPRISE.md).
 
 ## 25) Password Hashing
 
-Use `Hasher` for secure password storage:
+See [Password Hashing](18-SECURITY-ENTERPRISE.md#password-hashing) for options; the native API is equally fine:
 
 ```php
 use Azera\Security\Hasher;
@@ -734,5 +665,3 @@ if ($hasher->verify($inputPassword, $user->password_hash)) {
     // Login successful
 }
 ```
-
-See [Security](18-SECURITY-ENTERPRISE.md).

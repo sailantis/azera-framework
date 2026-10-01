@@ -1,15 +1,13 @@
 # Database Queries
 
-**Master the query builder** - Deep dive into Azera's powerful and intuitive query builder. Learn how to construct complex SELECT queries, perform joins, use subqueries, aggregate data, and leverage prepared statements for security.
+**The query builder** – SELECT, INSERT, UPDATE and DELETE through one fluent API.
 
 Azera uses a unified fluent query builder: `Azera\Db\Query`.
-You can access it directly via `Query::raw()` (literal tables) or `Query::new()` (model/mapping
-resolution via the AppContext-registered `TableResolver`), or through models with
-`Model::query()`.
+Access it via `Query::raw()` (literal tables) or `Query::new()` (model/mapping
+resolution via the AppContext-registered `TableResolver`), or through models
+with `Model::query()`.
 
 ## Basic Setup
-
-Before running queries, configure database connection(s) in your application context. This makes the database available throughout your application.
 
 ```php
 use Azera\AppContext;
@@ -24,9 +22,6 @@ AppContext::instance()->dbManager()->set('default', new Database(
 
 ## Query Entry Points
 
-You can build queries in three ways: raw table names (`Query::raw()`), model classes
-(`Query::new()` with the default resolver), or through models with `Model::query()`.
-
 ```php
 use Azera\Db\Query;
 
@@ -37,12 +32,11 @@ $q = Query::raw()->table('users');
 $users = User::query()->where('status', 'active')->select();
 ```
 
-> **See also:** [Table Resolvers](#table-resolvers) below for using model mappings
-> without model classes, or custom resolver implementations.
+> **See also:** [Table Resolvers](#table-resolvers) below for using model mappings without model classes, or custom resolver implementations.
 
 ## SELECT
 
-The query builder provides a fluent interface for constructing SELECT queries. Chain methods to add conditions, joins, sorting, and pagination. All queries use prepared statements for security.
+All queries use prepared statements. Chain methods to add conditions, joins, sorting, and pagination.
 
 ```php
 $users = Query::raw()->table('users', 'u')
@@ -67,7 +61,7 @@ $emails = Query::raw()->table('orders')
 
 ## WHERE Styles
 
-Azera supports three where clause styles to accommodate different preferences. All are equally safe and use prepared statements behind the scenes.
+Three equivalent styles — all safe (prepared statements behind the scenes):
 
 ```php
 // Condition + inline values (values are escaped and inserted into SQL)
@@ -196,8 +190,6 @@ $q = Query::raw()->from('users', 'u')->where('u.status', 'active')->select();
 
 ## JOIN, GROUP, HAVING
 
-Build complex queries with joins, aggregations, and grouping. The query builder makes it easy to construct sophisticated SQL while maintaining readability.
-
 ```php
 $rows = Query::raw()->table('posts', 'p')
     ->columns([
@@ -241,7 +233,7 @@ Bind parameters from the subquery are automatically propagated to the parent que
 
 ## INSERT / UPSERT / UPDATE / DELETE
 
-Beyond SELECT queries, the query builder handles all write operations. INSERT returns the new ID, UPDATE and DELETE return affected row counts for verification.
+INSERT returns the new ID, UPDATE and DELETE return affected row counts.
 
 ```php
 // INSERT
@@ -431,7 +423,7 @@ Fetch terminals (each executes the page query exactly once, after the COUNT):
 | `assoc()`      | Associative arrays                                                                     |
 | `fetch($mode)` | Raw rows with a custom PDO fetch mode                                                  |
 
-You can enable reverse pagination using the third argument. It does not change your original ORDER BY. It only flips how pages are calculated, so page 1 returns the last items instead of the first ones.
+You can enable reverse pagination using the third argument, or the `reverse()` method. It does not change your original ORDER BY — it only flips how pages are calculated, so page 1 returns the last items instead of the first ones.
 
 ```php
 // Messages sorted oldest → newest
@@ -445,7 +437,7 @@ $messages = Query::raw()->table('messages')
 
 ## Sql Expressions
 
-`Azera\Db\Sql` is a typed value-object system for embedding SQL expressions inside query builder calls. All helpers are static factory methods; the resulting node is serialized to safe SQL at query-compile time.
+`Azera\Db\Sql` embeds SQL expressions inside query builder calls: static factory methods produce typed value objects, serialized to safe SQL at query-compile time.
 
 ### Sql::raw() — literal SQL fragments
 
@@ -633,8 +625,6 @@ $sql = User::query()
 ```
 
 ## Transactions
-
-Use `Azera\Db\Database` transaction methods:
 
 ```php
 $db = AppContext::instance()->dbManager()->get('write');

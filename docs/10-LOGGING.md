@@ -1,19 +1,19 @@
 ﻿# Logging
 
-Azera provides PSR-3 compatible logging through `AppContext::logger()`, plus typed database events (PSR-14) for query monitoring, transaction tracking, and connection diagnostics.
+PSR-3 compatible logging through `AppContext::logger()`, plus typed database events (PSR-14) for query monitoring, transaction tracking, and connection diagnostics.
 
 ## PSR-3 Logger
 
 ### The `logger()` accessor
 
-`AppContext` exposes a lazy logger accessor that always returns a PSR-3 `LoggerInterface`:
+Always returns a PSR-3 `LoggerInterface`:
 
 ```php
 $ctx->logger()->info('User registered', ['id' => $user->id]);
 $ctx->logger()->error('Payment failed', ['invoice' => $invoiceId]);
 ```
 
-When no logger is registered, the accessor returns a `NullLogger` that silently discards every message — so calling code can always log without null-checks.
+When no logger is registered, the accessor returns a `NullLogger` that silently discards every message — calling code can always log without null-checks.
 
 ### Registering a real logger
 
@@ -31,11 +31,11 @@ $ctx->set(LoggerInterface::class, function () {
 });
 ```
 
-Because Azera uses `\Psr\Log\LoggerInterface` directly (not a framework-specific interface), any PSR-3 logger — Monolog, Symfony's `Logger`, Laminas's `Logger` — works without an adapter.
+Because Azera uses `\Psr\Log\LoggerInterface` directly (no framework-specific interface), any PSR-3 logger — Monolog, Symfony's `Logger`, Laminas's `Logger` — works without an adapter.
 
 ### NullLogger
 
-`Azera\Log\NullLogger` is the default. It implements `Psr\Log\LoggerInterface` and does nothing. It exists so code can call `$ctx->logger()->info(...)` unconditionally:
+`Azera\Log\NullLogger` is the default — it implements `Psr\Log\LoggerInterface` and does nothing:
 
 ```php
 // Before any logger is registered:
@@ -110,7 +110,7 @@ class ExceptionMiddleware implements MiddlewareInterface
 
 ## Database Events (PSR-14)
 
-Azera dispatches typed PSR-14 events for every database operation. Listen to them via `AppContext::events()` to log queries, measure duration, or build audit trails.
+Typed PSR-14 events fire for every database operation. Listen via `AppContext::events()` to log queries, measure duration, or build audit trails.
 
 ### Available events
 
