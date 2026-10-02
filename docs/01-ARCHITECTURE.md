@@ -71,13 +71,7 @@ HTTP Request
   -> Response
 ```
 
-`Dispatcher` maps controller return types automatically:
-
-- `Response` -> sent as-is
-- `array` / `JsonSerializable` -> JSON response
-- `string` -> text response
-- `int` -> status response
-- `null` -> `204`
+For controller return-value mapping, see [Controllers & Views](03-CONTROLLERS-VIEWS.md#returning-responses).
 
 ## Data Flow
 

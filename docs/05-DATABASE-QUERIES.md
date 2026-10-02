@@ -287,12 +287,11 @@ $deleted = User::query()
 
 #### Upsert SET shape
 
-Without an explicit `updateValues()` call, the ON CONFLICT / ON DUPLICATE KEY
-UPDATE clause is **derived** from the INSERT columns: every non-conflict-target
-column becomes a reference to the attempted insert row — `"col"=EXCLUDED."col"`
-(sqlite/pgsql) or `col=VALUES(col)` (mysql). The conflict target (explicit
-`conflict()` columns, or the model's primary key) is never written in the SET
-clause.
+Without `updateValues()`, the `ON CONFLICT` / `ON DUPLICATE KEY UPDATE` clause
+is **derived** from the INSERT columns. Each non-conflict-target column uses the
+attempted row: `"col"=EXCLUDED."col"` (SQLite/PostgreSQL) or `col=VALUES(col)`
+(MySQL). The conflict target—explicit `conflict()` columns or the model's
+primary key—is not written in the `SET` clause.
 
 ```php
 // SQLite: INSERT INTO "users" ("id","email") VALUES (1, 'john@example.com')

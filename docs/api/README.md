@@ -1,6 +1,6 @@
 # Azera Framework API
 
-## Classes & Interfaces overview
+## Classes, Interfaces & Traits overview
 
 ### `Azera\Aop`
 
@@ -37,6 +37,12 @@
 - [InvalidArgumentException](Cache_InvalidArgumentException.md) `Azera\Cache\InvalidArgumentException`
 - [NullCache](Cache_NullCache.md) `Azera\Cache\NullCache`
 
+### `Azera\Cli\Console`
+
+- [HelpRendering](Cli_Console_HelpRendering.md) `Azera\Cli\Console\HelpRendering`
+- [OutputRendering](Cli_Console_OutputRendering.md) `Azera\Cli\Console\OutputRendering`
+- [TaskDiscovery](Cli_Console_TaskDiscovery.md) `Azera\Cli\Console\TaskDiscovery`
+
 ### `Azera\Cli`
 
 - [Console](Cli_Console.md) `Azera\Cli\Console`
@@ -71,6 +77,7 @@
 ### `Azera\Core\Engines\Adapters`
 
 - [BladeAdapter](Core_Engines_Adapters_BladeAdapter.md) `Azera\Core\Engines\Adapters\BladeAdapter`
+- [LatteAdapter](Core_Engines_Adapters_LatteAdapter.md) `Azera\Core\Engines\Adapters\LatteAdapter`
 - [PlatesAdapter](Core_Engines_Adapters_PlatesAdapter.md) `Azera\Core\Engines\Adapters\PlatesAdapter`
 - [StemplerAdapter](Core_Engines_Adapters_StemplerAdapter.md) `Azera\Core\Engines\Adapters\StemplerAdapter`
 - [TwigAdapter](Core_Engines_Adapters_TwigAdapter.md) `Azera\Core\Engines\Adapters\TwigAdapter`

@@ -405,23 +405,10 @@ your-project/
 
 ## Documentation
 
-Guides and references under [docs/](docs/README.md):
-
-- **[Getting Started](docs/00-GETTING-STARTED.md)** — Set up your first Azera project
-- **[Architecture](docs/01-ARCHITECTURE.md)** — Core components and design principles
-- **[MVC Routing](docs/02-CORE-ROUTING.md)** — Routes, patterns, and middleware
-- **[Controllers & Views](docs/03-CONTROLLERS-VIEWS.md)** — Controllers and view rendering
-- **[Clarity Templates](docs/03b-CLARITY-ENGINE.md)** — Sandboxed template engine with auto-escaping and inheritance
-- **[Models & ORM](docs/04-MODELS-ORM.md)** — Active Record models
-- **[Database Queries](docs/05-DATABASE-QUERIES.md)** — The query builder
-- **[HTTP Request](docs/06-HTTP-REQUEST.md)** — Requests, uploads, and headers
-- **[Validation](docs/07-VALIDATION.md)** — Validate and coerce request input
-- **[CLI Tasks](docs/08-CLI-TASKS.md)** — Command-line tools
-- **[Security](docs/09-SECURITY.md)** — Best practices and security features
-- **[Logging](docs/10-LOGGING.md)** — Application and database logging
-- **[Cookbook](docs/11-COOKBOOK.md)** — Practical recipes
-- **[Benchmarks](docs/README.md#benchmarks)** — How Azera compares to Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5
-- **[API Reference](docs/api/README.md)** — Every public class
+Start with [Getting Started](docs/00-GETTING-STARTED.md), or browse the
+[complete guide index](docs/README.md) for MVC, data, HTTP, CLI, security,
+logging, events, caching, queues, AOP, and configuration. The [API
+reference](docs/api/README.md) documents every public class.
 
 ## Key Concepts
 

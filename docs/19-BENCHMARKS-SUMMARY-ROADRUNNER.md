@@ -1,6 +1,8 @@
 # Framework Competition — RoadRunner Summary
 
-The headline numbers from the measured RoadRunner deployment: the cost of one pass over every endpoint, the plain routing request, the two data-access races, and the worker memory that survives a request. End-to-end HTTP over loopback, so the constant webserver overhead is included (see floor-rr in the dataset). The deployment model actually measured is stated with the table.
+This summary covers a resident RoadRunner worker. Requests were measured over
+HTTP loopback, so the results include server overhead; the server floor below
+shows that cost.
 
 **Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · OPcache: yes · 1000 iterations per run over 10 runs, lower is better.
 
@@ -10,13 +12,16 @@ _Measured 2026-09-29T12:55:05+00:00_
 
 ## Total response times
 
-Total time to serve one pass over every benchmarked endpoint — each framework's sum of its endpoint medians, not a single response time — drawn relative to the baseline, so a row states how many times the baseline's own total it needed. Each endpoint's median is boot-inclusive occupancy for this view's deployment model, so the total is the worker time one pass over every endpoint costs. The chart orders the frameworks by that total and prints each one's multiplier beside its row.
+Each total is the sum of a framework's median times across all endpoints, not
+a single request time. The chart compares totals with the baseline. Endpoint
+medians exclude the worker's one-time startup.
 
 ![Total response times](images/benchmarks/summary-roadrunner/speedup.svg)
 
 ## Feature benchmarks
 
-One race per framework feature, each run as a real request against a real database. Each feature states the request it measures under its own heading. Every figure — the winner of each race and the margin over the runner-up — is in that feature's own chart below, which anchors each endpoint at its fastest framework.
+Each chart compares a real request for one feature against a live database.
+The heading names the endpoint and workload.
 
 ### Routing
  `GET /` — dispatches a plain request through the router and returns a rendered template — no database access.
@@ -35,23 +40,36 @@ One race per framework feature, each run as a real request against a real databa
 
 ## Resident worker memory
 
-Read from inside the live worker after each endpoint, on an extra untimed request that never touches the latency numbers. All six frameworks are drawn on one shared MB axis. The **left cap** is the PHP heap with the application booted and **no request served** — the framework's own data structures, with opcache bytecode excluded because it lives in shared memory. The **dot** is the heap after the last endpoint, and the **right cap** is the largest heap any endpoint reached. A narrow-left range that reaches far right is the shape worth watching: cheap to exist, expensive at its worst.
+Memory is read inside the live worker after each endpoint, using an extra
+untimed request. All frameworks share one MB axis. The **left cap** is the
+booted heap before requests (OPcache is excluded), the **dot** is the heap
+after the final endpoint, and the **right cap** is the peak heap.
 
 The numbers are read from the resident RoadRunner worker, which answers them directly in response headers.
 
-Rows are ordered by the **dot** — the heap the worker was left holding after its last endpoint — so the table reads as one ranking from lightest steady state to heaviest. The multiplier beside a row divides its dot by the lightest dot on the page; the reference row carries none. A row can therefore sit high while having the lightest left cap: that is a framework that is cheap to boot and expensive to keep running, which is exactly the distinction the three marks exist to draw.
+Rows are ordered by the **dot**, which shows memory retained after the final
+endpoint. The multiplier compares each dot with the lowest one. A low left cap
+and high dot indicate a framework that is cheap to boot but retains more memory.
 
-The dot and the right cap are both endpoint-order dependent — the probe reads the whole heap once per endpoint, so it cannot say what one request costs on its own — which is why they are drawn as a range and the dot marks the end of the run rather than a lighter reading. That caveat bounds what the numbers MEAN; it does not invalidate the comparison, because every row is read from the same single sequence of endpoints and therefore at the same moment. What it rules out is reading any one of them as a per-request cost. The distance from the left cap to the right one, and the number of steps over which the heap rises, are the growth a long-lived worker accumulates.
+The dot and right cap depend on endpoint order because the probe reads the
+whole heap, not per-request allocations. Treat the range as worker growth over
+this run, not as the memory cost of one request.
 
 ![Resident worker memory](images/benchmarks/summary-roadrunner/resident-memory.svg)
 
 ## Latency by endpoint
 
-Trimmed mean in milliseconds, lower is better. **Bold** = fastest for that endpoint. Every number is END-TO-END per-request occupancy for the view's deployment model: the framework boot of that model is part of the cell, not parked in a separate chart. These are REAL deployments measured over HTTP: every row carries the constant server cost, which is why the values cluster — the floor note below states what stands under them. The workload column states what each request reads or writes. Every framework runs the same seeded database and the same page size, so the payload is identical no matter which framework served it; the workload column is the part of the suite that varies.
+Trimmed mean per request in milliseconds; lower is better and **bold** marks
+the fastest result. Timings exclude worker startup but include HTTP server
+overhead. All frameworks use the same seeded database and page size; the
+workload column shows what varies.
 
-These rows are end-to-end for a resident worker with a pool that never recycles it (max_jobs=0): the worker booted once before the first request and serves the whole run, so a cell is the measured request itself and carries no boot. The one-time recycle cost is measured in the full report linked at the foot of this page — read that when sizing a pool that is recycled or restarted, or when requests queue behind one worker.
+The worker is not recycled during the run (`max_jobs=0`). See the full report
+for recycle costs and pool-sizing details.
 
-**Server floor** — real RoadRunner over loopback: a bare resident worker that renders a fixed string (`floor-rr`) measures the IPC + server floor every row below also pays. Only differences larger than this floor are framework differences.
+**Server floor** — `floor-rr` measures the IPC and RoadRunner overhead by
+rendering a fixed string. Every row includes this floor; differences above it
+reflect the frameworks.
 
 | Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP |
 |---|---|---:|---:|---:|---:|---:|---:|

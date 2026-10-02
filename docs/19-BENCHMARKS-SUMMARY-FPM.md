@@ -1,6 +1,8 @@
 # Framework Competition — PHP-FPM Summary
 
-The headline numbers from the measured nginx + PHP-FPM deployment: the cost of one pass over every endpoint, the plain routing request, the two data-access races, and what one request costs in memory. End-to-end HTTP over loopback, so the constant webserver overhead is included (see floor-http/floor-php in the dataset). The worker-recycling setting of the pool is stated with the server floor below, because it changes what each row contains.
+This summary covers nginx + PHP-FPM. Requests were measured over HTTP
+loopback, so the results include server overhead; the server floor below
+shows that cost.
 
 **Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · OPcache: yes · 1000 iterations per run over 10 runs, lower is better.
 
@@ -10,13 +12,16 @@ _Measured 2026-09-29T12:55:05+00:00_
 
 ## Total response times
 
-Total time to serve one pass over every benchmarked endpoint — each framework's sum of its endpoint medians, not a single response time — drawn relative to the baseline, so a row states how many times the baseline's own total it needed. Each endpoint's median is boot-inclusive occupancy for this view's deployment model, so the total is the worker time one pass over every endpoint costs. The chart orders the frameworks by that total and prints each one's multiplier beside its row.
+Each total is the sum of a framework's median times across all endpoints, not
+a single request time. The chart compares totals with the baseline; PHP-FPM
+endpoint medians include framework boot.
 
 ![Total response times](images/benchmarks/summary-fpm/speedup.svg)
 
 ## Feature benchmarks
 
-One race per framework feature, each run as a real request against a real database. Each feature states the request it measures under its own heading. Every figure — the winner of each race and the margin over the runner-up — is in that feature's own chart below, which anchors each endpoint at its fastest framework.
+Each chart compares a real request for one feature against a live database.
+The heading names the endpoint and workload.
 
 ### Routing
  `GET /` — dispatches a plain request through the router and returns a rendered template — no database access.
@@ -35,21 +40,36 @@ One race per framework feature, each run as a real request against a real databa
 
 ## Per-request memory
 
-How much memory a single request needs, for every framework, measured inside the FPM worker that served it. The numbers come from the FPM worker process itself: because the entry script is torn down when the request ends, it appends one sample as it exits, and the harness reads that back. The pool is `pm = static` with `max_children = 1` and `max_requests = 0`, so this is ONE worker that stays alive for the whole block — which is why it has retained memory worth reporting at all.
+Memory is measured inside one PHP-FPM worker that stays alive for the run
+(`pm = static`, `max_children = 1`, `max_requests = 0`). Each request records a
+sample as its entry script exits, and the harness reads it from the worker.
 
-A request's high-water mark is taken from the framework-ready boundary of the entry script to the moment the response is finished, with the mark reset at that boundary — so it counts exactly what serving the request cost, and never bleeds into the next one. Each endpoint was probed once, so the range shows how much the endpoints themselves differ — a property of the workload rather than of the measurement.
+The high-water mark resets when the framework is ready and is sampled when the
+response finishes. Each endpoint was probed once, so the range reflects workload
+differences rather than repeated measurements.
 
-All six frameworks are drawn on one shared MB axis. The **left cap** is the lightest probed endpoint, the **dot** is the median endpoint, and the **right cap** is the heaviest. Every mark is a measured endpoint rather than an interpolation, so each can be named — the three numbers printed beside each bar are those same three readings. The faint bar behind each mark runs from zero to the median, so a row's length is read against the axis rather than estimated from the caps. The multiplier beside a row divides its median by the lightest median on the page; the reference row carries none.
+All frameworks share one MB axis. The **left cap**, **dot**, and **right cap**
+show the lightest, median, and heaviest endpoint. Each mark is a measurement;
+the labels give its value. The faint bar runs from zero to the median. The
+multiplier compares each median with the lightest one.
 
-Rows are ordered by the **median** request — a framework's typical cost — so one heavy route cannot reorder the table on its own. A row that stays flat and a row that reaches far right therefore say different things: the first is cheap on every route, the second is cheap on a typical request until one heavy route sets the worst case a pool has to be sized for.
+Rows are ordered by median memory, showing typical usage. A wide range signals
+that a heavy route may affect pool sizing.
 
 ![Per-request memory](images/benchmarks/summary-fpm/resident-memory.svg)
 
 ## Latency by endpoint
 
-Trimmed mean in milliseconds, lower is better. **Bold** = fastest for that endpoint. Every number is END-TO-END per-request occupancy for the view's deployment model: the framework boot of that model is part of the cell, not parked in a separate chart. These are REAL deployments measured over HTTP: every row carries the constant server cost, which is why the values cluster — the floor note below states what stands under them. The workload column states what each request reads or writes. Every framework runs the same seeded database and the same page size, so the payload is identical no matter which framework served it; the workload column is the part of the suite that varies.
+Trimmed mean per request in milliseconds; lower is better and **bold** marks
+the fastest result. PHP-FPM timings include framework boot and HTTP server
+overhead. All frameworks use the same seeded database and page size; the
+workload column shows what varies.
 
-**Server floor** — measured nginx + PHP-FPM with `pm.max_requests=0`: the pool never recycles its worker, so no process is spawned per request — what remains is the FastCGI handshake plus a minimal script. A hello-world endpoint that boots nothing but PHP (`floor-php`) and a static file through nginx (`floor-http`) measure exactly that cost — the floor every row below stands on. Subtracting that floor leaves the framework's own per-request boot, which FPM still pays for every request even though its worker survives.
+**Server floor** — the pool does not recycle workers (`pm.max_requests=0`).
+`floor-php` measures a minimal PHP request; `floor-http` measures a static
+file through nginx. Together they show the server overhead in each result.
+Subtracting that overhead estimates framework boot, which PHP-FPM pays on
+every request.
 
 | Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP |
 |---|---|---:|---:|---:|---:|---:|---:|

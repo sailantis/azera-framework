@@ -1,6 +1,7 @@
 # HTTP Request
 
-`Azera\Http\Request` provides normalized access to all incoming request data: query parameters, POST fields, uploaded files, headers, and more.
+`Azera\Http\Request` provides access to query and POST data, uploaded files,
+headers, and server information.
 
 Obtain the request object from `AppContext` rather than instantiating it directly:
 
@@ -35,7 +36,8 @@ $ua = $request->server('HTTP_USER_AGENT', '');
 
 ### Checking Parameter Existence
 
-Use the `has*` helpers instead of comparing the return value to `null`, since a field might legitimately hold `null` or `0`:
+Use the `has*` helpers to distinguish a missing field from values such as
+`null` or `0`:
 
 ```php
 $request->hasInput('token');     // isset in $_GET + $_POST
@@ -60,7 +62,8 @@ $request->isAjax();    // true for fetch/axios/jQuery XHR (see note below)
 
 > **Method override** – `method()` recognises an `X-HTTP-Method-Override` header (or a `_method` body field) sent with a POST request and returns the overridden method, which allows method tunnelling through form submissions.
 
-> **AJAX detection** – `isAjax()` returns `true` when any of the following is present: `Content-Type: application/json`, `Accept: application/json`, or `X-Requested-With: XMLHttpRequest`.
+> **AJAX detection** — `isAjax()` returns `true` for JSON requests or when
+> `X-Requested-With: XMLHttpRequest` is present.
 
 ---
 
@@ -76,6 +79,9 @@ $clientIp   = $request->clientIp(true); // trust X-Forwarded-For / HTTP_CLIENT_I
 
 $contentType = $request->contentType();
 ```
+
+Only trust forwarded client-IP headers when the request comes through a
+trusted proxy; clients can spoof those headers otherwise.
 
 ---
 

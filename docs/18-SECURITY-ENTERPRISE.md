@@ -35,20 +35,20 @@ $token = (new CsrfMiddleware())->ensureToken($session);
 
 ```html
 <form method="POST" action="/delete">
-    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-    <button type="submit">Delete</button>
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}" />
+  <button type="submit">Delete</button>
 </form>
 ```
 
 Or via header (for AJAX):
 
 ```javascript
-fetch('/api/update', {
-    method: 'POST',
-    headers: {
-        'X-CSRF-Token': csrfToken,
-    },
-    body: JSON.stringify(data),
+fetch("/api/update", {
+  method: "POST",
+  headers: {
+    "X-CSRF-Token": csrfToken,
+  },
+  body: JSON.stringify(data),
 });
 ```
 
@@ -85,12 +85,12 @@ if (!$limiter->limit('login:' . $ip, 5, 60)) {
 
 ### Methods
 
-| Method | Description |
-|---|---|
+| Method                           | Description                                                         |
+| -------------------------------- | ------------------------------------------------------------------- |
 | `limit($key, $max, $perSeconds)` | Record a hit and return `true` if within limit, `false` if exceeded |
-| `hits($key)` | Get the current hit count for the key |
-| `isLimited($key, $max)` | Check if the key has reached its limit (without recording a hit) |
-| `reset($key)` | Reset the counter for the key |
+| `hits($key)`                     | Get the current hit count for the key                               |
+| `isLimited($key, $max)`          | Check if the key has reached its limit (without recording a hit)    |
+| `reset($key)`                    | Reset the counter for the key                                       |
 
 ### Important: persistent cache required
 

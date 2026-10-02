@@ -210,7 +210,9 @@ $console = new Console();
 $console->process($argv[1] ?? null, $argv[2] ?? null, array_slice($argv, 3));
 ```
 
-`Console` auto-discovers every class whose name ends in `Task` under the registered namespace and registers it under a lowercase task name (`HelloTask` → `hello`). The built-in `Azera\Cli\Tasks` namespace (containing `ModelSyncTask`) and `App\Tasks` are included automatically.
+`Console` discovers classes ending in `Task` and registers lowercase task
+names (`HelloTask` → `hello`). The built-in `Azera\Cli\Tasks` namespace and
+`App\Tasks` are included automatically.
 
 Run:
 
@@ -223,7 +225,9 @@ php console.php help hello            # detailed help for one task
 
 ## About composer.json
 
-The simplest way to handle dependencies is through a `composer.json` file. This file manages dependencies, autoloading, and project metadata. Composer will automatically generate this file when you run `composer require sailantis/azera-framework`, but you can customize it as needed.
+Composer manages dependencies and autoloading in `composer.json`. Running
+`composer require sailantis/azera-framework` creates or updates the file.
+Add a PSR-4 mapping to autoload your application classes:
 
 A minimal `composer.json` for your app might look like:
 
@@ -240,11 +244,7 @@ A minimal `composer.json` for your app might look like:
 }
 ```
 
-- The `require` section lists your dependencies, in our case we use Azera.
-- The `autoload` section tells Composer to autoload your app classes from the `app/` directory using PSR-4.
-- You can add scripts, dev dependencies, and other metadata as your project grows.
-
-After editing `composer.json`, run:
+After changing the autoload mapping, run:
 
 ```bash
 composer dump-autoload
@@ -254,7 +254,7 @@ to update the autoloader.
 
 ## Web Server Configuration
 
-When deploying your application, the web server should forward requests to `public/index.php`. Here is an example how Nginx configuration could look:
+Forward requests that do not match files to `public/index.php`. For example:
 
 ```nginx
 server {
@@ -283,8 +283,6 @@ server {
 }
 ```
 
-The directive `try_files $uri $uri/ /index.php?$query_string;` ensures that all non-file requests are forwarded to your `public/index.php` bootstrap file.
-
 ## Next Steps
 
 - [Architecture](01-ARCHITECTURE.md)
@@ -295,3 +293,4 @@ The directive `try_files $uri $uri/ /index.php?$query_string;` ensures that all 
 - [Validation](07-VALIDATION.md)
 - [CLI Tasks](08-CLI-TASKS.md)
 - [Security (Crypt)](09-SECURITY.md)
+- [All guides](README.md)

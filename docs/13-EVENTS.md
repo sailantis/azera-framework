@@ -1,6 +1,7 @@
 # Events
 
-PSR-14 compatible event dispatching through `AppContext::events()`. The dispatcher resolves listeners by event class name — including parent classes and implemented interfaces — so a listener for a base event catches all subtypes.
+Use `AppContext::events()` for PSR-14 event dispatch. Listeners registered for
+an event's parent class or interface also receive its subtypes.
 
 ## PSR-14 Interfaces
 
@@ -13,7 +14,8 @@ No adapter or wrapper is needed. Any PSR-14 dispatcher works as a drop-in replac
 
 ## The `events()` accessor
 
-`AppContext::events()` returns a `EventDispatcherInterface`. When none is registered, it returns a `NullEventDispatcher` that passes every event through unchanged — so `dispatch()` is always safe:
+`AppContext::events()` returns an `EventDispatcherInterface`. If none is
+registered, it returns a `NullEventDispatcher` that passes events through:
 
 ```php
 $ctx->events()->dispatch(new UserCreated($user));
@@ -124,19 +126,19 @@ The dispatcher checks `isPropagationStopped()` after each listener and stops if 
 
 Azera dispatches typed PSR-14 events for database operations. All events live in `Azera\Db\Event\*`:
 
-| Event class | Fired when |
-|---|---|
-| `QueryExecuted` | After a query completes (always, even on error) |
-| `StatementPrepared` | After a prepared statement is created |
-| `StatementExecuted` | After a prepared statement is executed |
-| `TransactionStarted` | After `begin()` |
-| `TransactionCommitted` | After `commit()` |
-| `TransactionRolledBack` | After `rollback()` |
-| `DatabaseOperationFailed` | When a `PDOException` is caught |
-| `ReconnectAttempt` | Before a reconnect attempt |
-| `Reconnected` | After a successful reconnect |
-| `ReconnectFailed` | When a reconnect attempt fails |
-| `ReconnectAborted` | When reconnect is aborted (max attempts reached) |
+| Event class               | Fired when                                       |
+| ------------------------- | ------------------------------------------------ |
+| `QueryExecuted`           | After a query completes (always, even on error)  |
+| `StatementPrepared`       | After a prepared statement is created            |
+| `StatementExecuted`       | After a prepared statement is executed           |
+| `TransactionStarted`      | After `begin()`                                  |
+| `TransactionCommitted`    | After `commit()`                                 |
+| `TransactionRolledBack`   | After `rollback()`                               |
+| `DatabaseOperationFailed` | When a `PDOException` is caught                  |
+| `ReconnectAttempt`        | Before a reconnect attempt                       |
+| `Reconnected`             | After a successful reconnect                     |
+| `ReconnectFailed`         | When a reconnect attempt fails                   |
+| `ReconnectAborted`        | When reconnect is aborted (max attempts reached) |
 
 ### Listening to database events
 

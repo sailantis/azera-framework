@@ -34,7 +34,8 @@ php console.php <task> [<action>] [<arg1> <arg2> …] [--option] [--key=value]
 
 ## Task Discovery
 
-`Console` scans every registered namespace for files matching `*Task.php`, loads them, and registers any class that extends `Azera\Cli\Task` under a lowercase task name derived from the class name (`DatabaseTask` → `database`).
+`Console` scans registered namespaces for `*Task.php` files and registers
+each `Task` subclass under a lowercase name (`DatabaseTask` → `database`).
 
 ```php
 // App\Tasks is included automatically

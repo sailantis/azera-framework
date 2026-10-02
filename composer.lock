@@ -4,7 +4,7 @@
     "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
     "This file is @generated automatically"
   ],
-  "content-hash": "45838d30e145b94dff3825513228f578",
+  "content-hash": "027f5ddd70be5e9775ddc6390c00ea21",
   "packages": [
     {
       "name": "psr/event-dispatcher",
@@ -159,16 +159,16 @@
     },
     {
       "name": "sailantis/clarity-engine",
-      "version": "v0.2.0",
+      "version": "dev-main",
       "source": {
         "type": "git",
         "url": "https://github.com/sailantis/clarity-engine.git",
-        "reference": "8e4a6334260542af5d65792f12e6da23c3ce13dc"
+        "reference": "b160e36d2942169c364b40fa97af7de90a34420e"
       },
       "dist": {
         "type": "zip",
-        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/8e4a6334260542af5d65792f12e6da23c3ce13dc",
-        "reference": "8e4a6334260542af5d65792f12e6da23c3ce13dc",
+        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/b160e36d2942169c364b40fa97af7de90a34420e",
+        "reference": "b160e36d2942169c364b40fa97af7de90a34420e",
         "shasum": ""
       },
       "require": {
@@ -182,6 +182,7 @@
       "suggest": {
         "ext-intl": "Locale-aware formatting via IntlFormatModule (format_number, format_currency, format_date, ...)"
       },
+      "default-branch": true,
       "type": "library",
       "autoload": {
         "psr-4": {
@@ -211,7 +212,7 @@
         "issues": "https://github.com/sailantis/clarity-engine/issues",
         "source": "https://github.com/sailantis/clarity-engine"
       },
-      "time": "2026-09-30T19:31:11+00:00"
+      "time": "2026-10-02T22:12:01+00:00"
     }
   ],
   "packages-dev": [

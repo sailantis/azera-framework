@@ -1,6 +1,6 @@
 ﻿# Security
 
-Building blocks for secure applications: parameterised queries, authenticated cookie encryption, and safe cookie handling. The remaining measures — output escaping, CSRF, password hashing — are documented per feature; Clarity templates auto-escape (see [Clarity Engine](03b-CLARITY-ENGINE.md#security-sandbox)), plain PHP templates do not.
+Building blocks for secure applications: parameterised queries, authenticated cookie encryption, and safe cookie handling. The remaining measures — output escaping, CSRF, password hashing — are documented per feature; Clarity templates auto-escape (see [Clarity Engine](03b-CLARITY-ENGINE.md#the-default-policy-refuses)), plain PHP templates do not.
 
 ## SQL Injection Protection
 
@@ -29,7 +29,8 @@ Use `->bind()` for all user-supplied input. Reserve inline values for internally
 
 ### Raw SQL escape hatch
 
-`Sql::raw()` and plain string arguments to query methods inject SQL verbatim. **Never** interpolate user input through these APIs.
+`Sql::raw()` and query methods that accept raw SQL fragments inject SQL
+verbatim. **Never** interpolate user input through them.
 
 ```php
 // UNSAFE – never do this
@@ -70,7 +71,8 @@ Never print raw request input, database values, or any externally sourced string
 
 ## CSRF Protection
 
-Azera has no built-in CSRF middleware, so you must implement token-based protection for all state-changing forms. A straightforward pattern using the session:
+Use Azera's built-in `CsrfMiddleware` to protect state-changing requests. If
+you need a custom flow, the session-token pattern below shows the basics:
 
 ```php
 function csrf_token(): string
@@ -117,7 +119,7 @@ class CsrfMiddleware implements MiddlewareInterface
 
 Always use `hash_equals()` for token comparison to prevent timing attacks.
 
-Azera also ships a ready-made `Azera\Security\CsrfMiddleware` — see [Security (Enterprise)](18-SECURITY-ENTERPRISE.md) before hand-rolling this.
+See [Security (Enterprise)](18-SECURITY-ENTERPRISE.md) for middleware options.
 
 ## Password Storage
 
@@ -237,7 +239,9 @@ ini_set('session.cookie_samesite', 'Lax');
 
 ## Input Validation
 
-Use the built-in `Validator` to sanitize and coerce all external input. It returns only the fields that passed, with values cast to declared types.
+Use the built-in `Validator` to validate and coerce external input. It returns
+only fields that pass, with values cast to their declared types. Validation
+does not replace output escaping.
 
 ```php
 use Azera\Validation\Validator;

@@ -114,21 +114,8 @@ Typed PSR-14 events fire for every database operation. Listen via `AppContext::e
 
 ### Available events
 
-All events live in `Azera\Db\Event\*`:
-
-| Event class | Fired when |
-|---|---|
-| `QueryExecuted` | After a query completes (always, even on error) |
-| `StatementPrepared` | After a prepared statement is created |
-| `StatementExecuted` | After a prepared statement is executed |
-| `TransactionStarted` | After `begin()` |
-| `TransactionCommitted` | After `commit()` |
-| `TransactionRolledBack` | After `rollback()` |
-| `DatabaseOperationFailed` | When a `PDOException` is caught |
-| `ReconnectAttempt` | Before a reconnect attempt |
-| `Reconnected` | After a successful reconnect |
-| `ReconnectFailed` | When a reconnect attempt fails |
-| `ReconnectAborted` | When reconnect is aborted (max attempts reached) |
+Database events live in `Azera\Db\Event\*`. See [Events](13-EVENTS.md#database-events)
+for the full list and when each event fires.
 
 ### Listening to database events
 
@@ -188,7 +175,7 @@ $dispatcher->listen(ReconnectFailed::class, function (ReconnectFailed $event) us
 });
 ```
 
-See [Events](13-EVENTS.md) for full PSR-14 event documentation.
+See [Events](13-EVENTS.md) for listener registration and dispatch behavior.
 
 ## Practical recommendations
 

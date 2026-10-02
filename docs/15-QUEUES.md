@@ -1,6 +1,7 @@
 # Queues
 
-A minimal queue abstraction for deferring work: synchronous (inline) or asynchronous (background) processing behind one contract, so drivers are swappable without application changes.
+Azera's queue contract supports synchronous or asynchronous processing, so
+drivers can be swapped without changing application code.
 
 There is no PHP-FIG standard for queues, so Azera defines its own contracts.
 

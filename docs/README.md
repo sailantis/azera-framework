@@ -1,8 +1,7 @@
 # Azera Framework Documentation
 
-The full Azera framework reference, organised by topic. Start with
-**Getting Started** if this is your first time using Azera, or jump
-straight into the area you need.
+Guides are organized by topic. Start with **Getting Started**, or jump to the
+area you need.
 
 ## Getting Started
 
@@ -47,6 +46,16 @@ straight into the area you need.
 - [Logging](10-LOGGING.md) — Event-based logging hooks for the database
   and the application.
 
+## Additional Components
+
+- [Events](13-EVENTS.md) — PSR-14 dispatching and database events.
+- [Cache](14-CACHE.md) — PSR-16 caching and built-in implementations.
+- [Queues](15-QUEUES.md) — Synchronous jobs and async queue contracts.
+- [AOP](16-AOP.md) — Method interceptors and built-in advice attributes.
+- [Configuration](17-CONFIG.md) — Dot-notation access and environment overlays.
+- [Enterprise Security](18-SECURITY-ENTERPRISE.md) — CSRF, rate limiting,
+  password hashing, and authentication contracts.
+
 ## Reference
 
 - [Cookbook](11-COOKBOOK.md) — Practical recipes for pagination, soft
@@ -56,21 +65,15 @@ straight into the area you need.
 
 ## Benchmarks
 
-Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4 and
-CakePHP 5 on an identical full-stack workload — routing, controller, ORM
-query (SQLite), template render, response — on a real server. Two
-summaries are published, one per deployment model:
+Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4, and
+CakePHP 5 on the same full-stack workload. Summaries cover both deployment
+models:
 
-- [RoadRunner](19-BENCHMARKS-SUMMARY-ROADRUNNER.md) — a resident worker,
-  where the framework boots once and serves every request.
-- [PHP-FPM](19-BENCHMARKS-SUMMARY-FPM.md) — nginx + PHP-FPM, where the
-  framework boots again for every request, as PHP usually runs in
-  production.
+- [RoadRunner](19-BENCHMARKS-SUMMARY-ROADRUNNER.md) — a resident worker
+  serves requests after one boot.
+- [PHP-FPM](19-BENCHMARKS-SUMMARY-FPM.md) — the framework boots for each
+  request.
 
-The complete report — every framework's feature races, endpoint by
-endpoint, with the resident-worker memory charts — is published at
-<https://sailantis.github.io/azera-competition/benchmarks/>.
-
-The numbers on these pages are generated from the benchmark's own
-result JSON, never transcribed, so a chart and the table beside it
-cannot disagree.
+The [complete report](https://sailantis.github.io/azera-competition/benchmarks/)
+includes per-endpoint results, feature charts, and memory data. The summary
+numbers come directly from benchmark result JSON.

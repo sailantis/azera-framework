@@ -58,11 +58,11 @@ Constructor parameters on the controller itself are also auto-wired via `AppCont
 
 All helpers delegate to `AppContext` and are available anywhere inside the controller:
 
-| Method             | Returns                         |
-| ------------------ | ------------------------------- |
-| `$this->context()` | `AppContext`                    |
+| Method             | Returns                        |
+| ------------------ | ------------------------------ |
+| `$this->context()` | `AppContext`                   |
 | `$this->request()` | `Azera\Http\Request`           |
-| `$this->view()`    | `Azera\Core\ViewEngine`         |
+| `$this->view()`    | `Azera\Core\ViewEngine`        |
 | `$this->session()` | `Azera\Http\Session` or `null` |
 | `$this->cookies()` | `Azera\Http\Cookies`           |
 
@@ -74,13 +74,12 @@ The `Dispatcher` converts controller return values into HTTP responses:
 
 | Return type                  | Response produced                        |
 | ---------------------------- | ---------------------------------------- |
-| `Azera\Http\Response`       | sent as-is                               |
+| `Azera\Http\Response`        | sent as-is                               |
 | `array` / `JsonSerializable` | `200 application/json`                   |
 | `string`                     | `200 text/html`                          |
 | `int`                        | status-only response (e.g. `return 403`) |
 | `null`                       | `204 No Content`                         |
 
-The same table is repeated in [Architecture](01-ARCHITECTURE.md#request-flow-web); this page is the reference.
 ```php
 use Azera\Http\Response;
 
@@ -107,7 +106,10 @@ class HealthController extends Controller
 
 ## Cross-cutting concerns: use Middleware
 
-The `Controller` base class does **not** provide `beforeAction()`/`afterAction()` hooks. All cross-cutting behavior — authentication, logging, CORS, response modification, teardown — is expressed as **middleware**. A middleware can run code both *before* and *after* the action by invoking `$next()` and then inspecting or mutating its result.
+The `Controller` base class has no `beforeAction()` or `afterAction()` hooks.
+Use middleware for cross-cutting behavior such as authentication, logging, or
+CORS. Middleware can run before and after an action by calling `$next()` and
+then inspecting or changing its response.
 
 For example, "require login before every action" is an auth middleware:
 
@@ -140,7 +142,9 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 }
 ```
 
-Attach these to a controller (or a specific action) via the `$middlewares` / `$actionMiddlewares` properties below. This is strictly more flexible than dedicated hooks — middleware is reusable across controllers, orderable, configurable, and unit-testable in isolation.
+Attach middleware to a controller or action with `$middlewares` or
+`$actionMiddlewares`. Middleware can be reused, ordered, configured, and tested
+independently.
 
 ---
 

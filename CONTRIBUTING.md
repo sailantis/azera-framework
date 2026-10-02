@@ -46,7 +46,8 @@ package is absent:
 - `twig/twig`, `league/plates`, `illuminate/view` and `spiral/stempler-bridge`
   for the view-engine adapter tests.
 
-They are listed under `require-dev`, so a plain `composer install` pulls them in.
+These packages are in `require-dev` and install by default. Use
+`composer install --no-dev` to omit them.
 
 ## Code style
 

@@ -253,14 +253,9 @@ $groups = $route->groups; // Middleware groups
 $override = $route->override; // Handler overrides
 ```
 
-The Dispatcher resolves action method parameters in the following order:
-
-1. **By name from route variables** – if a route variable matches the parameter name, its value is used and cast to the declared type when possible.
-2. **By type from DI (AppContext)** – if the parameter has a class or interface type hint that is registered in `AppContext` (or is an instantiable class), it is auto-wired.
-3. **Default value** – the value declared in the method signature.
-4. **Nullable** – injected as `null`.
-
-If none of the above apply, a `RuntimeException` is thrown.
+Action parameters resolve from route variables, then `AppContext` dependency
+injection, then method defaults or `null`. See [Controllers & Views](03-CONTROLLERS-VIEWS.md#dependency-injection)
+for the full resolution rules.
 
 ## Wildcard Parameters
 

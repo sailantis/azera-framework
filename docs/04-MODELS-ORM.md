@@ -174,11 +174,10 @@ with `nullable: false` gets, and it is the informative direction of the
 flag.
 
 `T` + `nullable: true` is **refused at compile time**. A nullable column
-needs a property that can receive the null: with a `T` property the
-hydrator may only assign `null` (a `TypeError`) or throw — and throwing
-would make the attribute meaningless, since "leave the property
-uninitialized" is indistinguishable from "never loaded". Use `?T`, or
-drop the attribute.
+needs a property that can hold `null`; assigning it to `T` throws a
+`TypeError`. Leaving the property uninitialized is not a safe alternative:
+it is indistinguishable from a property that was never loaded. Use `?T` or
+remove the attribute.
 
 How a `NULL` from the store is handled follows from the resolved flag
 alone, so no second gate is compiled:
@@ -288,11 +287,9 @@ class Article extends Model
 }
 ```
 
-There is deliberately NO registration call: the cast is derived at LOOKUP
-time. Registering as a side effect of the metadata compile would be
-dropped the moment the L2 metadata cache was warm (`compile()` is skipped
-on a cache hit), and the enum would quietly start binding its case object
-to PDO.
+No registration call is needed: the cast is derived at lookup time.
+Registering during metadata compilation is unsafe because `compile()` is
+skipped on L2 cache hits, leaving the enum to bind its case object to PDO.
 
 Two shapes are **refused at compile time**, both naming the property:
 
@@ -339,10 +336,9 @@ both write and read paths consult:
   `DateTimeInterface` itself); SQL excludes nothing. Scalar casts
   (`int`/`float`/`bool`) and custom casts stay ACTIVE on mongo — their
   decode is a no-op on native BSON values.
-- **`cast: true` (FORCE)** — apply the cast even where the store excluded
-  it: a mongo `json` column then stores a JSON **text** string instead of
-  a BSON array (cross-backend parity), a `datetime` column a formatted
-  string instead of a BSON date.
+- **`cast: true` (FORCE)** — apply the cast even when the store normally
+  excludes it. On MongoDB, this stores `json` as text instead of a BSON
+  array and `datetime` as a string instead of a BSON date.
 - **`cast: false` (SUPPRESS)** — raw pass-through both directions, even on
   SQL: no encode on write, no decode on read, the snapshot keeps raw
   values. Use it for columns another tool owns (hand-written JSON), or to
@@ -655,7 +651,12 @@ $user = User::create([
 User::upsert(['id' => 7, 'username' => 'renna', 'email' => 'r@example.com']);
 ```
 
-One `INSERT ... ON CONFLICT (id) DO UPDATE SET` statement — the database decides insert vs update at write time (no SELECT, no unique-violation race under concurrency). All ID fields must be present (they form the conflict target); on conflict, all non-ID fields are updated as `EXCLUDED` references - the fastest shape on SQLite, where including the PK in SET would force an internal DELETE+INSERT.
+One `INSERT ... ON CONFLICT (id) DO UPDATE SET` statement lets the database
+decide whether to insert or update, without a SELECT or a unique-violation
+race. All ID fields must be present because they form the conflict target.
+On conflict, non-ID fields are updated from `EXCLUDED`; this is the fastest
+SQLite shape because including the primary key in `SET` forces an internal
+DELETE+INSERT.
 
 The model lands in the identity map (`User::find(7)` returns the same instance afterwards) and the statement joins any open flush transaction.
 
