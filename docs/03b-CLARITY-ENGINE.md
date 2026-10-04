@@ -510,20 +510,22 @@ Two rules: the loop variable does not exist in the else branch, and a loop takes
 Macros are reusable fragments defined once and expanded **inline at compile time** (zero runtime overhead):
 
 ```twig
-{% macro @card(title, body) %}
+{% macro card(title, body) %}
 <div class="card">
   <h3>{{ title }}</h3>
   <p>{{ body }}</p>
 </div>
 {% endmacro %}
 
-{% @card("Welcome", "Hello from Clarity!") %}
-{% @card(article.title, article.excerpt) %}
+{% call card("Welcome", "Hello from Clarity!") %}
+{% call card(article.title, article.excerpt) %}
 ```
 
-- Macro names are prefixed with `@` in both the definition and the call.
+- A macro is defined with `{% macro name(params) %}` and called with `{% call name(args) %}`.
+- Macro names are identifiers, so they are case-sensitive and may not be a directive keyword.
 - Parameters can reference any expression available at the call site.
 - Macros cannot call themselves recursively (cycle detection throws a compile error).
+- A macro may be defined inside another macro's body; the definition renders nothing where it is written.
 - Macros defined in a statically included template become available once it is included — a handy way to ship macro libraries.
 
 ### Variable Assignment
@@ -578,17 +580,17 @@ A child template extends a parent layout and overrides named blocks.
 
 ### Parent Block Fallback
 
-Inside an overriding child block, `{% @parent %}` inlines the parent block's content at that position:
+Inside an overriding child block, `{% parent %}` inlines the parent block's content at that position:
 
 ```twig
 {% extends "layouts/main" %}
 
 {% block title %}
-Admin | {% @parent %}
+Admin | {% parent %}
 {% endblock %}
 ```
 
-`{% @parent %}` is only valid inside an overriding child block, can appear multiple times in the same block, and refers to the **immediate** parent in multi-level chains.
+`{% parent %}` is only valid inside an overriding child block, can appear multiple times in the same block, and refers to the **immediate** parent in multi-level chains.
 
 ---
 
@@ -948,9 +950,9 @@ The harness lives in `azera-competition` (not in this repository): run
 | Sandboxed             | Yes (opt-in grants via [policies](#policies))                    | No                                       |
 | Auto-escaping         | Always on by default, context-aware (`html`/`js`/`css`)          | Manual                                   |
 | Compilation & caching | Yes                                                              | No                                       |
-| Template inheritance  | `{% extends %}` / `{% block %}` (+ `{% @parent %}`)              | require/include                          |
+| Template inheritance  | `{% extends %}` / `{% block %}` (+ `{% parent %}`)               | require/include                          |
 | Filter pipeline       | 40+ built-in filters, one call model, lambdas, named arguments   | Not built-in                             |
-| Reusable fragments    | `{% macro %}` / `{% @name() %}`, compile-time inlining           | require/include                          |
+| Reusable fragments    | `{% macro %}` / `{% call name() %}`, compile-time inlining        | require/include                          |
 | Suitable for          | User-facing views, team projects, untrusted template authors     | Full PHP control, existing PHP templates |
 
 ---
