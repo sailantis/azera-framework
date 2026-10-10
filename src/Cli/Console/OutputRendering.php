@@ -87,7 +87,7 @@ trait OutputRendering
             // sapi_windows_vt100_support() is the most reliable indicator
             if (
                 function_exists('sapi_windows_vt100_support') &&
-                @sapi_windows_vt100_support(STDOUT)
+                    @sapi_windows_vt100_support(STDOUT)
             ) {
                 return true;
             }
@@ -99,7 +99,7 @@ trait OutputRendering
             }
 
             // VS Code Terminal -> Truecolor
-            if (getenv('TERM_PROGRAM') === 'vscode') {
+            if ($termProgram === 'vscode') {
                 return true;
             }
 
@@ -127,8 +127,8 @@ trait OutputRendering
         $term = strtolower(getenv('TERM') ?: '');
         if (
             str_contains($term, 'truecolor') ||
-            str_contains($term, '24bit') ||
-            str_contains($term, '256color')
+                str_contains($term, '24bit') ||
+                str_contains($term, '256color')
         ) {
             return true;
         }

@@ -32,25 +32,25 @@ $ctx->view()->setViewPath(__DIR__ . '/../views');
 
 ### Configuration
 
-| Method                                             | Description                                                                    |
-| -------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `setViewPath(string $path)`                        | Base directory where templates are found                                       |
-| `setLayout(?string $layout)`                       | Default layout template (`null` disables the layout)                           |
-| `setExtension(string $ext)`                        | Override the file extension (default: `.clarity.html`)                         |
-| `setCachePath(string $path)`                       | Directory for compiled PHP files (default: `sys_get_temp_dir()/clarity_cache`) |
-| `getCachePath()`                                   | Return the current cache path                                                  |
-| `flushCache()`                                     | Delete all compiled files – useful during development                          |
-| `addFilter(string $name, callable $fn)`            | Register a custom filter                                                       |
-| `addFunction(string $name, callable $fn)`          | Register a custom function                                                     |
-| `addNamespace(string $ns, string $path)`           | Register a named directory for template resolution                             |
-| `renderPartial(string $view, array $vars)`         | Render without applying the default layout                                     |
+| Method                                             | Description                                                                                           |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `setViewPath(string $path)`                        | Base directory where templates are found                                                              |
+| `setLayout(?string $layout)`                       | Default layout template (`null` disables the layout)                                                  |
+| `setExtension(string $ext)`                        | Override the file extension (default: `.clarity.html`)                                                |
+| `setCachePath(string $path)`                       | Directory for compiled PHP files (default: `sys_get_temp_dir()/clarity_cache`)                        |
+| `getCachePath()`                                   | Return the current cache path                                                                         |
+| `flushCache()`                                     | Delete all compiled files – useful during development                                                 |
+| `addFilter(string $name, callable $fn)`            | Register a custom filter                                                                              |
+| `addFunction(string $name, callable $fn)`          | Register a custom function                                                                            |
+| `addNamespace(string $ns, string $path)`           | Register a named directory for template resolution                                                    |
+| `renderPartial(string $view, array $vars)`         | Render without applying the default layout                                                            |
 | `setPolicy(Policy\|array $policy)`                 | What templates may reach (default: `Clarity\Engine\Policy::restricted()`) — see [Policies](#policies) |
-| `getPolicy(): Policy`                              | The current policy object                                                      |
-| `isSandboxed(): bool`                              | Whether the policy lets templates reach PHP at all                             |
-| `setDebugMode(bool $debug)` / `isDebugMode()`      | Runtime safety checks plus context-aware `dump()`/`dd()`                       |
-| `addInlineFilter(string $name, array $definition)` | Zero-overhead filter compiled straight into the generated PHP                  |
-| `addDirective(string $keyword, callable $handler)` | Custom `{% keyword %}` directive (emits PHP at compile time)                   |
-| `use(ModuleInterface $module)`                     | Bundle filters/functions/directives into a self-registering module             |
+| `getPolicy(): Policy`                              | The current policy object                                                                             |
+| `isSandboxed(): bool`                              | Whether the policy lets templates reach PHP at all                                                    |
+| `setDebugMode(bool $debug)` / `isDebugMode()`      | Runtime safety checks plus context-aware `dump()`/`dd()`                                              |
+| `addInlineFilter(string $name, array $definition)` | Zero-overhead filter compiled straight into the generated PHP                                         |
+| `addDirective(string $keyword, callable $handler)` | Custom `{% keyword %}` directive (emits PHP at compile time)                                          |
+| `use(ModuleInterface $module)`                     | Bundle filters/functions/directives into a self-registering module                                    |
 
 ---
 
@@ -89,14 +89,14 @@ $ctx->view()->setViewPath(__DIR__ . '/../views');
 
 Access is **strict**: the operator states what the value IS, and the engine emits exactly that read. **Objects stay objects** — there is no automatic object → array conversion before rendering; PHP's own visibility rules apply, so private/protected state is never exposed.
 
-| Syntax                        | Meaning                                  | Emits                      |
-| ----------------------------- | ---------------------------------------- | -------------------------- |
-| `a.b.c`                       | **object property** (static)             | `$vars['a']->b->c`         |
-| `a{expr}`                     | object property (dynamic)                | `$vars['a']->{$exprPhp}`   |
-| `items[expr]`                 | **array index**                          | `$vars['items'][$exprPhp]` |
-| `a:b:c`                       | **array key** (static)                   | `$vars['a']['b']['c']`     |
-| `$a.b` / `$a->b`              | PHP-style alias for `.`                  | `$vars['a']->b`            |
-| `a?.b` `a?[i]` `a?{k}` `a?:k` | optional **receiver**                    | `isset(…) ? … : null`      |
+| Syntax                        | Meaning                                        | Emits                                                                   |
+| ----------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
+| `a.b.c`                       | **object property** (static)                   | `$vars['a']->b->c`                                                      |
+| `a{expr}`                     | object property (dynamic)                      | `$vars['a']->{$exprPhp}`                                                |
+| `items[expr]`                 | **array index**                                | `$vars['items'][$exprPhp]`                                              |
+| `a:b:c`                       | **array key** (static)                         | `$vars['a']['b']['c']`                                                  |
+| `$a.b` / `$a->b`              | PHP-style alias for `.`                        | `$vars['a']->b`                                                         |
+| `a?.b` `a?[i]` `a?{k}` `a?:k` | optional **receiver**                          | `isset(…) ? … : null`                                                   |
 | `${expr}` / `$$name`          | variable whose **name** an expression produces | render-scope lookup (the `variableVariables` capability, on by default) |
 
 ```
@@ -116,7 +116,7 @@ Applying the wrong operator is an error, not a silent `null`:
 {{ user:name }}     {# CORRECT #}
 ```
 
-A missing key or property raises an exception naming the template and line, while a key that is *present but holds `null`* returns `null` — only genuinely absent names throw.
+A missing key or property raises an exception naming the template and line, while a key that is _present but holds `null`_ returns `null` — only genuinely absent names throw.
 Whitespace around a chain operator is not significant, so a chain may wrap
 (`user.\naddress.\ncity`). `.` is never string concatenation — use `~` — and an
 operator with no member after it is a compile error.
@@ -140,19 +140,19 @@ Objects iterate their public properties, and container filters (`length`, `keys`
 
 ### Operators
 
-| Clarity                          | PHP equivalent | Notes                            |
-| -------------------------------- | -------------- | -------------------------------- |
-| `and` (also `&&`)                | `&&`           |                                  |
-| `or` (also `\|\|`)               | `\|\|`         |                                  |
-| `not` (also `!`)                 | `!`            |                                  |
-| `~`                              | `.`            | String concatenation             |
-| `==`, `!=`, `<`, `>`, `<=`, `>=` | same           |                                  |
-| `+`, `-`, `*`, `/`, `%`          | same           |                                  |
-| `bor`, `band`, `bxor`, `bnot`    | `\|`, `&`, `^`, `~` | Bitwise keywords (single `\|` is the filter pipe) |
-| `blsh`, `brsh`                   | `<<`, `>>`     | Bit shifts                       |
-| `??`                             | same           | Null coalescing                  |
-| `x instanceof Foo`               | same           | Class test – works under every policy (no capability needed) |
-| `true`, `false`, `null`          | same           |                                  |
+| Clarity                          | PHP equivalent      | Notes                                                        |
+| -------------------------------- | ------------------- | ------------------------------------------------------------ |
+| `and` (also `&&`)                | `&&`                |                                                              |
+| `or` (also `\|\|`)               | `\|\|`              |                                                              |
+| `not` (also `!`)                 | `!`                 |                                                              |
+| `~`                              | `.`                 | String concatenation                                         |
+| `==`, `!=`, `<`, `>`, `<=`, `>=` | same                |                                                              |
+| `+`, `-`, `*`, `/`, `%`          | same                |                                                              |
+| `bor`, `band`, `bxor`, `bnot`    | `\|`, `&`, `^`, `~` | Bitwise keywords (single `\|` is the filter pipe)            |
+| `blsh`, `brsh`                   | `<<`, `>>`          | Bit shifts                                                   |
+| `??`                             | same                | Null coalescing                                              |
+| `x instanceof Foo`               | same                | Class test – works under every policy (no capability needed) |
+| `true`, `false`, `null`          | same                |                                                              |
 
 #### Twig-Style Tests
 
@@ -177,6 +177,59 @@ Tests read as words and can be used anywhere a boolean is expected. The absence-
 ```
 
 Registered template functions are allowed in expressions. Built-in `context()`, `include()`, `range()`, `cycle()`, `attribute()` and `json()` are always available, and user code may register additional functions via `addFunction()`. Arbitrary PHP function calls such as `strtoupper(name)` are rejected at compile time unless the policy grants them (via `allowFunctions()`, a preset, or [PHP mode](#php-mode)).
+
+### Cast Syntax
+
+A PHP-style cast prefix converts a value's type in place — the same construct as
+the [cast filters](#type-casts), in PHP's own spelling:
+
+```twig
+{{ (int) x }}                    {# same as {{ x |> int }}       #}
+{{ (float) '3.7' }}              {# 3.7                          #}
+{{ (string) 1.5 }}               {# '1.5'                       #}
+{{ (array) value }}              {# [value]                     #}
+{{ abs((int) '-4343') }}         {# 4343                        #}
+```
+
+Accepted types are `int`, `float`, `string`, `bool`, `array` and `object` — one
+spelling each. `object` turns a scalar or array into an object and has no filter
+form, so write the cast.
+
+The operand is a single value: a name, a chain (`(int) user:age`), an index
+(`(int) items[0]`), a literal (`(int) -5`), a parenthesised expression
+(`(int) (10 + 5)`), or another cast (`(int) (float) x`). Casts compose with the
+pipeline: `{{ (int) x |> string }}`.
+
+`(int)` and `(a)` are the same shape, so the grammar separates them by what
+follows the `)`:
+
+| Expression    | Reading                                          |
+| ------------- | ------------------------------------------------ |
+| `(int) x`     | cast — whitespace, then a name                   |
+| `(int) -5`    | cast — whitespace, then a sign glued to a number |
+| `(int) (x)`   | cast of the grouped `x`                          |
+| `(string)(x)` | cast — `(` opens an operand too                  |
+| `(a) + b`     | **not** a cast — `+` cannot open an operand      |
+| `(a) ? b : c` | **not** a cast — `?` cannot open an operand      |
+| `(a) x`       | **not** a cast — unchanged                       |
+
+Anything else keeps the old reading, so `{{ (a) }}`, `{{ (a + b) }}` and
+`{% if (a) %}` compile exactly as they always did. Parenthesise when in doubt:
+`(a) - 5` is subtraction, `(int) -5` is a cast.
+
+Casts are also the way through `strictTypes`, which is on by default. The numeric
+filters deliberately do **not** cast their input, so a numeric string reaching one
+is a `TypeError`:
+
+```twig
+{{ '3.7' |> round(2) }}          {# TypeError — unchanged, on purpose    #}
+{{ '3.7' |> float |> round(2) }} {# 3.7 — the conversion is stated       #}
+```
+
+Prefer the cast over `Policy::denyRule('strictTypes')`, which turns the check off
+for **every** call in the template rather than fixing the one that is wrong.
+`number` is the only built-in filter that casts, because `number_format()` has no
+`string` overload at all.
 
 ### Nested Conditions
 
@@ -254,12 +307,12 @@ The single `|` (Twig/Svelte style) is fully interchangeable with the fat pipe `|
 
 ### One Call Model
 
-Filters and functions share one namespace: every registered name can be used piped *or* called. The piped value becomes the first argument, so `{{ trim(name) }}` equals `{{ name |> trim }}`. Two names mirror their PHP builtins in call form instead:
+Filters and functions share one namespace: every registered name can be used piped _or_ called. The piped value becomes the first argument, so `{{ trim(name) }}` equals `{{ name |> trim }}`. Two names mirror their PHP builtins in call form instead:
 
-| Name   | Filter form               | Function form           | Mirrors              |
-| ------ | ------------------------- | ----------------------- | -------------------- |
-| `date` | `ts \|> date('Y-m-d')`    | `date('Y-m-d', ts)`     | `date($format, $ts)` |
-| `join` | `items \|> join(', ')`    | `join(', ', items)`     | `implode($glue, $arr)` |
+| Name   | Filter form            | Function form       | Mirrors                |
+| ------ | ---------------------- | ------------------- | ---------------------- |
+| `date` | `ts \|> date('Y-m-d')` | `date('Y-m-d', ts)` | `date($format, $ts)`   |
+| `join` | `items \|> join(', ')` | `join(', ', items)` | `implode($glue, $arr)` |
 
 A registered name always wins over a same-named PHP builtin in both forms.
 
@@ -274,65 +327,84 @@ Filters with arguments use parentheses after the filter name:
 
 #### Strings
 
-| Filter                        | Signature                            | Description                                     |
-| ----------------------------- | ------------------------------------ | ----------------------------------------------- |
-| `trim`                        | `(value)`                            | Remove leading/trailing whitespace              |
-| `upper` / `lower`             | `(value)`                            | `mb_strtoupper` / `mb_strtolower`               |
-| `capitalize` / `title`        | `(value)`                            | First-letter case / title-case every word       |
-| `length` (alias: `len`)       | `(value)`                            | `mb_strlen` for strings, `count` for arrays     |
-| `replace(search, replace)`    | `(value, …)`                         | `str_replace`                                   |
-| `split(delimiter, limit?)`    | `(value, …)`                         | `explode` into an array                         |
-| `join(glue)`                  | `(value, …)`                         | `implode`; call form takes glue first           |
-| `truncate(length, ellipsis?)` | `(value, …)`                         | Truncate to length, append `…`                  |
-| `slug(separator?)`            | `(value, …)`                         | URL-friendly slug with Unicode transliteration  |
-| `striptags(allowed?)`         | `(value, …)`                         | Strip HTML/PHP tags                             |
-| `nl2br`                       | `(value)`                            | `<br>` before newlines (use with `\|> raw`)     |
-| `sprintf(...args)` / `format` | `(value, …)`                         | Value is the format string                      |
-| `escape` (aliases: `e`, `esc`) | `(value)`                           | HTML-escape (rarely needed; auto-escaping is on) |
-| `url_encode`                  | `(value)`                            | `rawurlencode`                                  |
+| Filter                         | Signature    | Description                                      |
+| ------------------------------ | ------------ | ------------------------------------------------ |
+| `trim`                         | `(value)`    | Remove leading/trailing whitespace               |
+| `upper` / `lower`              | `(value)`    | `mb_strtoupper` / `mb_strtolower`                |
+| `capitalize` / `title`         | `(value)`    | First-letter case / title-case every word        |
+| `length` (alias: `len`)        | `(value)`    | `mb_strlen` for strings, `count` for arrays      |
+| `replace(search, replace)`     | `(value, …)` | `str_replace`                                    |
+| `split(delimiter, limit?)`     | `(value, …)` | `explode` into an array                          |
+| `join(glue)`                   | `(value, …)` | `implode`; call form takes glue first            |
+| `truncate(length, ellipsis?)`  | `(value, …)` | Truncate to length, append `…`                   |
+| `slug(separator?)`             | `(value, …)` | URL-friendly slug with Unicode transliteration   |
+| `striptags(allowed?)`          | `(value, …)` | Strip HTML/PHP tags                              |
+| `nl2br`                        | `(value)`    | `<br>` before newlines (use with `\|> raw`)      |
+| `sprintf(...args)` / `format`  | `(value, …)` | Value is the format string                       |
+| `escape` (aliases: `e`, `esc`) | `(value)`    | HTML-escape (rarely needed; auto-escaping is on) |
+| `url_encode`                   | `(value)`    | `rawurlencode`                                   |
 
 #### Numbers
 
-| Filter                | Signature        | Description            |
-| --------------------- | ---------------- | ---------------------- |
-| `number(decimals=2)`  | `(value, …)`     | `number_format`        |
-| `abs`                 | `(value)`        | Absolute value         |
-| `round(precision=0)`  | `(value, …)`     | Round to precision     |
-| `ceil` / `floor`      | `(value)`        | Round up / down        |
+| Filter               | Signature    | Description        |
+| -------------------- | ------------ | ------------------ |
+| `number(decimals=2)` | `(value, …)` | `number_format`    |
+| `abs`                | `(value)`    | Absolute value     |
+| `round(precision=0)` | `(value, …)` | Round to precision |
+| `ceil` / `floor`     | `(value)`    | Round up / down    |
 
 #### Dates
 
-| Filter                  | Signature        | Description                                     |
-| ----------------------- | ---------------- | ----------------------------------------------- |
-| `date(format='Y-m-d')`  | `(value, …)`     | Formats a Unix timestamp, date string, or `DateTimeInterface` |
-| `date_modify(modifier)` | `(value, …)`     | Apply a modifier (e.g. `'+1 day'`), returns timestamp    |
-| `format_datetime(...)`  | `(value, …)`     | `IntlDateFormatter` styles (requires `intl`)    |
+| Filter                  | Signature    | Description                                                   |
+| ----------------------- | ------------ | ------------------------------------------------------------- |
+| `date(format='Y-m-d')`  | `(value, …)` | Formats a Unix timestamp, date string, or `DateTimeInterface` |
+| `date_modify(modifier)` | `(value, …)` | Apply a modifier (e.g. `'+1 day'`), returns timestamp         |
+| `format_datetime(...)`  | `(value, …)` | `IntlDateFormatter` styles (requires `intl`)                  |
 
 #### Arrays & Collections
 
-| Filter                   | Signature              | Description                                        |
-| ------------------------ | ---------------------- | -------------------------------------------------- |
-| `first` / `last`         | `(value)`              | First/last element (arrays and strings)            |
-| `keys` / `values`        | `(value)`              | Array keys / re-indexed values                     |
-| `slice(start, length?)`  | `(value, …)`           | `array_slice` / `mb_substr`                        |
-| `merge(other)`           | `(value, …)`           | `array_merge`                                      |
-| `sort`                   | `(value)`              | Sorted **copy** (never in place)                   |
-| `reverse`                | `(value)`              | Reverse array or string (Unicode-aware)            |
-| `shuffle`                | `(value)`              | Shuffled copy                                      |
-| `batch(size, fill?)`     | `(value, …)`           | Chunk into batches, optionally padded              |
-| `map(fn)`                | `(value, callable)`    | Transform each element (see [Lambda Expressions](#lambda-expressions)) |
-| `filter(fn?)`            | `(value, callable?)`   | Keep elements matching a predicate; keys preserved |
-| `reduce(fn, initial?)`   | `(value, callable, …)` | Reduce to a single value                           |
+| Filter                  | Signature              | Description                                                            |
+| ----------------------- | ---------------------- | ---------------------------------------------------------------------- |
+| `first` / `last`        | `(value)`              | First/last element (arrays and strings)                                |
+| `keys` / `values`       | `(value)`              | Array keys / re-indexed values                                         |
+| `slice(start, length?)` | `(value, …)`           | `array_slice` / `mb_substr`                                            |
+| `merge(other)`          | `(value, …)`           | `array_merge`                                                          |
+| `sort`                  | `(value)`              | Sorted **copy** (never in place)                                       |
+| `reverse`               | `(value)`              | Reverse array or string (Unicode-aware)                                |
+| `shuffle`               | `(value)`              | Shuffled copy                                                          |
+| `batch(size, fill?)`    | `(value, …)`           | Chunk into batches, optionally padded                                  |
+| `map(fn)`               | `(value, callable)`    | Transform each element (see [Lambda Expressions](#lambda-expressions)) |
+| `filter(fn?)`           | `(value, callable?)`   | Keep elements matching a predicate; keys preserved                     |
+| `reduce(fn, initial?)`  | `(value, callable, …)` | Reduce to a single value                                               |
+
+#### Type Casts
+
+| Filter   | Signature | Description                                               |
+| -------- | --------- | --------------------------------------------------------- |
+| `int`    | `(value)` | Cast to int, truncating any fraction                      |
+| `float`  | `(value)` | Cast to float                                             |
+| `string` | `(value)` | Cast to string                                            |
+| `bool`   | `(value)` | Cast to bool (PHP truthiness — the string `"0"` is false) |
+| `array`  | `(value)` | Cast to array; a scalar is wrapped                        |
+
+All five are available as a filter (`{{ x |> int }}`) and as a call
+(`{{ int(x) }}`), and four of them also as a PHP-style cast prefix — see
+[Cast Syntax](#cast-syntax). `object` exists in the syntax but has no filter form.
+
+A cast is **total**: it never throws and never yields `null`. A value that cannot
+be read as the target type becomes that type's empty value — `(int) 'dsfd'` is
+`0`. That is what makes a cast usable on input whose type is only known at
+render time.
 
 #### Utility
 
-| Filter                  | Signature        | Description                                  |
-| ----------------------- | ---------------- | -------------------------------------------- |
-| `json`                  | `(value)`        | `json_encode` (use with `\|> raw`)           |
-| `default(fallback)`     | `(value, …)`     | Fallback on `null`/missing (`??` semantics)  |
-| `empty(fallback)`       | `(value, …)`     | Fallback on any falsy value (`?:` semantics) |
-| `data_uri(mime?)`       | `(value, …)`     | Base64 `data:` URI                           |
-| `unicode`               | `(value)`        | Wrap in `UnicodeString` for Unicode ops      |
+| Filter              | Signature    | Description                                  |
+| ------------------- | ------------ | -------------------------------------------- |
+| `json`              | `(value)`    | `json_encode` (use with `\|> raw`)           |
+| `default(fallback)` | `(value, …)` | Fallback on `null`/missing (`??` semantics)  |
+| `empty(fallback)`   | `(value, …)` | Fallback on any falsy value (`?:` semantics) |
+| `data_uri(mime?)`   | `(value, …)` | Base64 `data:` URI                           |
+| `unicode`           | `(value)`    | Wrap in `UnicodeString` for Unicode ops      |
 
 > `|> filter` keeps the original keys and does **not** reindex — follow with `|> values` when a zero-based list is needed. `|> map` also preserves keys.
 
@@ -347,11 +419,11 @@ var userData = {{ user |> json }};
 <p>{{ message }}</p>
 ```
 
-| Context | Escaping applied to output expressions                  |
-| ------- | ------------------------------------------------------- |
-| `html`  | `htmlspecialchars()` (default)                          |
-| `js`    | `json_encode()` with hex escaping (safe for inline JS)  |
-| `css`   | Cast to `(string)` — no HTML escaping                   |
+| Context | Escaping applied to output expressions                 |
+| ------- | ------------------------------------------------------ |
+| `html`  | `htmlspecialchars()` (default)                         |
+| `js`    | `json_encode()` with hex escaping (safe for inline JS) |
+| `css`   | Cast to `(string)` — no HTML escaping                  |
 
 ### Custom Filters
 
@@ -699,6 +771,12 @@ When active:
 - Range loops get runtime safety checks: a step of `0`, or one that moves away from the end, throws instead of looping forever.
 - Cache files compiled with a different debug flag recompile automatically.
 
+For long-running workers (RoadRunner and similar), `dd()` would otherwise call `exit()` and kill the worker. Enable `haltWithException(true)` only in a host that catches `Clarity\Debug\DumpHaltException`; `dd()` then throws it, carrying the rendered dump. The RoadRunner HTTP worker enables this itself and returns that dump as a 500 response.
+
+```php
+$ctx->view()->setDebugMode((new DumpOptions())->haltWithException(true));
+```
+
 ---
 
 ## Policies
@@ -723,15 +801,15 @@ $ctx->view()->setPolicy(Policy::default()        // the default, plus the grants
 Each preset is named for what it grants. `default()` is not a blank slate: it
 starts from `restricted()`, so every capability you do not name stays off.
 
-| Capability          | Default | What it grants                                                     |
-| ------------------- | ------- | ------------------------------------------------------------------ |
-| `rawPhp`            | `false` | `{% php CODE %}` tags                                              |
+| Capability          | Default | What it grants                                                              |
+| ------------------- | ------- | --------------------------------------------------------------------------- |
+| `rawPhp`            | `false` | `{% php CODE %}` tags                                                       |
 | `methodCalls`       | `false` | `obj.method(args)` / `$obj->method(args)`, with arguments and dynamic names |
-| `superglobals`      | `false` | `$_SERVER`, `$_GET`, `$_ENV`, … as chain roots                     |
-| `phpVariables`      | `false` | the render scope seeded into PHP locals (`{% php echo $title; %}`) |
-| `variableVariables` | `true`  | `$$name` / `${expr}` dynamic variable access                       |
-| `newExpressions`    | `false` | `new Foo(args)`                                                    |
-| `staticCalls`       | `false` | `Foo::method(args)`, `Foo::CONST`, `Foo::class`                    |
+| `superglobals`      | `false` | `$_SERVER`, `$_GET`, `$_ENV`, … as chain roots                              |
+| `phpVariables`      | `false` | the render scope seeded into PHP locals (`{% php echo $title; %}`)          |
+| `variableVariables` | `true`  | `$$name` / `${expr}` dynamic variable access                                |
+| `newExpressions`    | `false` | `new Foo(args)`                                                             |
+| `staticCalls`       | `false` | `Foo::method(args)`, `Foo::CONST`, `Foo::class`                             |
 
 `Policy::trusted()` enables `rawPhp`, `methodCalls`, `superglobals`, and
 `phpVariables`, but not `newExpressions` or `staticCalls`. Those class-reaching
@@ -874,8 +952,8 @@ With the default `Policy::restricted()`, everything below is rejected **at compi
 
 What holds in **every** policy, including an open one:
 
-- Direct access to engine internals: identifiers prefixed `__c_` are engine-owned; a template cannot *bind* a `__c_`-prefixed name (it would swap an internal for the rest of the render).
-- A callable cannot be smuggled through a variable: `$fn()` on the *root* value is rejected (the function-level equivalent of variable-variable expansion), and `map`/`filter`/`reduce` only accept lambda expressions or filter references.
+- Direct access to engine internals: identifiers prefixed `__c_` are engine-owned; a template cannot _bind_ a `__c_`-prefixed name (it would swap an internal for the rest of the render).
+- A callable cannot be smuggled through a variable: `$fn()` on the _root_ value is rejected (the function-level equivalent of variable-variable expansion), and `map`/`filter`/`reduce` only accept lambda expressions or filter references.
 - `superglobals` is independent of `phpVariables`: without it, a superglobal name is an ordinary scope read of a name the scope does not hold and therefore throws — even when `phpVariables` is granted.
 - `${expr}` / `$$name` dynamic access resolves only against the render scope and loop locals; it cannot reach a superglobal or an engine internal in any policy.
 
@@ -888,7 +966,7 @@ Under the default policy, Clarity templates have **no access to PHP**:
 - Method calls (`a.b()`) are rejected without the `methodCalls` capability. The capability alone decides — both `a.b()` and `$a.b()` are the same call, and granting it makes both work.
 - **Objects stay objects.** No automatic object → array conversion happens: `a.b` performs a real public-property read and container operations (`{% for %}`, `length`, `keys`, `values`, `first`, `last`) read an object's public properties or its `Traversable` state. Private/protected state is never exposed, `toArray()`/`JsonSerializable` are not consulted on the access path, and a value object without public properties that is `Stringable` renders via `__toString()`.
 - Statement delimiters (`;`), backticks, heredocs, and PHP open/close tags are disallowed in expressions.
-- Superglobals are out of reach without the dedicated capability; the engine's internal `__c_`-prefixed namespace is unreachable in **every** policy; `instanceof` is the one class-name construct available everywhere (it takes a class name because that is what the operator means and reaches nothing the scope did not already hold — `{% if order instanceof DateTimeInterface %}` works).
+- Superglobals are out of reach without the dedicated capability; the engine's internal `__c_`-prefixed namespace is unreachable in **every** policy; `instanceof` is the one class-name construct available everywhere (it takes a class name because that is what the operator means and reaches nothing the scope did not already hold — `{% if order instanceof DateTimeInterface %}` works). Type casts (`{{ (int) x }}`) and the cast filters are likewise available in every policy: they are grammar and value conversion, not a reach.
 - `map`, `filter`, and `reduce` only accept lambda expressions or filter references — passing a callable via a template variable is rejected at compile time.
 
 View-path boundary: a template name may not address a file outside the view path — absolute names and any `..` segment are refused, whatever the spelling.
@@ -944,16 +1022,16 @@ The harness lives in `azera-competition` (not in this repository): run
 
 ## Choosing Between ClarityEngine and NativeEngine
 
-|                       | ClarityEngine _(default)_                                        | NativeEngine                             |
-| --------------------- | ---------------------------------------------------------------- | ---------------------------------------- |
-| Template syntax       | Clarity DSL (`{{ }}`, `{% %}`, `{# #}`)                          | Plain PHP (`<?= ?>`, `<?php ?>`)         |
-| Sandboxed             | Yes (opt-in grants via [policies](#policies))                    | No                                       |
-| Auto-escaping         | Always on by default, context-aware (`html`/`js`/`css`)          | Manual                                   |
-| Compilation & caching | Yes                                                              | No                                       |
-| Template inheritance  | `{% extends %}` / `{% block %}` (+ `{% parent %}`)               | require/include                          |
-| Filter pipeline       | 40+ built-in filters, one call model, lambdas, named arguments   | Not built-in                             |
-| Reusable fragments    | `{% macro %}` / `{% call name() %}`, compile-time inlining        | require/include                          |
-| Suitable for          | User-facing views, team projects, untrusted template authors     | Full PHP control, existing PHP templates |
+|                       | ClarityEngine _(default)_                                      | NativeEngine                             |
+| --------------------- | -------------------------------------------------------------- | ---------------------------------------- |
+| Template syntax       | Clarity DSL (`{{ }}`, `{% %}`, `{# #}`)                        | Plain PHP (`<?= ?>`, `<?php ?>`)         |
+| Sandboxed             | Yes (opt-in grants via [policies](#policies))                  | No                                       |
+| Auto-escaping         | Always on by default, context-aware (`html`/`js`/`css`)        | Manual                                   |
+| Compilation & caching | Yes                                                            | No                                       |
+| Template inheritance  | `{% extends %}` / `{% block %}` (+ `{% parent %}`)             | require/include                          |
+| Filter pipeline       | 40+ built-in filters, one call model, lambdas, named arguments | Not built-in                             |
+| Reusable fragments    | `{% macro %}` / `{% call name() %}`, compile-time inlining     | require/include                          |
+| Suitable for          | User-facing views, team projects, untrusted template authors   | Full PHP control, existing PHP templates |
 
 ---
 
