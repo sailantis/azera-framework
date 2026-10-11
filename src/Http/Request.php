@@ -52,6 +52,27 @@ class Request
     }
 
     /**
+     * Set the raw request body.
+     *
+     * Exists for application-server workers (RoadRunner, Stokehold), where the
+     * request does not arrive through the SAPI and `php://input` is not the
+     * body. In a worker, stdin carries the server's own protocol frames, so
+     * letting {@see body()} fall back to `php://input` would consume protocol
+     * bytes and desynchronise the stream permanently. A worker adapter injects
+     * the body it was handed, and {@see body()} then never reads the pipe.
+     *
+     * Set it even when the body is empty. `body()` only falls back when the
+     * value is null, so an empty string is what stops the read — a bodyless
+     * GET in a worker is exactly the case that must not touch `php://input`.
+     */
+    public function setRawBody(string $body): static
+    {
+        $this->rawBody = $body;
+
+        return $this;
+    }
+
+    /**
      * Get and parse JSON request body
      * @param bool $assoc When true, returns associative arrays. When false, returns objects
      * @return mixed Returns the parsed JSON data, or null on error
