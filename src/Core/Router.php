@@ -1044,14 +1044,23 @@ class Router
         } elseif (\is_array($handler)) {
             $override = $handler;
             if (!empty($override['controller'])) {
-                $namespacePart = strstr($override['controller'], '\\', true);
-                if ($namespacePart !== false) {
+                $controller = (string) $override['controller'];
+
+                // The separator is the *last* backslash, exactly as in the
+                // string form below. A fully qualified name contains several,
+                // and the class is what follows the last of them: splitting on
+                // the first turns `App\Controllers\IndexController` into the
+                // namespace `App` and the class `Controllers\IndexController`,
+                // which resolves to nothing.
+                $namespaceSeparator = strrpos($controller, '\\');
+                if ($namespaceSeparator !== false) {
+                    $namespacePart = substr($controller, 0, $namespaceSeparator);
                     if (!empty($override['namespace'])) {
                         $override['namespace'] .= '\\' . $namespacePart;
                     } else {
                         $override['namespace'] = $namespacePart;
                     }
-                    $override['controller'] = substr($override['controller'], strlen($namespacePart) + 1);
+                    $override['controller'] = substr($controller, $namespaceSeparator + 1);
                 }
             }
         } else {

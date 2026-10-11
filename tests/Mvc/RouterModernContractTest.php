@@ -129,4 +129,45 @@ class RouterModernContractTest extends TestCase
 
         $this->assertNull($result);
     }
+
+    /**
+     * The array handler form must split a controller the way the string form
+     * does: on the *last* backslash.
+     *
+     * Splitting on the first turns `App\Controllers\IndexController` into the
+     * namespace `App` and the class `Controllers\IndexController`, which
+     * resolves to nothing — and does so at dispatch time, not at match time, so
+     * the route looks healthy until a request arrives. This is how a
+     * `[Controller::class, 'action']` route could be registered, match, and then
+     * raise "Service not found".
+     */
+    public function testAFullyQualifiedControllerInTheArrayFormSplitsOnTheLastSeparator(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/', ['App\\Controllers\\IndexController', 'indexAction']);
+
+        $result = $router->match('/');
+
+        $this->assertNotNull($result);
+        $this->assertSame('App\\Controllers', $result['override']['namespace']);
+        $this->assertSame('IndexController', $result['override']['controller']);
+        $this->assertSame('indexAction', $result['override']['action']);
+    }
+
+    /**
+     * A controller name with no separator is a class, not a namespace, and is
+     * left alone for the dispatcher's base namespace to complete.
+     */
+    public function testAnUnqualifiedControllerInTheArrayFormIsNotSplit(): void
+    {
+        $router = new Router();
+        $router->add('GET', '/', ['IndexController', 'indexAction']);
+
+        $result = $router->match('/');
+
+        $this->assertNotNull($result);
+        $this->assertArrayNotHasKey('namespace', $result['override']);
+        $this->assertSame('IndexController', $result['override']['controller']);
+        $this->assertSame('indexAction', $result['override']['action']);
+    }
 }

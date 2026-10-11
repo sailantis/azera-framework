@@ -170,7 +170,25 @@ class Request
      */
     public function header(string $name, mixed $default = null): mixed
     {
-        // Convert header name to server key format (e.g. "Content-Type" -> "HTTP_CONTENT_TYPE")
+        // Most headers reach the server array under their HTTP_* name, but the
+        // CGI specification gives two of them unprefixed names. Looking only
+        // for HTTP_CONTENT_TYPE would miss the Content-Type that every real
+        // SAPI provides — `php-cgi` sends CONTENT_TYPE and never
+        // HTTP_CONTENT_TYPE, and the same is true of the server's CGI
+        // environment. Content-Length is the mirror image: the length of the
+        // body actually delivered is authoritative, so a declared
+        // Content-Length is not a header the application should be able to read
+        // past.
+        if (strcasecmp($name, 'Content-Type') === 0) {
+            return $this->server['CONTENT_TYPE'] ?? $default;
+        }
+        if (strcasecmp($name, 'Content-Length') === 0) {
+            return isset($this->server['CONTENT_LENGTH'])
+                ? (string) $this->server['CONTENT_LENGTH']
+                : $default;
+        }
+
+        // Convert header name to server key format (e.g. "X-Request-Id" -> "HTTP_X_REQUEST_ID")
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
         return $this->server[$key] ?? $default;
     }
