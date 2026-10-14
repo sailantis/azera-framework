@@ -54,7 +54,7 @@ class Request
     /**
      * Set the raw request body.
      *
-     * Exists for application-server workers (RoadRunner, Stokehold), where the
+     * Exists for application-server workers (RoadRunner, Volucer), where the
      * request does not arrive through the SAPI and `php://input` is not the
      * body. In a worker, stdin carries the server's own protocol frames, so
      * letting {@see body()} fall back to `php://input` would consume protocol

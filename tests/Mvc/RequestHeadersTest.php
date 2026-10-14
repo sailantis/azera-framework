@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
  * ever builds `HTTP_*` therefore cannot find them.
  *
  * This is not a theoretical distinction. `php-cgi` — and the CGI environment the
- * stokehold server builds — sends `CONTENT_TYPE` and never `HTTP_CONTENT_TYPE`,
+ * volucer server builds — sends `CONTENT_TYPE` and never `HTTP_CONTENT_TYPE`,
  * so `header('Content-Type')` used to return null on every real request while
  * `contentType()` and `isJson()`, which read `CONTENT_TYPE` directly, disagreed
  * with it.
