@@ -111,9 +111,12 @@ ${which} / $$which        → the value of the variable NAMED by `which`
 Applying the wrong operator is an error, not a silent `null`:
 
 ```twig
-{% set user = { name: "Alice" } %}   {# an ARRAY #}
+{% set user = { name: "Alice" } %}   {# a MAP (PHP array) #}
 {{ user.name }}     {# ERROR: Cannot read property "name" on array #}
 {{ user:name }}     {# CORRECT #}
+
+{% set userObject = (object) { name: "Alice" } %}   {# an OBJECT #}
+{{ userObject.name }}   {# CORRECT #}
 ```
 
 A missing key or property raises an exception naming the template and line, while a key that is _present but holds `null`_ returns `null` — only genuinely absent names throw.
@@ -248,7 +251,21 @@ A nested ternary in the else-branch must be parenthesised, because PHP rejects
 {{ { name: user.name, active: user.active } |> json |> raw }}
 ```
 
-Object keys must be fixed identifiers or quoted strings.
+`{}` is a MAP (a PHP associative array), read with `:` — not an object. Object
+keys must be fixed identifiers or quoted strings.
+
+Prefix the literal with the `object` cast to make it an object literal. Inside
+it, a nested brace literal is another object literal, at any depth:
+
+```twig
+{% set person = (object) { name: "John", address: { city: "Rome" } } %}
+{{ person.name }}|{{ person.address.city }}
+<!-- Object → dot access -->
+```
+
+The object reading is lexical, so `{ … }` on its own (and `{ … } |> object`,
+which is PHP's shallow cast) keeps map semantics, and an array element inside an
+object literal stays a value.
 
 ### Spread Operator
 
