@@ -223,6 +223,14 @@
 - [Hasher](Security_Hasher.md) `Azera\Security\Hasher`
 - [RateLimiter](Security_RateLimiter.md) `Azera\Security\RateLimiter`
 
+### `Azera\Security\Crypt`
+
+- [CipherPayload](Security_Crypt_CipherPayload.md) `Azera\Security\Crypt\CipherPayload`
+- [CipherProviderInterface](Security_Crypt_CipherProviderInterface.md) `Azera\Security\Crypt\CipherProviderInterface`
+- [CipherRegistry](Security_Crypt_CipherRegistry.md) `Azera\Security\Crypt\CipherRegistry`
+- [OpenSslCipher](Security_Crypt_OpenSslCipher.md) `Azera\Security\Crypt\OpenSslCipher`
+- [SodiumCipher](Security_Crypt_SodiumCipher.md) `Azera\Security\Crypt\SodiumCipher`
+
 ### `Azera\Sync`
 
 - [CodeGenerator](Sync_CodeGenerator.md) `Azera\Sync\CodeGenerator`

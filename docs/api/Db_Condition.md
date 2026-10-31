@@ -651,7 +651,7 @@ No operator function. Useful to build flexible chains
 
 ---
 
-### bind() · <small>[🗎](../../src/Db/Condition.php#L1214)</small>
+### bind() · <small>[🗎](../../src/Db/Condition.php#L1283)</small>
 
 `public function bind(array $bindParams): static`
 
@@ -670,7 +670,7 @@ Replace placeholders in the condition with actual values
 
 ---
 
-### toSql() · <small>[🗎](../../src/Db/Condition.php#L1227)</small>
+### toSql() · <small>[🗎](../../src/Db/Condition.php#L1296)</small>
 
 `public function toSql(): string`
 
@@ -683,7 +683,7 @@ Get the condition
 
 ---
 
-### getBindings() · <small>[🗎](../../src/Db/Condition.php#L1236)</small>
+### getBindings() · <small>[🗎](../../src/Db/Condition.php#L1305)</small>
 
 `public function getBindings(): array`
 

@@ -8,15 +8,9 @@ Use the static `make()` factory or construct directly, then call
 `send()` to emit the Set-Cookie header. Read the cookie value with
 `value()`, which handles decryption automatically.
 
-## Public Constants
-
-- **CIPHER_CHACHA20_POLY1305** = `'chacha20-poly1305'`
-- **CIPHER_AES_256_GCM** = `'aes-256-gcm'`
-- **CIPHER_AUTO** = `'auto'`
-
 ## Public methods
 
-### make() · <small>[🗎](../../src/Http/Cookie.php#L44)</small>
+### make() · <small>[🗎](../../src/Http/Cookie.php#L49)</small>
 
 `public static function make(string $name, mixed $value = null, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): static`
 
@@ -42,7 +36,7 @@ Create a new Cookie instance with the given parameters.
 
 ---
 
-### __construct() · <small>[🗎](../../src/Http/Cookie.php#L69)</small>
+### __construct() · <small>[🗎](../../src/Http/Cookie.php#L74)</small>
 
 `public function __construct(string $name, mixed $value = null, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): mixed`
 
@@ -67,7 +61,7 @@ Create a new Cookie instance.
 
 ---
 
-### value() · <small>[🗎](../../src/Http/Cookie.php#L100)</small>
+### value() · <small>[🗎](../../src/Http/Cookie.php#L105)</small>
 
 `public function value(mixed $default = null): mixed`
 
@@ -86,7 +80,7 @@ Read the cookie value, lazily loading it from $_COOKIE and decrypting if needed.
 
 ---
 
-### set() · <small>[🗎](../../src/Http/Cookie.php#L128)</small>
+### set() · <small>[🗎](../../src/Http/Cookie.php#L141)</small>
 
 `public function set(mixed $value): static`
 
@@ -105,7 +99,7 @@ Set the cookie value (in memory; call `send()` to persist).
 
 ---
 
-### send() · <small>[🗎](../../src/Http/Cookie.php#L144)</small>
+### send() · <small>[🗎](../../src/Http/Cookie.php#L157)</small>
 
 `public function send(): static`
 
@@ -120,7 +114,7 @@ Encrypts the value first if encryption is enabled.
 
 ---
 
-### delete() · <small>[🗎](../../src/Http/Cookie.php#L168)</small>
+### delete() · <small>[🗎](../../src/Http/Cookie.php#L181)</small>
 
 `public function delete(): void`
 
@@ -133,7 +127,7 @@ Delete the cookie by setting its expiration to the past.
 
 ---
 
-### encrypted() · <small>[🗎](../../src/Http/Cookie.php#L189)</small>
+### encrypted() · <small>[🗎](../../src/Http/Cookie.php#L202)</small>
 
 `public function encrypted(bool $state = true): static`
 
@@ -152,36 +146,22 @@ Enable or disable transparent encryption for this cookie.
 
 ---
 
-### cipher() · <small>[🗎](../../src/Http/Cookie.php#L201)</small>
-
-`public function cipher(string $cipher): static`
-
-Set the encryption cipher to use (one of the `Azera\Crypt`::CIPHER_* constants).
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$cipher` | string | - | Cipher identifier. |
-
-**Return value**
-
-- Type: `static`
-
-
----
-
-### key() · <small>[🗎](../../src/Http/Cookie.php#L213)</small>
+### key() · <small>[🗎](../../src/Http/Cookie.php#L219)</small>
 
 `public function key(string|null $key): static`
 
-Set the encryption key. Defaults to a key derived from PHP's uname when null.
+Set the encryption key.
+
+Required before reading or writing an encrypted cookie. Use a random,
+secret value (e.g. base64_encode(random_bytes(32))) persisted outside
+the web root. There is deliberately no default: a derivable key would
+make the AEAD protection meaningless.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$key` | string\|null | - | Encryption key or null to use the default key. |
+| `$key` | string\|null | - | Encryption key, or null to clear it. |
 
 **Return value**
 
@@ -190,7 +170,7 @@ Set the encryption key. Defaults to a key derived from PHP's uname when null.
 
 ---
 
-### name() · <small>[🗎](../../src/Http/Cookie.php#L245)</small>
+### name() · <small>[🗎](../../src/Http/Cookie.php#L232)</small>
 
 `public function name(): string`
 
@@ -204,7 +184,7 @@ Get the cookie name.
 
 ---
 
-### expires() · <small>[🗎](../../src/Http/Cookie.php#L256)</small>
+### expires() · <small>[🗎](../../src/Http/Cookie.php#L243)</small>
 
 `public function expires(int $timestamp): static`
 
@@ -223,7 +203,7 @@ Set the expiration timestamp.
 
 ---
 
-### path() · <small>[🗎](../../src/Http/Cookie.php#L268)</small>
+### path() · <small>[🗎](../../src/Http/Cookie.php#L255)</small>
 
 `public function path(string $path): static`
 
@@ -242,7 +222,7 @@ Set the URL path scope for the cookie.
 
 ---
 
-### domain() · <small>[🗎](../../src/Http/Cookie.php#L280)</small>
+### domain() · <small>[🗎](../../src/Http/Cookie.php#L267)</small>
 
 `public function domain(string $domain): static`
 
@@ -261,7 +241,7 @@ Set the domain scope for the cookie.
 
 ---
 
-### secure() · <small>[🗎](../../src/Http/Cookie.php#L292)</small>
+### secure() · <small>[🗎](../../src/Http/Cookie.php#L279)</small>
 
 `public function secure(bool $state): static`
 
@@ -280,7 +260,7 @@ Restrict the cookie to HTTPS connections only.
 
 ---
 
-### httpOnly() · <small>[🗎](../../src/Http/Cookie.php#L304)</small>
+### httpOnly() · <small>[🗎](../../src/Http/Cookie.php#L291)</small>
 
 `public function httpOnly(bool $state): static`
 
@@ -299,7 +279,7 @@ Make the cookie inaccessible to JavaScript (HttpOnly flag).
 
 ---
 
-### __toString() · <small>[🗎](../../src/Http/Cookie.php#L315)</small>
+### __toString() · <small>[🗎](../../src/Http/Cookie.php#L302)</small>
 
 `public function __toString(): string`
 
@@ -313,19 +293,94 @@ Return the cookie value as a string (useful for string-casting).
 
 ---
 
-### getAvailableCipher() · <small>[🗎](../../src/Http/Cookie.php#L404)</small>
+### cipher() · <small>[🗎](../../src/Http/Cookie.php#L325)</small>
 
-`public static function getAvailableCipher(): mixed`
+`public function cipher(string|null $cipher): static`
 
-Get the best available cipher (prefers Sodium over OpenSSL)
+Set the cipher provider used for this cookie.
+
+Accepts any registered provider id (see
+[`SodiumCipher::ID()`](Security_Crypt_SodiumCipher.md#id) and
+[`OpenSslCipher::ID()`](Security_Crypt_OpenSslCipher.md#id)), or null to let the
+registry pick the best available algorithm.
+
+Decryption never depends on this setting: a payload names the provider
+that produced it, so a cookie written with ChaCha20 stays readable after
+switching to AES-GCM.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$cipher` | string\|null | - | Provider id, or null for automatic selection. |
 
 **Return value**
 
-- Type: `mixed`
+- Type: `static`
 
-**Throws**
 
-- Exception
+---
+
+### cipherProvider() · <small>[🗎](../../src/Http/Cookie.php#L341)</small>
+
+`public function cipherProvider(Azera\Security\Crypt\CipherProviderInterface $provider): static`
+
+Use a specific cipher provider instance for this cookie.
+
+For consumers that bring their own provider (KMS-backed, HSM-backed, or
+an algorithm the framework does not ship). Registering it here also makes
+it available for reading payloads that name it.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$provider` | [CipherProviderInterface](Security_Crypt_CipherProviderInterface.md) | - | Provider to use. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### ciphers() · <small>[🗎](../../src/Http/Cookie.php#L358)</small>
+
+`public function ciphers(Azera\Security\Crypt\CipherRegistry $registry): static`
+
+Replace the registry used by this cookie.
+
+Different cookies may need different algorithms, so the registry is owned
+per cookie (and can be shared explicitly) rather than resolved globally.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$registry` | [CipherRegistry](Security_Crypt_CipherRegistry.md) | - | Registry to use. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### registry() · <small>[🗎](../../src/Http/Cookie.php#L369)</small>
+
+`public function registry(bool $fresh = false): Azera\Security\Crypt\CipherRegistry`
+
+The registry used by this cookie, created on first use.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$fresh` | bool | `false` | Discard any existing registry and build a new one. |
+
+**Return value**
+
+- Type: [CipherRegistry](Security_Crypt_CipherRegistry.md)
 
 
 

@@ -198,6 +198,14 @@ abstract class ViewEngine
 
     /**
      * Resolve a view name to an actual file path on the filesystem.
+     *
+     * View names are confined to the configured view path (or to the
+     * registered namespace root). Absolute names — POSIX, Windows and UNC —
+     * are refused, and any name that canonicalises outside its root (via
+     * `..` or otherwise) is refused too. Without this boundary a
+     * user-influenced view name would reach `include`, giving arbitrary
+     * local file inclusion and code execution for `.php` targets.
+     *
      * @param string $view View name to resolve.
      * @throws \RuntimeException If the view cannot be resolved.
      * @return string Resolved file path.
@@ -217,39 +225,128 @@ abstract class ViewEngine
                 throw new RuntimeException("Unknown view namespace: $ns");
             }
 
-            return $this->namespaces[$ns] . '/' . \str_replace('.', '/', $name) . $this->extension;
+            $root = $this->namespaces[$ns];
+            $path = $root . '/' . \str_replace('.', '/', $name) . $this->extension;
+
+            return $this->withinRoot($path, $root, $view);
         }
 
-        $len = \strlen($view);
+        if ($this->isAbsolutePath($view)) {
+            throw new RuntimeException(
+                "View name must be relative to the view path: {$view}"
+            );
+        }
 
         $addExtension = !\str_ends_with($view, $this->extension);
 
-        if ($view[0] === '/') {
-            // absolute unix path
-            $path = $view;
-
-        } elseif ($view[1] === ':' && $len >= 3 && ($view[2] === '/' || $view[2] === '\\') && \ctype_alpha($view[0])) {
-            // absolute windows path: C:/foo or C:\foo
-            $path = $view;
-
-        } elseif ($view[0] === '\\' && $len >= 2 && $view[1] === '\\') {
-            // absolute UNC path: \\server\share
-            $path = $view;
-
-        } elseif ($view[0] === '.') {
-            // treat as literal relative path: ./partials/header or ../shared/footer
+        if ($view[0] === '.') {
+            // literal relative path: ./partials/header or ../shared/footer
             $path = $this->viewPath . '/' . $view;
-
         } else {
             // relative view name, resolve to path using dot-notation
-            $relative = \str_replace('.', '/', $view);
-            $path     = $this->viewPath . '/' . $relative;
+            $path = $this->viewPath . '/' . \str_replace('.', '/', $view);
         }
 
         if ($addExtension) {
             $path .= $this->extension;
         }
+
+        return $this->withinRoot($path, $this->viewPath, $view);
+    }
+
+    /**
+     * Detect absolute paths in every spelling PHP accepts: POSIX ("/x"),
+     * Windows drive ("C:/x", "C:\x"), and UNC ("\\server\share").
+     */
+    protected function isAbsolutePath(string $path): bool
+    {
+        $len = \strlen($path);
+
+        if ($path[0] === '/') {
+            return true;
+        }
+
+        if ($path[0] === '\\' && $len >= 2 && $path[1] === '\\') {
+            return true;
+        }
+
+        if (
+            $len >= 3
+            && $path[1] === ':'
+            && ($path[2] === '/' || $path[2] === '\\')
+            && \ctype_alpha($path[0])
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Ensure the resolved path stays inside the given root.
+     *
+     * @param string $path Resolved (possibly not yet canonical) file path.
+     * @param string $root Root directory the path must stay within.
+     * @param string $view Original view name, for error messages.
+     * @throws \RuntimeException When the path escapes the root.
+     * @return string The resolved path (unchanged when it is still missing on disk).
+     */
+    protected function withinRoot(string $path, string $root, string $view): string
+    {
+        $normalized = $this->normalizePath($path);
+        $rootPath   = $this->normalizePath($root);
+
+        if ($rootPath === '') {
+            return $path;
+        }
+
+        $rootPath = \rtrim($rootPath, '/') . '/';
+
+        if ($normalized !== $rootPath && !\str_starts_with($normalized, $rootPath)) {
+            throw new RuntimeException(
+                "View '{$view}' resolves outside the view path"
+            );
+        }
+
         return $path;
+    }
+
+    /**
+     * Collapse `.` and `..` segments without touching the filesystem.
+     *
+     * `realpath()` cannot be used because a resolved view may legitimately
+     * not exist yet (the caller reports "View not found"), so the boundary
+     * check is performed lexically on the normalised path.
+     */
+    protected function normalizePath(string $path): string
+    {
+        $path = \str_replace('\\', '/', $path);
+
+        // Preserve a leading slash (absolute) or drive prefix.
+        $prefix = '';
+        if (\preg_match('#^([A-Za-z]:)?/#', $path, $m)) {
+            $prefix = $m[1] ?? '';
+            $path   = \substr($path, \strlen($m[0]));
+        }
+
+        $segments = [];
+
+        foreach (\explode('/', $path) as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                if ($segments !== []) {
+                    \array_pop($segments);
+                }
+                continue;
+            }
+
+            $segments[] = $segment;
+        }
+
+        return $prefix . '/' . \implode('/', $segments);
     }
 
     // -- Clarity-specific helper methods for IDE completion --

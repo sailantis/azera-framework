@@ -290,7 +290,7 @@ Get current render nesting depth. Useful to detect top-level renders
 
 ---
 
-### addFilter() · <small>[🗎](../../src/Core/ViewEngine.php#L267)</small>
+### addFilter() · <small>[🗎](../../src/Core/ViewEngine.php#L364)</small>
 
 `public function addFilter(string $name, callable $fn): static`
 
@@ -313,7 +313,7 @@ e.g. `{{ value|name }}` or `{{ value|name(arg) }}`.
 
 ---
 
-### addFunction() · <small>[🗎](../../src/Core/ViewEngine.php#L282)</small>
+### addFunction() · <small>[🗎](../../src/Core/ViewEngine.php#L379)</small>
 
 `public function addFunction(string $name, callable $fn): static`
 
@@ -336,7 +336,7 @@ This is distinct from filters, which transform a piped value.
 
 ---
 
-### getDriver() · <small>[🗎](../../src/Core/ViewEngine.php#L297)</small>
+### getDriver() · <small>[🗎](../../src/Core/ViewEngine.php#L394)</small>
 
 `public function getDriver(): mixed`
 
@@ -354,7 +354,7 @@ separate driver object (Clarity, Native).
 
 ---
 
-### setCachePath() · <small>[🗎](../../src/Core/ViewEngine.php#L306)</small>
+### setCachePath() · <small>[🗎](../../src/Core/ViewEngine.php#L403)</small>
 
 `public function setCachePath(string $path): static`
 
@@ -373,7 +373,7 @@ Set the directory where compiled templates should be cached.
 
 ---
 
-### getCachePath() · <small>[🗎](../../src/Core/ViewEngine.php#L314)</small>
+### getCachePath() · <small>[🗎](../../src/Core/ViewEngine.php#L411)</small>
 
 `public function getCachePath(): string`
 
@@ -386,7 +386,7 @@ Get the currently configured cache directory.
 
 ---
 
-### flushCache() · <small>[🗎](../../src/Core/ViewEngine.php#L322)</small>
+### flushCache() · <small>[🗎](../../src/Core/ViewEngine.php#L419)</small>
 
 `public function flushCache(): static`
 

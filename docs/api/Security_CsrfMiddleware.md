@@ -58,7 +58,7 @@ want CSRF protection. It carries no cost when not wired.
 
 ---
 
-### ensureToken() · <small>[🗎](../../src/Security/CsrfMiddleware.php#L84)</small>
+### ensureToken() · <small>[🗎](../../src/Security/CsrfMiddleware.php#L118)</small>
 
 `public function ensureToken(Azera\Http\Session $session): string`
 

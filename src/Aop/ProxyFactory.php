@@ -4,6 +4,7 @@ namespace Azera\Aop;
 
 use ReflectionClass;
 use ReflectionMethod;
+use Swoole\Server\Task;
 
 /**
  * Creates proxy classes that wrap advised methods with interceptor chains.
@@ -127,30 +128,71 @@ class ProxyFactory
     {
         $cacheFile = $this->proxyFilePath($className);
         $dir       = dirname($cacheFile);
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+
+        if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
+            throw new \RuntimeException("Unable to create AOP proxy cache directory: {$dir}");
         }
 
         // Generate a versioned class name so recompilations don't collide
         // with previously loaded classes in long-running processes.
         $shortName      = str_replace('\\', '_', $className);
-        $proxyClassName = "AzeraAopProxy_{$shortName}_" . uniqid();
+        $proxyClassName = "AzeraAopProxy_{$shortName}_" . bin2hex(random_bytes(8));
 
         // Build the full PHP file: named class extending the target.
         $fileContents = $this->buildFileCode($proxyClassName, $className, $methodsCode);
 
-        // Atomic write: temp file + rename (same pattern as Clarity Cache).
-        $tmp = $cacheFile . '.tmp.' . getmypid();
-        if (file_put_contents($tmp, $fileContents, LOCK_EX) !== false) {
-            rename($tmp, $cacheFile);
-            clearstatcache(true, $cacheFile);
-            if (function_exists('opcache_invalidate')) {
-                @opcache_invalidate($cacheFile, true);
-            }
+        // Atomic write: unique temp file in the same directory + rename, so a
+        // partially written file is never required and concurrent writers do
+        // not clobber each other.
+        $tmp = @tempnam($dir, 'azera_aop_');
+        if ($tmp === false) {
+            throw new \RuntimeException("Unable to create a temporary file in {$dir}");
         }
 
-        // require returns the class name (file ends with `return 'ClassName';`).
+        if (file_put_contents($tmp, $fileContents, LOCK_EX) === false) {
+            @unlink($tmp);
+            throw new \RuntimeException("Unable to write AOP proxy file: {$cacheFile}");
+        }
+
+        @chmod($tmp, 0600);
+
+        if (!@rename($tmp, $cacheFile)) {
+            @unlink($tmp);
+            throw new \RuntimeException("Unable to move AOP proxy file into place: {$cacheFile}");
+        }
+
+        clearstatcache(true, $cacheFile);
+        if (function_exists('opcache_invalidate')) {
+            @opcache_invalidate($cacheFile, true);
+        }
+
+        // Only ever load the file we just wrote successfully.
         return require $cacheFile;
+    }
+
+    /**
+     * Refuse to load proxies from a directory that other users can write to.
+     * @todo Move this to a security review task
+     */
+    private function assertSafeCacheDir(string $dir): void
+    {
+        if (\DIRECTORY_SEPARATOR === '\\') {
+            // Windows has no POSIX mode bits to inspect; ACLs are not
+            // readable portably here. The unique-tempnam write below is the
+            // control that matters.
+            return;
+        }
+
+        $perms = @fileperms($dir);
+        if ($perms === false) {
+            throw new \RuntimeException("Unable to stat AOP proxy cache directory: {$dir}");
+        }
+
+        if (($perms & 0x0022) !== 0) {
+            throw new \RuntimeException(
+                "AOP proxy cache directory is group/world writable, refusing to load executable code from it: {$dir}"
+            );
+        }
     }
 
     /**

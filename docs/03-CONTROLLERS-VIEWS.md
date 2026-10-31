@@ -301,9 +301,20 @@ The `ViewEngine` resolves view names to filesystem paths using the following rul
 
 - `./partials/header` → `./partials/header.php`
 
-**Absolute paths** — used as-is:
+**Absolute paths are rejected.** POSIX (`/var/www/views/custom.php`), Windows (`C:/views/custom.php`) and UNC (`\\server\share\custom.php`) names throw a `RuntimeException`. Names that resolve outside their root after `.` and `..` segments are collapsed also throw.
 
-- `/var/www/views/custom.php`
+A view name is therefore always confined to its view path (or namespace root). View names are passed to `include`, so an escape from this boundary would allow arbitrary local file inclusion. Values taken from the request should not be used as view names directly; they should be mapped against an allowlist first:
+
+```php
+// UNSAFE – the client controls the include target
+$this->view()->render($this->request()->get('page'));
+
+// Safe – allowlist the permitted views
+$allowed = ['home', 'about', 'contact'];
+$page = in_array($this->request()->get('page'), $allowed, true) ? $this->request()->get('page') : 'home';
+
+$this->view()->render($page);
+```
 
 ---
 

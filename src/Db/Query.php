@@ -315,19 +315,57 @@ class Query extends Condition
 
     /**
      * Set columns for SELECT queries. Can be either a comma-separated string or an array of column names.
+     *
+     * In model mode every column is validated against the model metadata so a
+     * request-derived expression cannot smuggle sub-selects or raw SQL into
+     * the column list. Arbitrary SQL expressions belong in {@see Sql::raw()}.
+     *
      * @param string|array $columns
      * @return $this
      */
     public function columns(string|array $columns): static
     {
         if (!empty($columns)) {
-            $this->columns = \is_array($columns)
+            $list = \is_array($columns)
                 ? $columns
                 : explode(',', $columns);
+
+            foreach ($list as $column) {
+                // Sql nodes are explicit, developer-authored expressions.
+                if ($column instanceof Sql) {
+                    continue;
+                }
+                $this->validateColumnTerm((string) $column);
+            }
+
+            $this->columns = $list;
         } else {
             $this->columns = null;
         }
         return $this;
+    }
+
+    /**
+     * Validate a column term in model mode. Allows `<field>`, `alias.field`,
+     * and `<field> AS alias` — no expressions.
+     */
+    protected function validateColumnTerm(string $column): void
+    {
+        if ($this->modelFields() === null) {
+            return;
+        }
+
+        $term = trim($column);
+        if ($term === '' || $term === '*') {
+            return;
+        }
+
+        // Drop an "AS alias" / "alias" suffix.
+        if (preg_match('/^(.+?)\s+AS\s+\S+$/i', $term, $m)) {
+            $term = trim($m[1]);
+        }
+
+        $this->validateField($term);
     }
 
     /**
@@ -580,6 +618,11 @@ class Query extends Condition
 
     /**
      * Set ORDER BY clause
+     *
+     * In model mode each ordering term is validated against the metadata.
+     * `Sql` nodes are explicit, developer-authored expressions and pass
+     * through, so `orderBy([Sql::raw('RANDOM()')])` still works.
+     *
      * @param array|string $orderBy
      * @return $this
      */
@@ -593,6 +636,9 @@ class Query extends Condition
         // metadata field (optionally "field dir" / alias-qualified).
         if ($this->modelFields() !== null) {
             foreach ($this->orderBy as $term) {
+                if ($term instanceof Sql) {
+                    continue;
+                }
                 $this->validateField((string) $term);
             }
         }
@@ -652,14 +698,29 @@ class Query extends Condition
 
     /**
      * Set GROUP BY clause
+     *
+     * In model mode each grouping term is validated against the metadata so
+     * a request-derived expression cannot reach the compiled SQL.
+     *
      * @param array|string $groupBy
      * @return $this
      */
     public function groupBy(array|string $groupBy): static
     {
-        $this->groupBy = \is_string($groupBy)
+        $list = \is_string($groupBy)
             ? explode(',', $groupBy)
             : $groupBy;
+
+        if ($this->modelFields() !== null) {
+            foreach ($list as $term) {
+                if ($term instanceof Sql) {
+                    continue;
+                }
+                $this->validateField((string) $term);
+            }
+        }
+
+        $this->groupBy = $list;
         return $this;
     }
 
@@ -1038,11 +1099,17 @@ class Query extends Condition
     protected ?array $modelFields = null;
 
     /**
-     * Field-name typo detection (model mode): in a model-backed query the
-     * where()/orderBy() identifiers must be metadata fields (optionally
-     * qualified with an alias). Unknown names throw instead of reaching
-     * SQL and failing with a driver error. Raw-table queries skip this
-     * as there is no metadata to check against.
+     * Field-name typo detection and injection guard (model mode): in a
+     * model-backed query the where()/orderBy()/columns()/groupBy()
+     * identifiers must be metadata fields (optionally qualified with an
+     * alias). Unknown names throw instead of reaching SQL and failing with
+     * a driver error. Raw-table queries skip this as there is no metadata
+     * to check against.
+     *
+     * The whole term is validated, not just its first token: a term may be
+     * `<field>` optionally followed by `ASC`/`DESC`. Anything else is
+     * refused rather than passed through to the SQL compiler, closing the
+     * `orderBy("id (SELECT ...)")` injection channel.
      */
     protected function validateField(string $field): string
     {
@@ -1051,17 +1118,29 @@ class Query extends Condition
             return $field;
         }
 
-        // Allow "field dir" (orderBy) and alias.field forms: take the
-        // last dot-segment, then the first whitespace token.
-        $candidate = $field;
-        if (($pos = strpos($candidate, '.')) !== false) {
-            $candidate = substr($candidate, $pos + 1);
-        }
-        $candidate = preg_split('/\s+/', $candidate)[0];
+        $term = trim($field);
 
-        if (!isset($fields[$candidate])) {
+        // Strip a trailing ASC/DESC ordering direction.
+        if (preg_match('/^(.+?)\s+(ASC|DESC)$/i', $term, $m)) {
+            $term = trim($m[1]);
+        }
+
+        // Take the last dot-segment: "alias.field" -> "field".
+        if (($pos = strpos($term, '.')) !== false) {
+            $term = substr($term, $pos + 1);
+        }
+
+        // Reject anything that is not a bare identifier (no spaces,
+        // parentheses, quotes, operators or comments).
+        if (!preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $term)) {
             throw new \InvalidArgumentException(
-                "Unknown field '{$candidate}' on {$this->resolvedSource['modelClass']}"
+                "Invalid field expression '{$field}' on {$this->resolvedSource['modelClass']}"
+            );
+        }
+
+        if (!isset($fields[$term])) {
+            throw new \InvalidArgumentException(
+                "Unknown field '{$term}' on {$this->resolvedSource['modelClass']}"
             );
         }
         return $field;

@@ -28,7 +28,7 @@ class SqliteSchemaProvider implements SchemaProvider
 
     private function loadColumns(string $table): array
     {
-        $stmt = $this->pdo->query("PRAGMA table_info('$table')");
+        $stmt = $this->pdo->query("PRAGMA table_info(" . $this->quoteIdentifier($table) . ")");
         $cols = [];
 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $col) {
@@ -47,19 +47,30 @@ class SqliteSchemaProvider implements SchemaProvider
 
     private function loadIndexes(string $table): array
     {
-        $stmt    = $this->pdo->query("PRAGMA index_list('$table')");
+        $stmt    = $this->pdo->query("PRAGMA index_list(" . $this->quoteIdentifier($table) . ")");
         $indexes = [];
 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $idx) {
             $name   = $idx['name'];
             $unique = $idx['unique'] == 1;
 
-            $stmt2   = $this->pdo->query("PRAGMA index_info('$name')");
+            $stmt2   = $this->pdo->query("PRAGMA index_info(" . $this->quoteIdentifier($name) . ")");
             $columns = array_column($stmt2->fetchAll(PDO::FETCH_ASSOC), 'name');
 
             $indexes[] = new IndexSchema($name, $unique, $columns);
         }
 
         return $indexes;
+    }
+
+    /**
+     * Quote an SQLite identifier for a PRAGMA statement.
+     *
+     * PRAGMA accepts a quoted identifier or string; doubling embedded quotes
+     * prevents a crafted table/index name from breaking out of the literal.
+     */
+    private function quoteIdentifier(string $identifier): string
+    {
+        return "'" . str_replace("'", "''", $identifier) . "'";
     }
 }

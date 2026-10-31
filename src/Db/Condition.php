@@ -805,26 +805,95 @@ class Condition
 	}
 
 	/**
-	 * Replace placeholders with escaped values
-	 * Supports both positional (?) and named (:name) placeholders
+	 * Replace placeholders with escaped values.
+	 *
+	 * Supports both positional (?) and named (:name) placeholders. The
+	 * template is scanned exactly once, left to right. Already substituted
+	 * values are never re-scanned, so a placeholder character contained in
+	 * an escaped value (or in a quoted literal of the template) can never be
+	 * turned into a new placeholder — doing so would place attacker text
+	 * outside its string literal and allow SQL injection.
+	 *
 	 * @param string $condition
 	 * @param array|null $bindParams
 	 * @return string
 	 */
 	protected function replacePlaceholders(string $condition, ?array $bindParams): string
 	{
-		if (!empty($bindParams)) {
-			foreach ($bindParams as $key => $value) {
-				$escapedValue = $this->serializeScalar($value);
+		if (empty($bindParams)) {
+			return $condition;
+		}
 
-				if (is_int($key)) {
-					$condition = str_replace('?', $escapedValue, $condition);
-				} else {
-					$condition = str_replace(':' . $key, $escapedValue, $condition);
-				}
+		$positional = [];
+		$named      = [];
+
+		foreach ($bindParams as $key => $value) {
+			if (is_int($key)) {
+				$positional[] = $this->serializeScalar($value);
+			} else {
+				$named[(string) $key] = $this->serializeScalar($value);
 			}
 		}
-		return $condition;
+
+		$result = '';
+		$length = strlen($condition);
+		$next   = 0;
+		$pos    = 0;
+
+		while ($pos < $length) {
+			$char = $condition[$pos];
+
+			// Skip over quoted literals: placeholders inside them are data.
+			if ($char === "'" || $char === '"') {
+				$quote = $char;
+				$end   = $pos + 1;
+
+				while ($end < $length) {
+					if ($condition[$end] === $quote) {
+						// SQL escapes a quote by doubling it.
+						if ($end + 1 < $length && $condition[$end + 1] === $quote) {
+							$end += 2;
+							continue;
+						}
+						break;
+					}
+					$end++;
+				}
+
+				$result .= substr($condition, $pos, $end - $pos + 1);
+				$pos = $end + 1;
+				continue;
+			}
+
+			if ($char === '?') {
+				if (array_key_exists($next, $positional)) {
+					$result .= $positional[$next++];
+				} else {
+					$result .= $char;
+				}
+				$pos++;
+				continue;
+			}
+
+			if ($char === ':') {
+				if (preg_match('/\G:([A-Za-z_][A-Za-z0-9_]*)/', $condition, $m, 0, $pos)) {
+					$name = $m[1];
+					if (array_key_exists($name, $named)) {
+						$result .= $named[$name];
+						$pos += strlen($m[0]);
+						continue;
+					}
+				}
+				$result .= $char;
+				$pos++;
+				continue;
+			}
+
+			$result .= $char;
+			$pos++;
+		}
+
+		return $result;
 	}
 
 	/**

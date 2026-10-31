@@ -186,11 +186,15 @@ Set the source for this query from a subquery or raw table expression. The subqu
 
 ---
 
-### columns() · <small>[🗎](../../src/Db/Query.php#L321)</small>
+### columns() · <small>[🗎](../../src/Db/Query.php#L326)</small>
 
 `public function columns(array|string $columns): static`
 
 Set columns for SELECT queries. Can be either a comma-separated string or an array of column names.
+
+In model mode every column is validated against the model metadata so a
+request-derived expression cannot smuggle sub-selects or raw SQL into
+the column list. Arbitrary SQL expressions belong in [`Sql::raw()`](Db_Sql.md#raw).
 
 **Parameters**
 
@@ -205,7 +209,7 @@ Set columns for SELECT queries. Can be either a comma-separated string or an arr
 
 ---
 
-### limit() · <small>[🗎](../../src/Db/Query.php#L340)</small>
+### limit() · <small>[🗎](../../src/Db/Query.php#L378)</small>
 
 `public function limit(int $limit, int|null $offset = null): static`
 
@@ -226,7 +230,7 @@ Set the LIMIT and optional OFFSET for SELECT queries
 
 ---
 
-### offset() · <small>[🗎](../../src/Db/Query.php#L354)</small>
+### offset() · <small>[🗎](../../src/Db/Query.php#L392)</small>
 
 `public function offset(int $offset): static`
 
@@ -245,7 +249,7 @@ Sets an OFFSET clause for SELECT queries
 
 ---
 
-### values() · <small>[🗎](../../src/Db/Query.php#L368)</small>
+### values() · <small>[🗎](../../src/Db/Query.php#L406)</small>
 
 `public function values(object|array $values, bool $escape = true): static`
 
@@ -267,7 +271,7 @@ Adds values for INSERT or UPDATE queries. Can be either:
 
 ---
 
-### bulkValues() · <small>[🗎](../../src/Db/Query.php#L393)</small>
+### bulkValues() · <small>[🗎](../../src/Db/Query.php#L431)</small>
 
 `public function bulkValues(array $valuesList = [], bool $escape = true): static`
 
@@ -289,7 +293,7 @@ Each item in the list should be an array of column => value pairs.
 
 ---
 
-### hasValues() · <small>[🗎](../../src/Db/Query.php#L413)</small>
+### hasValues() · <small>[🗎](../../src/Db/Query.php#L451)</small>
 
 `public function hasValues(): bool`
 
@@ -302,7 +306,7 @@ Check if any values have been set for this query
 
 ---
 
-### set() · <small>[🗎](../../src/Db/Query.php#L427)</small>
+### set() · <small>[🗎](../../src/Db/Query.php#L465)</small>
 
 `public function set(array|string $column, mixed $value = null, bool $escape = true): static`
 
@@ -325,7 +329,7 @@ Set a value for INSERT or UPDATE queries. Can be either:
 
 ---
 
-### innerJoin() · <small>[🗎](../../src/Db/Query.php#L472)</small>
+### innerJoin() · <small>[🗎](../../src/Db/Query.php#L510)</small>
 
 `public function innerJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
@@ -350,7 +354,7 @@ Adds an INNER join to the query
 
 ---
 
-### leftJoin() · <small>[🗎](../../src/Db/Query.php#L485)</small>
+### leftJoin() · <small>[🗎](../../src/Db/Query.php#L523)</small>
 
 `public function leftJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
@@ -375,7 +379,7 @@ Adds a LEFT join to the query
 
 ---
 
-### rightJoin() · <small>[🗎](../../src/Db/Query.php#L498)</small>
+### rightJoin() · <small>[🗎](../../src/Db/Query.php#L536)</small>
 
 `public function rightJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
@@ -400,7 +404,7 @@ Adds a RIGHT join to the query
 
 ---
 
-### crossJoin() · <small>[🗎](../../src/Db/Query.php#L511)</small>
+### crossJoin() · <small>[🗎](../../src/Db/Query.php#L549)</small>
 
 `public function crossJoin(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null): static`
 
@@ -425,7 +429,7 @@ Adds a CROSS join to the query
 
 ---
 
-### join() · <small>[🗎](../../src/Db/Query.php#L525)</small>
+### join() · <small>[🗎](../../src/Db/Query.php#L563)</small>
 
 `public function join(Azera\Db\Query|string $model, Azera\Db\Condition|string|null $alias = null, Azera\Db\Condition|string|null $conditions = null, string|null $type = null): static`
 
@@ -451,11 +455,15 @@ Add a JOIN clause to the query
 
 ---
 
-### orderBy() · <small>[🗎](../../src/Db/Query.php#L586)</small>
+### orderBy() · <small>[🗎](../../src/Db/Query.php#L629)</small>
 
 `public function orderBy(array|string $orderBy): static`
 
 Set ORDER BY clause
+
+In model mode each ordering term is validated against the metadata.
+`Sql` nodes are explicit, developer-authored expressions and pass
+through, so `orderBy([Sql::raw('RANDOM()')])` still works.
 
 **Parameters**
 
@@ -470,7 +478,7 @@ Set ORDER BY clause
 
 ---
 
-### bind() · <small>[🗎](../../src/Db/Query.php#L607)</small>
+### bind() · <small>[🗎](../../src/Db/Query.php#L653)</small>
 
 `public function bind(object|array $bindParams): static`
 
@@ -489,7 +497,7 @@ Bind parameters for prepared statements. Can be either an associative array or a
 
 ---
 
-### returnSql() · <small>[🗎](../../src/Db/Query.php#L621)</small>
+### returnSql() · <small>[🗎](../../src/Db/Query.php#L667)</small>
 
 `public function returnSql(bool $returnSql = true): static`
 
@@ -508,7 +516,7 @@ Set whether to return the SQL string instead of executing the query
 
 ---
 
-### distinct() · <small>[🗎](../../src/Db/Query.php#L636)</small>
+### distinct() · <small>[🗎](../../src/Db/Query.php#L682)</small>
 
 `public function distinct(bool $distinct): static`
 
@@ -527,7 +535,7 @@ Set DISTINCT modifier for SELECT queries
 
 ---
 
-### injectBeforeColumns() · <small>[🗎](../../src/Db/Query.php#L647)</small>
+### injectBeforeColumns() · <small>[🗎](../../src/Db/Query.php#L693)</small>
 
 `public function injectBeforeColumns(string $inject): static`
 
@@ -546,11 +554,14 @@ Set a string to be injected before the column list in SELECT queries (e.g. for S
 
 ---
 
-### groupBy() · <small>[🗎](../../src/Db/Query.php#L658)</small>
+### groupBy() · <small>[🗎](../../src/Db/Query.php#L708)</small>
 
 `public function groupBy(array|string $groupBy): static`
 
 Set GROUP BY clause
+
+In model mode each grouping term is validated against the metadata so
+a request-derived expression cannot reach the compiled SQL.
 
 **Parameters**
 
@@ -565,7 +576,7 @@ Set GROUP BY clause
 
 ---
 
-### forUpdate() · <small>[🗎](../../src/Db/Query.php#L671)</small>
+### forUpdate() · <small>[🗎](../../src/Db/Query.php#L732)</small>
 
 `public function forUpdate(bool $forUpdate): static`
 
@@ -584,7 +595,7 @@ Sets a FOR UPDATE clause (MySQL/PostgreSQL) or FOR SHARE (PostgreSQL)
 
 ---
 
-### sharedLock() · <small>[🗎](../../src/Db/Query.php#L682)</small>
+### sharedLock() · <small>[🗎](../../src/Db/Query.php#L743)</small>
 
 `public function sharedLock(bool $sharedLock): static`
 
@@ -603,7 +614,7 @@ Sets a LOCK IN SHARE MODE / FOR SHARE clause (MySQL/PostgreSQL)
 
 ---
 
-### replace() · <small>[🗎](../../src/Db/Query.php#L697)</small>
+### replace() · <small>[🗎](../../src/Db/Query.php#L758)</small>
 
 `public function replace(bool $replace = true): static`
 
@@ -622,7 +633,7 @@ Mark this as a REPLACE INTO operation (MySQL/SQLite)
 
 ---
 
-### ignore() · <small>[🗎](../../src/Db/Query.php#L708)</small>
+### ignore() · <small>[🗎](../../src/Db/Query.php#L769)</small>
 
 `public function ignore(bool $ignore = true): static`
 
@@ -641,7 +652,7 @@ Set IGNORE modifier for INSERT (MySQL/SQLite) or ON CONFLICT DO NOTHING (Postgre
 
 ---
 
-### updateValues() · <small>[🗎](../../src/Db/Query.php#L731)</small>
+### updateValues() · <small>[🗎](../../src/Db/Query.php#L792)</small>
 
 `public function updateValues(array $updateValues, bool $escape = true): static`
 
@@ -671,7 +682,7 @@ one thing to avoid.
 
 ---
 
-### conflict() · <small>[🗎](../../src/Db/Query.php#L762)</small>
+### conflict() · <small>[🗎](../../src/Db/Query.php#L823)</small>
 
 `public function conflict(array|string $columnsOrConstraint): static`
 
@@ -692,7 +703,7 @@ Set conflict target for ON CONFLICT clause (PostgreSQL). Can be either:
 
 ---
 
-### returning() · <small>[🗎](../../src/Db/Query.php#L774)</small>
+### returning() · <small>[🗎](../../src/Db/Query.php#L835)</small>
 
 `public function returning(array|string|null $columns): static`
 
@@ -715,7 +726,7 @@ Set columns to return from an INSERT/UPDATE/DELETE query. Supported by PostgreSQ
 
 ---
 
-### with() · <small>[🗎](../../src/Db/Query.php#L796)</small>
+### with() · <small>[🗎](../../src/Db/Query.php#L857)</small>
 
 `public function with(string $relation): static`
 
@@ -737,7 +748,7 @@ stays a second query by parent IDs.
 
 ---
 
-### toSql() · <small>[🗎](../../src/Db/Query.php#L813)</small>
+### toSql() · <small>[🗎](../../src/Db/Query.php#L874)</small>
 
 `public function toSql(): string`
 
@@ -754,7 +765,7 @@ Compile and return the SQL string for this query without executing it
 
 ---
 
-### select() · <small>[🗎](../../src/Db/Query.php#L827)</small>
+### select() · <small>[🗎](../../src/Db/Query.php#L888)</small>
 
 `public function select(array|string|null $columns = null): Azera\Db\ResultSet|Azera\Orm\JoinedResultSet|string`
 
@@ -778,7 +789,7 @@ Execute SELECT query and return ResultSet or return SQL string if returnSql is e
 
 ---
 
-### entities() · <small>[🗎](../../src/Db/Query.php#L939)</small>
+### entities() · <small>[🗎](../../src/Db/Query.php#L1000)</small>
 
 `public function entities(): array`
 
@@ -806,7 +817,7 @@ while known-but-aliased columns hydrate what they provide.
 
 ---
 
-### firstEntity() · <small>[🗎](../../src/Db/Query.php#L971)</small>
+### firstEntity() · <small>[🗎](../../src/Db/Query.php#L1032)</small>
 
 `public function firstEntity(): object|null`
 
@@ -825,7 +836,7 @@ extra terminal methods on the builder.
 
 ---
 
-### fresh() · <small>[🗎](../../src/Db/Query.php#L996)</small>
+### fresh() · <small>[🗎](../../src/Db/Query.php#L1057)</small>
 
 `public function fresh(bool $fresh = true): static`
 
@@ -852,7 +863,7 @@ Model::find($id, fresh: true); fresh() serves criteria reads.
 
 ---
 
-### first() · <small>[🗎](../../src/Db/Query.php#L1080)</small>
+### first() · <small>[🗎](../../src/Db/Query.php#L1159)</small>
 
 `public function first(): Azera\Orm\Model|string|null`
 
@@ -874,7 +885,7 @@ metadata-mapped columns, bound parameters.
 
 ---
 
-### insert() · <small>[🗎](../../src/Db/Query.php#L1100)</small>
+### insert() · <small>[🗎](../../src/Db/Query.php#L1179)</small>
 
 `public function insert(array|null $data = null): Azera\Db\ResultSet|array|string|bool`
 
@@ -898,7 +909,7 @@ Execute INSERT or UPSERT query or return SQL string if returnSql is enabled
 
 ---
 
-### upsert() · <small>[🗎](../../src/Db/Query.php#L1111)</small>
+### upsert() · <small>[🗎](../../src/Db/Query.php#L1190)</small>
 
 `public function upsert(array|null $data = null): Azera\Db\ResultSet|array|string|bool`
 
@@ -922,7 +933,7 @@ Execute UPSERT query (INSERT with ON CONFLICT/ON DUPLICATE KEY UPDATE) or return
 
 ---
 
-### update() · <small>[🗎](../../src/Db/Query.php#L1150)</small>
+### update() · <small>[🗎](../../src/Db/Query.php#L1229)</small>
 
 `public function update(array|null $data = null): Azera\Db\ResultSet|array|string|int`
 
@@ -946,7 +957,7 @@ Execute UPDATE query or return SQL string if returnSql is enabled
 
 ---
 
-### delete() · <small>[🗎](../../src/Db/Query.php#L1180)</small>
+### delete() · <small>[🗎](../../src/Db/Query.php#L1259)</small>
 
 `public function delete(): Azera\Db\ResultSet|array|string|int`
 
@@ -964,7 +975,7 @@ Execute DELETE query
 
 ---
 
-### truncate() · <small>[🗎](../../src/Db/Query.php#L1205)</small>
+### truncate() · <small>[🗎](../../src/Db/Query.php#L1284)</small>
 
 `public function truncate(): string|int`
 
@@ -982,7 +993,7 @@ Execute TRUNCATE query or return SQL string if returnSql is enabled
 
 ---
 
-### exists() · <small>[🗎](../../src/Db/Query.php#L1226)</small>
+### exists() · <small>[🗎](../../src/Db/Query.php#L1305)</small>
 
 `public function exists(): string|bool`
 
@@ -999,7 +1010,7 @@ Check if any rows exist matching the query
 
 ---
 
-### count() · <small>[🗎](../../src/Db/Query.php#L1253)</small>
+### count() · <small>[🗎](../../src/Db/Query.php#L1332)</small>
 
 `public function count(): string|int`
 
@@ -1017,7 +1028,7 @@ Count rows matching the query
 
 ---
 
-### getBindings() · <small>[🗎](../../src/Db/Query.php#L2000)</small>
+### getBindings() · <small>[🗎](../../src/Db/Query.php#L2079)</small>
 
 `public function getBindings(): array`
 
@@ -1030,7 +1041,7 @@ Get bind parameters
 
 ---
 
-### paginate() · <small>[🗎](../../src/Db/Query.php#L2012)</small>
+### paginate() · <small>[🗎](../../src/Db/Query.php#L2091)</small>
 
 `public function paginate(int $page = 1, int $pageSize = 30, bool $reverse = false): Azera\Db\Paginator`
 
@@ -1051,7 +1062,7 @@ Create a paginator for the current query
 
 ---
 
-### getRowCount() · <small>[🗎](../../src/Db/Query.php#L2051)</small>
+### getRowCount() · <small>[🗎](../../src/Db/Query.php#L2130)</small>
 
 `public function getRowCount(): int`
 

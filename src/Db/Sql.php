@@ -265,6 +265,11 @@ class Sql
     /**
      * Serialize PostgreSQL array recursively for multi-dimensional support
      *
+     * The array literal is wrapped in single quotes, so every element must
+     * also escape single quotes and backslashes for the outer string literal
+     * in addition to the array-level `"` / `\` escaping. Omitting that let an
+     * element containing an apostrophe terminate the literal.
+     *
      * @return string PostgreSQL array literal
      */
     protected function serializePgArray(): string
@@ -280,10 +285,15 @@ class Sql
                 return (string)$value;
             }
 
-            // PostgreSQL-compatible escaping for strings
-            // Backslash and double quote escape
+            // PostgreSQL-compatible escaping for strings inside the array:
+            // backslash and double quote need array-level escaping.
             $v = (string)$value;
             $v = str_replace(['\\', '"'], ['\\\\', '\\"'], $v);
+
+            // The whole literal is wrapped in single quotes, so a single quote
+            // must be doubled once more for that outer string literal
+            // (standard_conforming_strings = on, the PostgreSQL default).
+            $v = str_replace("'", "''", $v);
 
             return '"' . $v . '"';
         };

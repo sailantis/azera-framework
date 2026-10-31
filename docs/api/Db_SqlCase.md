@@ -6,7 +6,7 @@ Fluent builder for CASE expressions
 
 ## Public methods
 
-### when() · <small>[🗎](../../src/Db/Sql.php#L509)</small>
+### when() · <small>[🗎](../../src/Db/Sql.php#L519)</small>
 
 `public function when(mixed $condition, mixed $then): static`
 
@@ -26,7 +26,7 @@ Add WHEN condition THEN result clause
 
 ---
 
-### else() · <small>[🗎](../../src/Db/Sql.php#L520)</small>
+### else() · <small>[🗎](../../src/Db/Sql.php#L530)</small>
 
 `public function else(mixed $value): static`
 
@@ -45,7 +45,7 @@ Set ELSE default value
 
 ---
 
-### end() · <small>[🗎](../../src/Db/Sql.php#L530)</small>
+### end() · <small>[🗎](../../src/Db/Sql.php#L540)</small>
 
 `public function end(): Azera\Db\Sql`
 

@@ -3,6 +3,8 @@
 namespace Azera\Http;
 
 use Azera\Exception;
+use Azera\Security\Crypt\CipherProviderInterface;
+use Azera\Security\Crypt\CipherRegistry;
 
 /**
  * Represents a single HTTP cookie with optional transparent encryption.
@@ -24,8 +26,11 @@ class Cookie
 	protected bool $httpOnly = true;
 
 	protected bool $encrypted = false;
-	protected string $cipher = self::CIPHER_AUTO;
+	protected ?string $cipher = null;
 	protected ?string $key = null;
+
+	/** Registry used for this cookie; created on first use so that per-cookie providers stay per-cookie. */
+	protected ?CipherRegistry $registry = null;
 
 	// --- Factory Methods -----------------------------------------------------
 
@@ -110,7 +115,15 @@ class Cookie
 		$raw = $_COOKIE[$this->name];
 
 		if ($this->encrypted) {
-			$raw = $this->decrypt($raw);
+			$decrypted = $this->decrypt($raw);
+
+			// Authentication failed (tampered, forged or plaintext cookie).
+			// Do not cache the failure so a later write still works.
+			if ($decrypted === null) {
+				return $default;
+			}
+
+			$raw = $decrypted;
 		}
 
 		$this->value = $raw;
@@ -193,46 +206,20 @@ class Cookie
 	}
 
 	/**
-	 * Set the encryption cipher to use (one of the {@see \Azera\Crypt}::CIPHER_* constants).
+	 * Set the encryption key.
 	 *
-	 * @param string $cipher Cipher identifier.
-	 * @return $this
-	 */
-	public function cipher(string $cipher): static
-	{
-		$this->cipher = $cipher;
-		return $this;
-	}
-
-	/**
-	 * Set the encryption key. Defaults to a key derived from PHP's uname when null.
+	 * Required before reading or writing an encrypted cookie. Use a random,
+	 * secret value (e.g. base64_encode(random_bytes(32))) persisted outside
+	 * the web root. There is deliberately no default: a derivable key would
+	 * make the AEAD protection meaningless.
 	 *
-	 * @param string|null $key Encryption key or null to use the default key.
+	 * @param string|null $key Encryption key, or null to clear it.
 	 * @return $this
 	 */
 	public function key(?string $key): static
 	{
 		$this->key = $key;
 		return $this;
-	}
-
-	protected function encrypt(string $value): string
-	{
-		return self::encryptCookie($value, $this->resolveKey(), $this->cipher);
-	}
-
-	protected function decrypt(string $value): mixed
-	{
-		return self::decryptCookie($value, $this->resolveKey(), $this->cipher);
-	}
-
-	protected function resolveKey(): string
-	{
-		if ($this->key !== null) {
-			return $this->key;
-		}
-
-		return hash('sha256', php_uname(), true);
 	}
 
 	// --- Metadata ------------------------------------------------------------
@@ -317,270 +304,116 @@ class Cookie
 		return (string) $this->value();
 	}
 
-	// region Encyption/Decryption Helpers
-
-	    /**
-     * Supported ciphers
-     */
-    public const CIPHER_CHACHA20_POLY1305 = 'chacha20-poly1305';
-    public const CIPHER_AES_256_GCM = 'aes-256-gcm';
-    public const CIPHER_AUTO = 'auto';
-
-    /**
-     * Encrypt a value using the specified cipher
-     *
-     * @param string $value The value to encrypt
-     * @param string $key The encryption key (at least 32 bytes recommended)
-     * @param string $cipher The cipher to use: 'chacha20-poly1305', 'aes-256-gcm', or 'auto'
-     * @return string Base64-encoded encrypted value
-     * @throws Exception
-     */
-    protected static function encryptCookie($value, $key, $cipher = self::CIPHER_AUTO)
-    {
-        if ($cipher === self::CIPHER_AUTO) {
-            $cipher = self::getAvailableCipher();
-        }
-
-        if ($cipher === self::CIPHER_CHACHA20_POLY1305) {
-            return self::encryptSodium($value, $key);
-        } elseif ($cipher === self::CIPHER_AES_256_GCM) {
-            return self::encryptOpenSSL($value, $key);
-        } else {
-            throw new Exception("Unsupported cipher: {$cipher}");
-        }
-    }
-
-    /**
-     * Decrypt a value using the specified cipher
-     *
-     * @param string $value The base64-encoded encrypted value
-     * @param string $key The encryption key
-     * @param string $cipher The cipher to use: 'chacha20-poly1305', 'aes-256-gcm', or 'auto'
-     * @return string|null The decrypted value or null on failure
-     * @throws Exception
-     */
-    protected static function decryptCookie($value, $key, $cipher = self::CIPHER_AUTO)
-    {
-        if ($cipher === self::CIPHER_AUTO) {
-            $cipher = self::getAvailableCipher();
-        }
-
-        if ($cipher === self::CIPHER_CHACHA20_POLY1305) {
-            return self::decryptSodium($value, $key);
-        } elseif ($cipher === self::CIPHER_AES_256_GCM) {
-            return self::decryptOpenSSL($value, $key);
-        } else {
-            throw new Exception("Unsupported cipher: {$cipher}");
-        }
-    }
+	// region Encryption/Decryption
+	// region Encryption/Decryption
 
 	/**
-	 * Check if Sodium is available
+	 * Set the cipher provider used for this cookie.
 	 *
-	 * @return bool
+	 * Accepts any registered provider id (see
+	 * {@see \Azera\Security\Crypt\SodiumCipher::ID} and
+	 * {@see \Azera\Security\Crypt\OpenSslCipher::ID}), or null to let the
+	 * registry pick the best available algorithm.
+	 *
+	 * Decryption never depends on this setting: a payload names the provider
+	 * that produced it, so a cookie written with ChaCha20 stays readable after
+	 * switching to AES-GCM.
+	 *
+	 * @param string|null $cipher Provider id, or null for automatic selection.
+	 * @return $this
 	 */
-	protected static function hasSodium()
+	public function cipher(?string $cipher): static
 	{
-		return function_exists('sodium_crypto_aead_chacha20poly1305_ietf_encrypt');
+		$this->cipher = $cipher;
+		return $this;
 	}
 
 	/**
-	 * Check if OpenSSL is available
+	 * Use a specific cipher provider instance for this cookie.
 	 *
-	 * @return bool
+	 * For consumers that bring their own provider (KMS-backed, HSM-backed, or
+	 * an algorithm the framework does not ship). Registering it here also makes
+	 * it available for reading payloads that name it.
+	 *
+	 * @param CipherProviderInterface $provider Provider to use.
+	 * @return $this
 	 */
-	protected static function hasOpenSSL()
+	public function cipherProvider(CipherProviderInterface $provider): static
 	{
-		return function_exists('openssl_encrypt');
+		$this->registry(true)->add($provider);
+		$this->cipher = $provider->id();
+
+		return $this;
 	}
 
+	/**
+	 * Replace the registry used by this cookie.
+	 *
+	 * Different cookies may need different algorithms, so the registry is owned
+	 * per cookie (and can be shared explicitly) rather than resolved globally.
+	 *
+	 * @param CipherRegistry $registry Registry to use.
+	 * @return $this
+	 */
+	public function ciphers(CipherRegistry $registry): static
+	{
+		$this->registry = $registry;
+		return $this;
+	}
 
-    /**
-     * Get the best available cipher (prefers Sodium over OpenSSL)
-     *
-     * @return string
-     * @throws Exception
-     */
-    public static function getAvailableCipher()
-    {
-        if (self::hasSodium()) {
-            return self::CIPHER_CHACHA20_POLY1305;
-        } elseif (self::hasOpenSSL()) {
-            return self::CIPHER_AES_256_GCM;
-        } else {
-            throw new Exception("No encryption library available (Sodium or OpenSSL required)");
-        }
-    }
+	/**
+	 * The registry used by this cookie, created on first use.
+	 *
+	 * @param bool $fresh Discard any existing registry and build a new one.
+	 */
+	public function registry(bool $fresh = false): CipherRegistry
+	{
+		if ($fresh || $this->registry === null) {
+			$this->registry = CipherRegistry::withDefaults();
+		}
 
-    /**
-     * Encrypt using Sodium (ChaCha20-Poly1305)
-     *
-     * @param string $value
-     * @param string $key
-     * @return string Base64-encoded: nonce + ciphertext
-     * @throws Exception
-     */
-    protected static function encryptSodium($value, $key)
-    {
-        if (!self::hasSodium()) {
-            throw new Exception("Sodium extension not available");
-        }
+		return $this->registry;
+	}
 
-        // Derive a proper key from the input key (Sodium requires 32 bytes)
-        $derivedKey = hash('sha256', $key, true);
+	protected function encrypt(string $value): string
+	{
+		return $this->registry()->encrypt(
+			$value,
+			$this->resolveKey(),
+			$this->associatedData(),
+			$this->cipher
+		);
+	}
 
-        // Generate a random nonce (12 bytes for ChaCha20-Poly1305-IETF)
-        $nonce = random_bytes(SODIUM_CRYPTO_AEAD_CHACHA20POLY1305_IETF_NPUBBYTES);
+	protected function decrypt(string $value): ?string
+	{
+		return $this->registry()->decrypt($value, $this->resolveKey(), $this->associatedData());
+	}
 
-        // Encrypt with authenticated encryption
-        $ciphertext = sodium_crypto_aead_chacha20poly1305_ietf_encrypt(
-            $value,
-            '',  // No additional data
-            $nonce,
-            $derivedKey
-        );
+	/**
+	 * Bind the cookie's identity into the authentication tag.
+	 *
+	 * A ciphertext copied from one cookie to another then fails to
+	 * authenticate, instead of silently decrypting under the wrong name.
+	 */
+	protected function associatedData(): string
+	{
+		return 'azera.cookie:' . $this->name;
+	}
 
-        // Return base64-encoded: nonce + ciphertext
-        return base64_encode($nonce . $ciphertext);
-    }
+	protected function resolveKey(): string
+	{
+		if ($this->key !== null) {
+			return $this->key;
+		}
 
-    /**
-     * Decrypt using Sodium (ChaCha20-Poly1305)
-     *
-     * @param string $value Base64-encoded encrypted value
-     * @param string $key
-     * @return string|null
-     * @throws Exception
-     */
-    protected static function decryptSodium($value, $key)
-    {
-        if (!self::hasSodium()) {
-            throw new Exception("Sodium extension not available");
-        }
-
-        // Derive the same key
-        $derivedKey = hash('sha256', $key, true);
-
-        // Decode from base64
-        $encrypted = base64_decode($value);
-        if ($encrypted === false) {
-            return null;
-        }
-
-        $nonceSize = SODIUM_CRYPTO_AEAD_CHACHA20POLY1305_IETF_NPUBBYTES;
-
-        if (strlen($encrypted) <= $nonceSize) {
-            return null;
-        }
-
-        // Extract nonce and ciphertext
-        $nonce = substr($encrypted, 0, $nonceSize);
-        $ciphertext = substr($encrypted, $nonceSize);
-
-        // Decrypt
-        $decrypted = sodium_crypto_aead_chacha20poly1305_ietf_decrypt(
-            $ciphertext,
-            '',  // No additional data
-            $nonce,
-            $derivedKey
-        );
-
-        return $decrypted !== false ? $decrypted : null;
-    }
-
-    /**
-     * Encrypt using OpenSSL (AES-256-GCM)
-     *
-     * @param string $value
-     * @param string $key
-     * @return string Base64-encoded: iv + tag + ciphertext
-     * @throws Exception
-     */
-    protected static function encryptOpenSSL($value, $key)
-    {
-        if (!self::hasOpenSSL()) {
-            throw new Exception("OpenSSL extension not available");
-        }
-
-        $method = 'aes-256-gcm';
-
-        // Derive a proper key from the input key
-        $derivedKey = hash('sha256', $key, true);
-
-        // Generate IV
-        $ivSize = openssl_cipher_iv_length($method);
-        $iv = openssl_random_pseudo_bytes($ivSize);
-
-        // Encrypt with GCM mode (authenticated encryption)
-        $tag = '';
-        $ciphertext = openssl_encrypt(
-            $value,
-            $method,
-            $derivedKey,
-            OPENSSL_RAW_DATA,
-            $iv,
-            $tag,
-            '',  // No additional data
-            16   // Tag length
-        );
-
-        if ($ciphertext === false) {
-            throw new Exception("OpenSSL encryption failed");
-        }
-
-        // Return base64-encoded: iv + tag + ciphertext
-        return base64_encode($iv . $tag . $ciphertext);
-    }
-
-    /**
-     * Decrypt using OpenSSL (AES-256-GCM)
-     *
-     * @param string $value Base64-encoded encrypted value
-     * @param string $key
-     * @return string|null
-     * @throws Exception
-     */
-    protected static function decryptOpenSSL($value, $key)
-    {
-        if (!self::hasOpenSSL()) {
-            throw new Exception("OpenSSL extension not available");
-        }
-
-        $method = 'aes-256-gcm';
-
-        // Derive the same key
-        $derivedKey = hash('sha256', $key, true);
-
-        // Decode from base64
-        $encrypted = base64_decode($value);
-        if ($encrypted === false) {
-            return null;
-        }
-
-        $ivSize = openssl_cipher_iv_length($method);
-        $tagSize = 16;
-
-        if (strlen($encrypted) <= $ivSize + $tagSize) {
-            return null;
-        }
-
-        // Extract IV, tag, and ciphertext
-        $iv = substr($encrypted, 0, $ivSize);
-        $tag = substr($encrypted, $ivSize, $tagSize);
-        $ciphertext = substr($encrypted, $ivSize + $tagSize);
-
-        // Decrypt
-        $decrypted = openssl_decrypt(
-            $ciphertext,
-            $method,
-            $derivedKey,
-            OPENSSL_RAW_DATA,
-            $iv,
-            $tag
-        );
-
-        return $decrypted !== false ? $decrypted : null;
-    }
+		throw new Exception(
+			'Cookie encryption requires an explicit key: call Cookie::key() with a random, '
+			. 'secret value (e.g. base64_encode(random_bytes(32))) stored outside the web root. '
+			. 'Deriving a default key from php_uname() is not safe — it is predictable from '
+			. 'publicly available host information.'
+		);
+	}
 
 	// endregion
 }

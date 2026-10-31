@@ -9,7 +9,7 @@ outgoing Set-Cookie headers.
 
 ## Public methods
 
-### get() · <small>[🗎](../../src/Http/Cookies.php#L26)</small>
+### get() · <small>[🗎](../../src/Http/Cookies.php#L31)</small>
 
 `public function get(string $name, mixed $default = null): mixed`
 
@@ -17,6 +17,11 @@ Read a cookie value from the incoming request.
 
 If the cookie was set in this request via `set()`, its in-memory value is
 returned; otherwise the value is read from $_COOKIE.
+
+For encrypted cookies the value is only ever returned when it decrypts
+and authenticates successfully. The raw cookie is never returned as a
+fallback: doing so would let an attacker supply a plaintext cookie and
+have it accepted verbatim, defeating the integrity check entirely.
 
 **Parameters**
 
@@ -32,7 +37,7 @@ returned; otherwise the value is read from $_COOKIE.
 
 ---
 
-### cookie() · <small>[🗎](../../src/Http/Cookies.php#L41)</small>
+### cookie() · <small>[🗎](../../src/Http/Cookies.php#L49)</small>
 
 `public function cookie(string $name): Azera\Http\Cookie`
 
@@ -54,7 +59,7 @@ or sending the cookie.
 
 ---
 
-### set() · <small>[🗎](../../src/Http/Cookies.php#L61)</small>
+### set() · <small>[🗎](../../src/Http/Cookies.php#L69)</small>
 
 `public function set(string $name, mixed $value, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): Azera\Http\Cookie`
 
@@ -82,7 +87,7 @@ The cookie is not sent until `sendAll()` (or [`Cookie::send()`](Http_Cookie.md#s
 
 ---
 
-### delete() · <small>[🗎](../../src/Http/Cookies.php#L80)</small>
+### delete() · <small>[🗎](../../src/Http/Cookies.php#L88)</small>
 
 `public function delete(string $name): void`
 
@@ -101,7 +106,7 @@ Delete a cookie by emitting a Set-Cookie header with an expiration in the past.
 
 ---
 
-### sendAll() · <small>[🗎](../../src/Http/Cookies.php#L92)</small>
+### sendAll() · <small>[🗎](../../src/Http/Cookies.php#L100)</small>
 
 `public function sendAll(): void`
 

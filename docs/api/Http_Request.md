@@ -44,7 +44,37 @@ Caches the body since php://input can only be read once
 
 ---
 
-### jsonBody() · <small>[🗎](../../src/Http/Request.php#L60)</small>
+### setRawBody() · <small>[🗎](../../src/Http/Request.php#L68)</small>
+
+`public function setRawBody(string $body): static`
+
+Set the raw request body.
+
+Exists for application-server workers (RoadRunner, Volucer), where the
+request does not arrive through the SAPI and `php://input` is not the
+body. In a worker, stdin carries the server's own protocol frames, so
+letting `body()` fall back to `php://input` would consume protocol
+bytes and desynchronise the stream permanently. A worker adapter injects
+the body it was handed, and `body()` then never reads the pipe.
+
+Set it even when the body is empty. `body()` only falls back when the
+value is null, so an empty string is what stops the read — a bodyless
+GET in a worker is exactly the case that must not touch `php://input`.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$body` | string | - |  |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### jsonBody() · <small>[🗎](../../src/Http/Request.php#L81)</small>
 
 `public function jsonBody(bool $assoc = true): mixed`
 
@@ -68,7 +98,7 @@ Get and parse JSON request body
 
 ---
 
-### input() · <small>[🗎](../../src/Http/Request.php#L80)</small>
+### input() · <small>[🗎](../../src/Http/Request.php#L101)</small>
 
 `public function input(string|null $name = null, mixed $default = null): mixed`
 
@@ -88,7 +118,7 @@ Get an input parameter from the request (POST takes precedence over GET)
 
 ---
 
-### query() · <small>[🗎](../../src/Http/Request.php#L94)</small>
+### query() · <small>[🗎](../../src/Http/Request.php#L115)</small>
 
 `public function query(string|null $name = null, mixed $default = null): mixed`
 
@@ -108,7 +138,7 @@ Get a query parameter from the request
 
 ---
 
-### get() · <small>[🗎](../../src/Http/Request.php#L108)</small>
+### get() · <small>[🗎](../../src/Http/Request.php#L129)</small>
 
 `public function get(string|null $name = null, mixed $default = null): mixed`
 
@@ -128,7 +158,7 @@ Get a GET parameter from the request
 
 ---
 
-### post() · <small>[🗎](../../src/Http/Request.php#L122)</small>
+### post() · <small>[🗎](../../src/Http/Request.php#L143)</small>
 
 `public function post(string|null $name = null, mixed $default = null): mixed`
 
@@ -148,7 +178,7 @@ Get a POST parameter from the request
 
 ---
 
-### server() · <small>[🗎](../../src/Http/Request.php#L136)</small>
+### server() · <small>[🗎](../../src/Http/Request.php#L157)</small>
 
 `public function server(string|null $name = null, mixed $default = null): mixed`
 
@@ -168,7 +198,7 @@ Get a server variable from the request
 
 ---
 
-### header() · <small>[🗎](../../src/Http/Request.php#L150)</small>
+### header() · <small>[🗎](../../src/Http/Request.php#L171)</small>
 
 `public function header(string $name, mixed $default = null): mixed`
 
@@ -189,7 +219,7 @@ Get a request header value
 
 ---
 
-### hasInput() · <small>[🗎](../../src/Http/Request.php#L160)</small>
+### hasInput() · <small>[🗎](../../src/Http/Request.php#L199)</small>
 
 `public function hasInput(string $name): bool`
 
@@ -206,7 +236,7 @@ Get a request header value
 
 ---
 
-### hasQuery() · <small>[🗎](../../src/Http/Request.php#L165)</small>
+### hasQuery() · <small>[🗎](../../src/Http/Request.php#L204)</small>
 
 `public function hasQuery(string $name): bool`
 
@@ -223,7 +253,7 @@ Get a request header value
 
 ---
 
-### hasPost() · <small>[🗎](../../src/Http/Request.php#L170)</small>
+### hasPost() · <small>[🗎](../../src/Http/Request.php#L209)</small>
 
 `public function hasPost(string $name): bool`
 
@@ -240,7 +270,7 @@ Get a request header value
 
 ---
 
-### method() · <small>[🗎](../../src/Http/Request.php#L179)</small>
+### method() · <small>[🗎](../../src/Http/Request.php#L218)</small>
 
 `public function method(): string`
 
@@ -253,7 +283,7 @@ Get the HTTP method of the request, accounting for method overrides in POST requ
 
 ---
 
-### isPost() · <small>[🗎](../../src/Http/Request.php#L201)</small>
+### isPost() · <small>[🗎](../../src/Http/Request.php#L240)</small>
 
 `public function isPost(): bool`
 
@@ -266,7 +296,7 @@ Checks whether the request method is POST
 
 ---
 
-### scheme() · <small>[🗎](../../src/Http/Request.php#L210)</small>
+### scheme() · <small>[🗎](../../src/Http/Request.php#L249)</small>
 
 `public function scheme(): string`
 
@@ -279,7 +309,7 @@ Get the request scheme (http or https)
 
 ---
 
-### isSecure() · <small>[🗎](../../src/Http/Request.php#L226)</small>
+### isSecure() · <small>[🗎](../../src/Http/Request.php#L265)</small>
 
 `public function isSecure(): bool`
 
@@ -292,7 +322,7 @@ Checks whether request has been made using HTTPS
 
 ---
 
-### host() · <small>[🗎](../../src/Http/Request.php#L235)</small>
+### host() · <small>[🗎](../../src/Http/Request.php#L274)</small>
 
 `public function host(): string`
 
@@ -305,7 +335,7 @@ Get the host name of the request, accounting for proxy headers and Host header
 
 ---
 
-### port() · <small>[🗎](../../src/Http/Request.php#L253)</small>
+### port() · <small>[🗎](../../src/Http/Request.php#L292)</small>
 
 `public function port(): int`
 
@@ -318,7 +348,7 @@ Get the port number of the request, accounting for proxy headers and Host header
 
 ---
 
-### uri() · <small>[🗎](../../src/Http/Request.php#L276)</small>
+### uri() · <small>[🗎](../../src/Http/Request.php#L315)</small>
 
 `public function uri(): string`
 
@@ -331,7 +361,7 @@ Get the full URI of the request
 
 ---
 
-### path() · <small>[🗎](../../src/Http/Request.php#L285)</small>
+### path() · <small>[🗎](../../src/Http/Request.php#L324)</small>
 
 `public function path(): string`
 
@@ -344,7 +374,7 @@ Get the path component of the request URI (without query string)
 
 ---
 
-### clientIp() · <small>[🗎](../../src/Http/Request.php#L296)</small>
+### clientIp() · <small>[🗎](../../src/Http/Request.php#L335)</small>
 
 `public function clientIp(bool $trustForwarded = false): string|false`
 
@@ -363,7 +393,7 @@ Get the client IP address, accounting for proxy headers if trusted
 
 ---
 
-### acceptableContent() · <small>[🗎](../../src/Http/Request.php#L379)</small>
+### acceptableContent() · <small>[🗎](../../src/Http/Request.php#L418)</small>
 
 `public function acceptableContent(bool $sort = false): array`
 
@@ -383,7 +413,7 @@ Get the list of acceptable content types from the Accept header, with quality fa
 
 ---
 
-### bestAccept() · <small>[🗎](../../src/Http/Request.php#L388)</small>
+### bestAccept() · <small>[🗎](../../src/Http/Request.php#L427)</small>
 
 `public function bestAccept(): string`
 
@@ -396,7 +426,7 @@ Get the best acceptable content type from the Accept header
 
 ---
 
-### languages() · <small>[🗎](../../src/Http/Request.php#L398)</small>
+### languages() · <small>[🗎](../../src/Http/Request.php#L437)</small>
 
 `public function languages(bool $sort = false): array`
 
@@ -416,7 +446,7 @@ Get the list of acceptable languages from the Accept-Language header, with quali
 
 ---
 
-### bestLanguage() · <small>[🗎](../../src/Http/Request.php#L407)</small>
+### bestLanguage() · <small>[🗎](../../src/Http/Request.php#L446)</small>
 
 `public function bestLanguage(): string`
 
@@ -429,7 +459,7 @@ Get the best acceptable language from the Accept-Language header
 
 ---
 
-### encodings() · <small>[🗎](../../src/Http/Request.php#L417)</small>
+### encodings() · <small>[🗎](../../src/Http/Request.php#L456)</small>
 
 `public function encodings(bool $sort = false): array`
 
@@ -449,7 +479,7 @@ Get the list of acceptable encodings from the Accept-Encoding header, with quali
 
 ---
 
-### bestEncoding() · <small>[🗎](../../src/Http/Request.php#L426)</small>
+### bestEncoding() · <small>[🗎](../../src/Http/Request.php#L465)</small>
 
 `public function bestEncoding(): string`
 
@@ -462,7 +492,7 @@ Get the best acceptable encoding from the Accept-Encoding header
 
 ---
 
-### charsets() · <small>[🗎](../../src/Http/Request.php#L436)</small>
+### charsets() · <small>[🗎](../../src/Http/Request.php#L475)</small>
 
 `public function charsets(bool $sort = false): array`
 
@@ -482,7 +512,7 @@ Get the list of acceptable charsets from the Accept-Charset header, with quality
 
 ---
 
-### bestCharset() · <small>[🗎](../../src/Http/Request.php#L445)</small>
+### bestCharset() · <small>[🗎](../../src/Http/Request.php#L484)</small>
 
 `public function bestCharset(): string`
 
@@ -495,7 +525,7 @@ Get the best acceptable charset from the Accept-Charset header
 
 ---
 
-### isJson() · <small>[🗎](../../src/Http/Request.php#L491)</small>
+### isJson() · <small>[🗎](../../src/Http/Request.php#L530)</small>
 
 `public function isJson(): bool`
 
@@ -508,7 +538,7 @@ Checks whether the request expects a JSON response based on Content-Type or Acce
 
 ---
 
-### isAjax() · <small>[🗎](../../src/Http/Request.php#L508)</small>
+### isAjax() · <small>[🗎](../../src/Http/Request.php#L547)</small>
 
 `public function isAjax(): bool`
 
@@ -521,7 +551,7 @@ Checks whether the request is an AJAX request based on X-Requested-With header o
 
 ---
 
-### basicAuth() · <small>[🗎](../../src/Http/Request.php#L520)</small>
+### basicAuth() · <small>[🗎](../../src/Http/Request.php#L559)</small>
 
 `public function basicAuth(): array|null`
 
@@ -535,7 +565,7 @@ Get Basic Auth credentials from the request, accounting for different server con
 
 ---
 
-### authorization() · <small>[🗎](../../src/Http/Request.php#L554)</small>
+### authorization() · <small>[🗎](../../src/Http/Request.php#L593)</small>
 
 `public function authorization(): array|null`
 
@@ -549,7 +579,7 @@ Get any HTTP auth scheme from the request
 
 ---
 
-### userAgent() · <small>[🗎](../../src/Http/Request.php#L579)</small>
+### userAgent() · <small>[🗎](../../src/Http/Request.php#L618)</small>
 
 `public function userAgent(): string`
 
@@ -562,7 +592,7 @@ Get the User-Agent string from the request headers
 
 ---
 
-### contentType() · <small>[🗎](../../src/Http/Request.php#L588)</small>
+### contentType() · <small>[🗎](../../src/Http/Request.php#L627)</small>
 
 `public function contentType(): string`
 
@@ -575,7 +605,7 @@ Get the Content-Type header from the request
 
 ---
 
-### file() · <small>[🗎](../../src/Http/Request.php#L641)</small>
+### file() · <small>[🗎](../../src/Http/Request.php#L680)</small>
 
 `public function file(string $key): Azera\Http\UploadedFile|null`
 
@@ -594,7 +624,7 @@ Get the first uploaded file for a given field name, or null if not present
 
 ---
 
-### files() · <small>[🗎](../../src/Http/Request.php#L659)</small>
+### files() · <small>[🗎](../../src/Http/Request.php#L698)</small>
 
 `public function files(string $key): array`
 

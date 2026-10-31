@@ -99,19 +99,30 @@ namespace Azera\Core\Engines
             }
 
             $this->renderStack[$sourcePath] = true;
-
             $this->renderDepth++;
-            // Call-site vars override globals (unlike EXTR_SKIP which silently drops them)
-            extract([...$this->vars, ...$vars]);
 
-            ob_start();
-            include $sourcePath;
-            $output = ob_get_clean();
+            try {
+                // Render inside a dedicated closure so template variables cannot
+                // shadow the local holding the resolved template path. Extracting
+                // directly into this method's scope would let a request-supplied
+                // variable (e.g. "sourcePath") redirect the include to an
+                // arbitrary file. The closure keeps `$this` available to
+                // templates while isolating the include path in a prefixed
+                // variable that EXTR_SKIP also protects.
+                $render = function (string $__azeraViewPath, array $__azeraViewVars): string {
+                    extract($__azeraViewVars, EXTR_SKIP);
 
-            unset($this->renderStack[$sourcePath]);
+                    ob_start();
+                    include $__azeraViewPath;
 
-            $this->renderDepth--;
-            return $output;
+                    return ob_get_clean();
+                };
+
+                return $render($sourcePath, [...$this->vars, ...$vars]);
+            } finally {
+                unset($this->renderStack[$sourcePath]);
+                $this->renderDepth--;
+            }
         }
 
         /**

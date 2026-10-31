@@ -15,6 +15,19 @@ User::query()
     ->first();
 ```
 
+### Identifier clauses (ORDER BY / GROUP BY / columns)
+
+In model mode, `orderBy()`, `groupBy()` and `columns()` validate every term against the model metadata. Only `<field>`, `alias.<field>`, `<field> AS <alias>` and an optional `ASC`/`DESC` are accepted. Use `Sql::raw()` for arbitrary SQL fragments.
+
+```php
+// Safe: allowlist a request-supplied sort key before it reaches the builder
+$allowed = ['name', 'email', 'created_at'];
+$sort = $this->request()->get('sort');
+$sort = in_array($sort, $allowed, true) ? $sort : 'name';
+
+User::query()->orderBy($sort);
+```
+
 ### Inline values
 
 Values passed directly to `where()` as an array are escaped with PDO's quoting mechanism and inlined as string literals. They are safe against injection but are **not** real bound parameters.
@@ -34,12 +47,12 @@ verbatim. **Never** interpolate user input through them.
 
 ```php
 // UNSAFE – never do this
-$col = $_GET['sort'];
+$col = $this->request()->get('sort');
 User::query()->orderBy(Sql::raw($col));
 
 // Safe alternative – validate against an allowlist first
 $allowed = ['name', 'email', 'created_at'];
-$col = in_array($_GET['sort'], $allowed, true) ? $_GET['sort'] : 'name';
+$col = in_array($col, $allowed, true) ? $col : 'name';
 User::query()->orderBy($col);
 ```
 
@@ -155,7 +168,7 @@ use Azera\Http\Cookie;
 $cookie = Cookie::make('auth')
     ->set($token)
     ->encrypted()               // authenticated encryption via libsodium/OpenSSL
-    ->key($secretKey)           // recommended: explicit key (default derives from php_uname())
+    ->key($secretKey)           // REQUIRED: explicit, random key (no default exists)
     ->expires(time() + 3_600)
     ->secure(true)              // HTTPS only – enable in production
     ->httpOnly(true)            // not accessible from JavaScript (default)
@@ -173,7 +186,11 @@ $ctx->cookies()->delete('auth');
 | `set(mixed $value): static`             | Set the cookie value                        |
 | `value(mixed $default = null): mixed`   | Read the current value (decrypts if needed) |
 | `encrypted(bool $state = true): static` | Enable/disable authenticated encryption     |
-| `key(?string $key): static`             | Encryption key (default derives from uname) |
+| `key(?string $key): static`             | Encryption key (**required** — no default)  |
+| `cipher(?string $cipher): static`       | Pin a provider id (`null` = automatic)      |
+| `cipherProvider(CipherProviderInterface $p): static` | Use a custom provider          |
+| `ciphers(CipherRegistry $registry): static` | Share a registry across cookies       |
+| `registry(bool $fresh = false): CipherRegistry` | The cookie's registry           |
 | `expires(int $timestamp): static`       | Expiry Unix timestamp (0 = session)         |
 | `path(string $path): static`            | Cookie path (default `/`)                   |
 | `domain(string $domain): static`        | Cookie domain                               |
@@ -184,20 +201,102 @@ $ctx->cookies()->delete('auth');
 
 ## Encryption Internals
 
-Encryption is `Azera\Http\Cookie`'s own machinery: authenticated encryption via libsodium ChaCha20-Poly1305 (preferred) or AES-256-GCM via OpenSSL as fallback. When `->encrypted()` is set, `send()` encrypts and `value()` decrypts transparently; a tampered ciphertext decrypts to `null`.
+Encryption is delegated to a {@see \Azera\Security\Crypt\CipherRegistry} owned by
+the cookie. Two providers ship with the framework:
+
+| Provider | Id | Algorithm | Extension |
+| -------- | -- | --------- | --------- |
+| `SodiumCipher` | `sodium-chacha20poly1305.v1` | ChaCha20-Poly1305 (IETF) | libsodium |
+| `OpenSslCipher` | `openssl-aes256gcm.v1` | AES-256-GCM | OpenSSL |
+
+Both are AEAD, and by default the registry prefers ChaCha20-Poly1305 and falls
+back to AES-256-GCM. A value that fails to decrypt or authenticate — tampered,
+forged, or a plaintext cookie sent in place of a ciphertext — yields the
+caller's `$default`. The raw cookie is never returned as a fallback, so an
+attacker cannot bypass the integrity check by simply omitting the encryption.
+
+### Payloads carry their own algorithm
+
+Every payload names the provider that produced it:
+
+```
+base64url( provider-id "|" ciphertext )
+```
+
+Decryption therefore follows the payload, **not** what the local machine
+happens to support. This matters because ChaCha20-Poly1305 and AES-256-GCM both
+use a 12-byte nonce, which makes their ciphertexts structurally
+indistinguishable. Without an embedded identifier, a cookie written on a node
+with libsodium would fail to decrypt on a node without it — and would fail
+*silently*, logging users out with no diagnosable cause.
+
+With the identifier, a mixed fleet works: any node that can run either
+algorithm reads cookies written by both.
+
+```php
+use Azera\Security\Crypt\CipherRegistry;
+
+// Same registry, both directions
+$registry = CipherRegistry::withDefaults();
+
+$sealed = $registry->encrypt('value', $key);      // preferred provider
+$plain  = $registry->decrypt($sealed, $key);      // routed by payload id
+```
+
+### Choosing a provider per cookie
+
+The registry is deliberately *not* in the DI container. Different call sites
+have different threat models and compliance requirements — a session cookie, a
+short-lived token and a long-lived archival blob do not want the same
+algorithm, custodian or rotation policy.
 
 ```php
 use Azera\Http\Cookie;
+use Azera\Security\Crypt\CipherRegistry;
 
-// Cipher is selected automatically; check with Cookie::getAvailableCipher()
-Cookie::getAvailableCipher(); // Cookie::CIPHER_CHACHA20_POLY1305 or CIPHER_AES_256_GCM
+// 1. Let the framework choose (default)
+Cookie::make('session')->encrypted()->key($key);
+
+// 2. Pin an algorithm
+Cookie::make('session')->encrypted()->key($key)->cipher(SodiumCipher::ID);
+
+// 3. Bring your own provider (KMS/HSM-backed, or a new algorithm)
+Cookie::make('session')->encrypted()->key($key)->cipherProvider($myProvider);
+
+// 4. Share one registry across several cookies
+Cookie::make('a')->encrypted()->key($key)->ciphers($registry);
 ```
+
+A custom provider implements
+{@see \Azera\Security\Crypt\CipherProviderInterface} — `id()`, `isAvailable()`,
+`encrypt()` and `decrypt()`. The `id()` is written into every payload, so it
+must stay stable for as long as any ciphertext using it may exist.
+
+### Switching algorithms is safe
+
+Existing cookies keep decrypting after a switch, because they carry their own
+provider id:
+
+```php
+// Issued under ChaCha20-Poly1305, read back under AES-256-GCM — still works.
+$cookie->cipher(OpenSslCipher::ID);
+```
+
+To retire an algorithm, stop *encrypting* with it while keeping its provider
+registered until every outstanding cookie has expired.
 
 Store non-cookie secrets (database columns, tokens) with libsodium or `password_hash` — Azera's encryption helpers are scoped to cookie values.
 
 ### Key generation
 
-Generate a cryptographically random key once, store it outside source control, and load it at runtime via an environment variable. Pass it explicitly with `->key($key)`, since the default (a hash of `php_uname()`) ties cookies to a single machine.
+Generate a cryptographically random key once, store it outside source control, and load it at runtime via an environment variable. Pass it explicitly with `->key($key)`. There is deliberately **no default key**: deriving one from `php_uname()` (as earlier versions did) is unsafe, because the host name, OS and build string are routinely disclosed. Using `->encrypted()` without a key throws.
+
+```php
+// generate once, store e.g. in .env outside the web root
+$key = base64_encode(random_bytes(32));
+
+Cookie::make('session')->encrypted()->key($key)->send();
+```
 
 ```php
 // Generate once (run in a CLI script or tinker session)

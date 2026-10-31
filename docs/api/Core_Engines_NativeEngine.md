@@ -110,7 +110,7 @@ template scope. Per-call variables override globals.
 
 ---
 
-### renderLayout() · <small>[🗎](../../src/Core/Engines/NativeEngine.php#L127)</small>
+### renderLayout() · <small>[🗎](../../src/Core/Engines/NativeEngine.php#L138)</small>
 
 `public function renderLayout(string $layout, string $content, array $vars = []): string`
 

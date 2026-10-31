@@ -50,11 +50,16 @@ class CsrfMiddleware implements MiddlewareInterface
         $request = $context->request();
         $session = $context->session();
 
+        // Guard on the method the client actually used on the wire, not the
+        // (attacker-controllable) overridden one. A cross-site form POST that
+        // carries _method=GET must still be required to present a token.
+        $method = $this->effectiveMethod($request);
+
         // Without a session there is nothing to store a token against;
         // fail closed for state-changing requests, pass through others.
         if ($session === null) {
-            if (in_array($request->method(), $this->guardedMethods, true)) {
-                return $this->denied($request->method());
+            if (in_array($method, $this->guardedMethods, true)) {
+                return $this->denied($method);
             }
             return $next($context);
         }
@@ -62,17 +67,46 @@ class CsrfMiddleware implements MiddlewareInterface
         // Ensure a token always exists so views can render it.
         $token = $this->ensureToken($session);
 
-        if (!in_array($request->method(), $this->guardedMethods, true)) {
+        if (!in_array($method, $this->guardedMethods, true)) {
             return $next($context);
         }
 
         $submitted = $this->extractToken($request, $session);
 
         if ($submitted === null || !hash_equals($token, $submitted)) {
-            return $this->denied($request->method());
+            return $this->denied($method);
         }
 
         return $next($context);
+    }
+
+    /**
+     * Determine the HTTP method used for CSRF guarding.
+     *
+     * The method the client really used is authoritative. `Request::method()`
+     * honours `_method` / `X-HTTP-Method-Override`, which an attacker who can
+     * craft a cross-site form submission controls. An override may therefore
+     * never downgrade a state-changing request into an unguarded one: if the
+     * underlying method is guarded, it stays guarded.
+     *
+     * @param \Azera\Http\Request $request
+     * @return string Effective method, uppercased.
+     */
+    private function effectiveMethod($request): string
+    {
+        // Use the method recorded on the request object only. In a worker
+        // (RoadRunner, Volucer) $_SERVER describes the worker process, not the
+        // request being handled, so reading it here would be wrong.
+        $raw = strtoupper((string) $request->server('REQUEST_METHOD', ''));
+
+        if ($raw !== '' && in_array($raw, $this->guardedMethods, true)) {
+            return $raw;
+        }
+
+        // Either an unguarded transport method (GET/HEAD/…) or no method at
+        // all. Fall back to the effective method, which can only escalate to a
+        // guarded method — never de-escalate.
+        return strtoupper((string) $request->method());
     }
 
     /**

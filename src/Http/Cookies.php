@@ -19,14 +19,22 @@ class Cookies
      * If the cookie was set in this request via {@see set()}, its in-memory value is
      * returned; otherwise the value is read from $_COOKIE.
      *
+     * For encrypted cookies the value is only ever returned when it decrypts
+     * and authenticates successfully. The raw cookie is never returned as a
+     * fallback: doing so would let an attacker supply a plaintext cookie and
+     * have it accepted verbatim, defeating the integrity check entirely.
+     *
      * @param string $name    Cookie name.
      * @param mixed  $default Default value when the cookie is absent.
      * @return mixed
      */
     public function get(string $name, mixed $default = null): mixed
     {
-        return $this->cookies[$name]->value($default)
-            ?? ($_COOKIE[$name] ?? $default);
+        if (isset($this->cookies[$name])) {
+            return $this->cookies[$name]->value($default);
+        }
+
+        return $_COOKIE[$name] ?? $default;
     }
 
     /**
