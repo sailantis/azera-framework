@@ -611,6 +611,21 @@ Macros are reusable fragments defined once and expanded **inline at compile time
 ```
 
 - A macro is defined with `{% macro name(params) %}` and called with `{% call name(args) %}`.
+- A parameter may declare a **default**, and optional parameters must come last:
+
+  ```twig
+  {% macro terminal(label, command, icon = "fa-solid fa-terminal") %}
+  ...
+  {% endmacro %}
+
+  {% call terminal("Install", "composer require x") %}            {# default icon #}
+  {% call terminal("Install", "composer require x", "fa-bolt") %} {# own icon #}
+  ```
+
+  The default is compiled at the call site, so a macro body is spliced inline and a
+  default reads the caller's variables and the parameters already bound before it
+  (`{% macro m(a, b = a ~ "!") %}` works). Filters, calls, nested parentheses and
+  quoted commas inside a default all work.
 - Macro names are identifiers, so they are case-sensitive and may not be a directive keyword.
 - Parameters can reference any expression available at the call site.
 - Macros cannot call themselves recursively (cycle detection throws a compile error).
