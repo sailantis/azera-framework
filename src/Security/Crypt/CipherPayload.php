@@ -7,15 +7,11 @@ use Azera\Exception;
 /**
  * The wire format shared by all {@see CipherProviderInterface} implementations.
  *
- * A payload has the following form:
- *
  *     base64url( provider-id "|" raw-ciphertext )
  *
- * The provider identifier is stored inside the payload, so each value is
- * associated with the provider that produced it. This allows cookies to be
- * read on machines where different extensions are installed: the decoder
- * relies on the provider named in the payload rather than on the providers
- * available on the current machine.
+ * The payload records the provider that produced it, so decoding uses the provider named in the
+ * payload rather than the providers installed on the current machine. Cookies can therefore be
+ * read on machines where different extensions are installed.
  */
 final class CipherPayload
 {
