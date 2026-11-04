@@ -1054,12 +1054,19 @@ class Router
                 // which resolves to nothing.
                 $namespaceSeparator = strrpos($controller, '\\');
                 if ($namespaceSeparator !== false) {
-                    $namespacePart = substr($controller, 0, $namespaceSeparator);
-                    if (!empty($override['namespace'])) {
-                        $override['namespace'] .= '\\' . $namespacePart;
-                    } else {
-                        $override['namespace'] = $namespacePart;
-                    }
+                    // A fully qualified controller already carries its complete
+                    // namespace, so it REPLACES the group's namespace instead of
+                    // being appended to it. Appending produced
+                    // `PhpThunder\App\Controllers\PhpThunder` for a controller
+                    // registered as `$r->controller(LicenseController::class, ...)`
+                    // inside `$r->namespace('PhpThunder')`, which names no class.
+                    // The relative form (the string branch below) still inherits
+                    // the group namespace, which is the point of grouping.
+                    //
+                    // The leading separator is stripped so a name written with a
+                    // root backslash yields the same canonical namespace as one
+                    // without it.
+                    $override['namespace']  = ltrim(substr($controller, 0, $namespaceSeparator), '\\');
                     $override['controller'] = substr($controller, $namespaceSeparator + 1);
                 }
             }
@@ -1077,7 +1084,10 @@ class Router
                 if ($handler !== '') {
                     $namespaceSeparator = strrpos($handler, '\\');
                     if ($namespaceSeparator !== false) {
-                        $override['namespace']  = substr($handler, 0, $namespaceSeparator);
+                        // Same canonicalisation as the array branch above: a
+                        // leading root backslash must not become part of the
+                        // namespace string.
+                        $override['namespace']  = ltrim(substr($handler, 0, $namespaceSeparator), '\\');
                         $override['controller'] = substr($handler, $namespaceSeparator + 1);
                     } else {
                         $override['controller'] = $handler;
