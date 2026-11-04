@@ -165,7 +165,12 @@ final class CastTest extends TestCase
         $node = $this->em->heap()->find($e);
         $this->assertSame(1200, $node->data['price_cents']);
         $this->assertSame(4.5, $node->data['rating']);
-        $this->assertTrue($node->data['published']);
+        // Booleans snapshot as the store literal rather than the PHP bool,
+        // because BoolCast::encode() normalises to '1'/'0': a bound false
+        // reaches the driver as '' and PostgreSQL rejects that for a boolean
+        // column. What matters for the diff engine is that the snapshot equals
+        // what extractData() produces, which the next test pins.
+        $this->assertSame('1', $node->data['published']);
     }
 
     public function testHydratedUnchangedEntityPersistsNothing(): void
@@ -199,6 +204,38 @@ final class CastTest extends TestCase
     {
         $this->expectException(\RuntimeException::class);
         $this->hydratedCasted($this->fullRow(['published' => 'maybe']));
+    }
+
+    /**
+     * pdo_pgsql sends a bound PHP `false` as '', and PostgreSQL rejects '' for
+     * a boolean column. PHP `true` stringifies to '1' and worked, so a boolean
+     * left at its default broke every INSERT while the same row with the box
+     * ticked succeeded. encode() must therefore normalise instead of passing
+     * the value through.
+     */
+    public function testBoolEncodeNormalisesSoFalseIsNotBoundAsAnEmptyString(): void
+    {
+        $this->assertSame('0', Casts::for('bool')->encode(false));
+        $this->assertSame('1', Casts::for('bool')->encode(true));
+    }
+
+    public function testBoolEncodeIsNullTransparentAndRoundTrips(): void
+    {
+        $cast = Casts::for('bool');
+
+        $this->assertNull($cast->encode(null));
+        $this->assertNull($cast->decode(null));
+
+        $this->assertTrue($cast->decode($cast->encode(true)));
+        $this->assertFalse($cast->decode($cast->encode(false)));
+    }
+
+    public function testBoolEncodeRejectsInsteadOfCoercing(): void
+    {
+        // (bool) 'false' is true, so a loose cast here would silently INVERT
+        // the value written to the database.
+        $this->expectException(\RuntimeException::class);
+        Casts::for('bool')->encode('maybe');
     }
 
     /* ---------------------------------------------------------- json */
