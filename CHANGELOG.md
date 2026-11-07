@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The clarity-engine constraint no longer blocks a stable install.** `require` said bare
+  `dev-main`, and a dependency on `dev-main` forces every consumer's `minimum-stability` to
+  `dev` — so a project on the default `stable` could not install this package at all
+  (`… requires sailantis/clarity-engine dev-main … does not match your minimum-stability`).
+  It is now `dev-main || ^0.4`, which keeps local development on `dev-main` while letting a
+  stable project resolve the tagged release.
 - **BREAKING:** `Cookie::encrypted()` requires an explicit key via `Cookie::key()`. The former default derived the key from `php_uname()`, which is predictable. Encrypting without a key throws.
 - **BREAKING:** Model-mode `orderBy()`, `columns()` and `groupBy()` reject string expressions. Use `Sql::raw()` or a `Sql` node instead. `Query::raw()` is unaffected.
 - **Cookie cipher API:** Removed without shims: `Cookie::CIPHER_*`, `getAvailableCipher()`, `hasSodium()` and `hasOpenSSL()`. Select an algorithm with `->cipher(SodiumCipher::ID)` or through `CipherRegistry`.
