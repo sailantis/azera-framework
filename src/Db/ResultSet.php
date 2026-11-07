@@ -25,6 +25,16 @@ class ResultSet implements \Iterator, \Countable
 	protected bool $isReadQuery;
 
 	/**
+	 * Whether this statement has already been offered back to the connection's pool.
+	 *
+	 * Only {@see ResultSet::__destruct()} releases, and a destructor runs once, so this
+	 * is belt-and-braces rather than load-bearing: it keeps a subclass or a second
+	 * destruction path from offering the same statement twice, which would leave one
+	 * slot holding a statement that another reader believes it owns.
+	 */
+	protected bool $released = false;
+
+	/**
 	 * Create a new ResultSet wrapping a PDO statement result.
 	 *
 	 * @param Database        $connection   SQL connection used to execute the query.
@@ -202,6 +212,9 @@ class ResultSet implements \Iterator, \Countable
 		$this->currentRow  = null;
 		$this->position    = 0;
 		$this->initialized = false;
+		// The replacement statement is a different object and has to be eligible for
+		// release on its own account, or a refreshed set would never pool again.
+		$this->released    = false;
 	}
 
 	// Iterator methods
@@ -269,6 +282,15 @@ class ResultSet implements \Iterator, \Countable
 	 * SQLite in WAL mode, an open cursor on a write statement keeps the write
 	 * lock held on its connection, blocking writes from other connections.
 	 *
+	 * **Deliberately does not hand the statement back to the pool.** `closeCursor()`
+	 * means "I have finished reading", not "this object is gone": the `ResultSet` is
+	 * still alive and still fetchable afterwards, and PHP's contract there is that
+	 * `fetch()` returns `false`. Returning the statement at this point broke that
+	 * contract — a second query would take the same `PDOStatement`, its `execute()`
+	 * would rewind the cursor, and the first reader's next `fetch()` would silently
+	 * answer with the *other* query's rows instead of `false`. The pool is therefore
+	 * fed from {@see ResultSet::__destruct()} only, where nothing can read any more.
+	 *
 	 * @return void
 	 */
 	public function closeCursor(): void
@@ -277,12 +299,22 @@ class ResultSet implements \Iterator, \Countable
 	}
 
 	/**
-	 * Ensure the underlying statement cursor is released when the result set
-	 * goes out of scope, so that any Database locks it holds are freed.
+	 * Return the cursor to the connection's statement pool, once, at the end of life.
+	 *
+	 * This is the only safe release point. A statement offered from `closeCursor()`
+	 * could be re-executed by a later query while this object was still reachable and
+	 * still answering `fetch()` — see {@see ResultSet::closeCursor()} for the sequence
+	 * that produced another query's rows. At destruction there is no reachable
+	 * `ResultSet` left, so reuse cannot be observed.
 	 */
 	public function __destruct()
 	{
-		$this->closeCursor();
+		$this->statement->closeCursor();
+
+		if (!$this->released) {
+			$this->released = true;
+			$this->db->releaseStatement($this->sqlStatement, $this->statement);
+		}
 	}
 
 }

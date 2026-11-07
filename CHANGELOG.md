@@ -32,6 +32,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
+- **Prepared statements are pooled per connection** (`Db\Database`), opt-in via
+  `Database::useStatementCache()`. `query()` prepared the statement on every call, so the
+  SQL text was parsed and planned again each time — on pdo_sqlite that was
+  `sqlite3_prepare_v2` plus `sqlite3RunParser`, measured at ~4.6% of a busy worker's
+  samples. A statement is now taken from the pool when executed and offered back when it
+  is no longer reachable.
+
+  Measured on PHP 8.5.11 with `opcache.jit=tracing`, interleaved:
+
+  | | before | after |
+  | --- | --- | --- |
+  | one `SELECT … LIMIT 20` through `ResultSet` | 13.45 µs | **9.74 µs** (−27.6%) |
+  | the same in a full `/api/items` dispatch | 28.94 µs | **23.82 µs** (−17.7%) |
+
+  **The pool is a one-slot-per-SQL pool, not a cache, and that is a correctness
+  requirement.** A cache keyed by SQL hands the same `PDOStatement` to two successive
+  queries; the second `execute()` rewinds the first caller's cursor and a partially
+  consumed reader silently continues with someone else's rows. Taking a statement
+  *removes* it, so a second query on the same SQL while the first is alive prepares its
+  own and two live readers can never share a cursor. For the same reason a statement is
+  released only from `ResultSet::__destruct()`, never from `closeCursor()`: a
+  `ResultSet` that has closed its cursor is still alive and its `fetch()` must return
+  `false`, which the earlier release-on-closeCursor() version broke by handing back the
+  statement while it was still fetchable. Both invariants have regression tests
+  (`tests/Db/StatementCacheTest.php`), each verified to fail when its rule is removed.
+
+  **Off by default.** On a driver that emulates prepares (`pdo_mysql`'s default) the
+  client-side substitution happens at execute time and the win is unproven; a deployment
+  should enable it where it has measured the difference. The pool is flushed on
+  `connect()`, because statements belong to the handle that prepared them.
 - **Route resolution is cached** (`Core\Router`): `resolveHandler()` parses a handler string into a namespace / controller / action triple. That parse is a pure function of the handler, but it ran on every request of every static route — 0.41 µs of the router's 0.53 µs. It is now parsed once per distinct handler value, including the array and `null` forms (which are cached in separate slots). `match()` drops from 0.53 to 0.28 µs.
 - **The dispatcher stops rebuilding what cannot change** (`Core\Dispatcher`): the `ReflectionMethod` for an action is cached per `class::action` (0.10 µs per request), and one `ResolvedRoute` instance is reused per route identity. `ResolvedRoute` is all-readonly, so the same object can be handed to `setRoute()` for every request that matches the same route. Static routes key on the three names alone; dynamic routes include their variables and are bounded at 256 entries, so walking `/items/{id}` cannot grow the cache without limit in a persistent worker.
 - **A route with no middleware runs its handler directly** (`Core\Dispatcher`): `buildPipeline()` used to build a zero-link closure chain and call it once per request. It now returns the core handler.

@@ -22,6 +22,9 @@ class Statement
 
     protected string $sql;
 
+    /** @var bool Whether this statement has already been offered back to the pool. */
+    protected bool $released = false;
+
     /**
      * Create a new PreparedStatement wrapping an already-prepared PDO statement.
      *
@@ -133,5 +136,10 @@ class Statement
     public function __destruct()
     {
         $this->closeCursor();
+
+        if (!$this->released) {
+            $this->released = true;
+            $this->db->releaseStatement($this->sql, $this->statement);
+        }
     }
 }
