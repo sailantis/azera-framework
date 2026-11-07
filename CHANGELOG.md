@@ -5,7 +5,14 @@ All notable changes to `sailantis/azera-framework` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-07
+
+Installed by `composer require` from this tag. Carries three BREAKING changes and ten security
+fixes — read *Security* and *Changed* below before upgrading.
+
+This is the first release since 0.1.0. There was no 0.2.0: the number is skipped, not lost. It
+requires `sailantis/clarity-engine` `^0.4` (or `dev-main`), and before this the bare `dev-main`
+constraint made the package uninstallable by a project on Composer's default stability.
 
 ### Security
 
@@ -129,5 +136,6 @@ with the packaging and tooling a published library is expected to carry.
 characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.0
 [0.1.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.0
