@@ -32,10 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- **Route resolution is cached** (`Core\Router`): `resolveHandler()` parses a handler string into a namespace / controller / action triple. That parse is a pure function of the handler, but it ran on every request of every static route — 0.41 µs of the router's 0.53 µs. It is now parsed once per distinct handler value, including the array and `null` forms (which are cached in separate slots).
+- **Route resolution is cached** (`Core\Router`): `resolveHandler()` parses a handler string into a namespace / controller / action triple. That parse is a pure function of the handler, but it ran on every request of every static route — 0.41 µs of the router's 0.53 µs. It is now parsed once per distinct handler value, including the array and `null` forms (which are cached in separate slots). `match()` drops from 0.53 to 0.28 µs.
 - **The dispatcher stops rebuilding what cannot change** (`Core\Dispatcher`): the `ReflectionMethod` for an action is cached per `class::action` (0.10 µs per request), and one `ResolvedRoute` instance is reused per route identity. `ResolvedRoute` is all-readonly, so the same object can be handed to `setRoute()` for every request that matches the same route. Static routes key on the three names alone; dynamic routes include their variables and are bounded at 256 entries, so walking `/items/{id}` cannot grow the cache without limit in a persistent worker.
 - **A route with no middleware runs its handler directly** (`Core\Dispatcher`): `buildPipeline()` used to build a zero-link closure chain and call it once per request. It now returns the core handler.
-- Measured on a warm worker serving a 17-byte JSON body (32 workers, 12-core VM): in-process dispatch 3.54 → 2.93 µs (−17%), served throughput 87,473 → 94,982 rps (+8.6%). Routes that carry middleware are unaffected by the pipeline change and show no measurable difference.
+- Scope: these are throughput-neutral at the served level. Dispatch is ~3 µs of a ~200 µs request on a warm worker, so ~0.3 µs saved is ~0.15% — below served-measurement noise (±4%), and an interleaved A/B confirms no difference. The gain is bounded per-request work, not a benchmark result.
 
 ## [0.1.0]
 
