@@ -149,18 +149,8 @@ class Request
     }
 
     /**
-     * Header name to `$_SERVER` key, remembered per name.
-     *
-     * The mapping (`"X-Request-Id"` → `"HTTP_X_REQUEST_ID"`) is a pure function of the
-     * name, and an application asks for the same handful of names on every request — so
-     * recomputing it with `str_replace` + `strtoupper` on each lookup was repeated work
-     * that never varies. Measured on PHP 8.5.11 with `opcache.jit=tracing`:
-     * **0.234 µs → 0.083 µs** per `header()` call, a 64% reduction.
-     *
-     * Static rather than per-instance because it maps a name to a key with no request in
-     * it: two requests in a persistent worker share the same header vocabulary, so the
-     * map is filled once for the process rather than once per request. It is bounded by
-     * the distinct header names an application asks for, which are written in code.
+     * Cached mapping from header names to CGI `$_SERVER` keys. Request-independent,
+     * so the cache is shared across instances.
      *
      * @var array<string, string>
      */
@@ -180,23 +170,11 @@ class Request
         return $this->server[$name] ?? $default;
     }
 
-    /**
-     * Get a request header value
-     * @param string $name The name of the header (case-insensitive)
-     * @param mixed $default The default value to return if the header is not present
-     * @return mixed The header value, or the default if not present
-     */
+    /** Get a request header value (case-insensitive). */
     public function header(string $name, mixed $default = null): mixed
     {
-        // Most headers reach the server array under their HTTP_* name, but the
-        // CGI specification gives two of them unprefixed names. Looking only
-        // for HTTP_CONTENT_TYPE would miss the Content-Type that every real
-        // SAPI provides — `php-cgi` sends CONTENT_TYPE and never
-        // HTTP_CONTENT_TYPE, and the same is true of the server's CGI
-        // environment. Content-Length is the mirror image: the length of the
-        // body actually delivered is authoritative, so a declared
-        // Content-Length is not a header the application should be able to read
-        // past.
+        // CGI exposes these without the HTTP_ prefix. CONTENT_LENGTH reflects the
+        // delivered body length, rather than trusting a declared header.
         if (strcasecmp($name, 'Content-Type') === 0) {
             return $this->server['CONTENT_TYPE'] ?? $default;
         }
@@ -206,9 +184,7 @@ class Request
                 : $default;
         }
 
-        // Convert header name to server key format (e.g. "X-Request-Id" -> "HTTP_X_REQUEST_ID").
-        // The conversion is cached because it is a pure function of the name and the
-        // same names are asked for on every request in a worker. See $headerKeys.
+        // Convert to CGI key format (e.g. "X-Request-Id" -> "HTTP_X_REQUEST_ID").
         $key = self::$headerKeys[$name] ??= 'HTTP_' . strtoupper(str_replace('-', '_', $name));
 
         return $this->server[$key] ?? $default;

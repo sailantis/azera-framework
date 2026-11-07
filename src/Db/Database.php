@@ -53,58 +53,25 @@ class Database
 	protected ?int $defaultFetchMode = null;
 
 	/**
-	 * Idle prepared statements, keyed by SQL text.
-	 *
-	 * ## Why a one-slot pool rather than a statement cache
-	 *
-	 * A cache keyed by SQL hands the same `PDOStatement` to two successive queries.
-	 * That is a data-corruption bug, not a slowdown: the second `execute()` rewinds
-	 * the first caller's cursor, and a caller that had only partially consumed its
-	 * rows silently reads someone else's.
-	 *
-	 * Refcounting the statement would fix that, but a simpler rule fixes it for free:
-	 * **a slot holds at most one *idle* statement, and taking one removes it from the
-	 * map.** A second query with the same SQL while the first is still alive finds the
-	 * slot empty and prepares its own, so two live consumers can never share a cursor
-	 * — no bookkeeping, no leak if a caller forgets to release, and the pool converges
-	 * back to one idle statement per distinct SQL.
-	 *
-	 * ## When a statement may be offered back
-	 *
-	 * Only from {@see ResultSet::__destruct()}, never from `closeCursor()`. A
-	 * `ResultSet` that has closed its cursor is still alive and still fetchable, and
-	 * PHP's contract is that `fetch()` then returns `false`. Releasing at `closeCursor()`
-	 * — which an earlier revision of this code did — let the next query re-execute the
-	 * same statement, and the first reader's next `fetch()` answered with the *other*
-	 * query's rows instead of `false`. Destruction is the only point where no reader can
-	 * observe the reuse. Both rules have regression tests in
-	 * `tests/Db/StatementCacheTest.php`, each checked to fail when its rule is removed.
+	 * One idle statement per SQL query. Borrowing removes it from the pool, so live
+	 * ResultSets never share a cursor. Return statements only when the ResultSet is
+	 * destroyed, not on `closeCursor()`; a closed ResultSet remains fetchable and must
+	 * continue returning `false`. Regression tests cover both rules.
 	 *
 	 * @var array<string, PDOStatement>
 	 */
 	protected array $idleStatements = [];
 
 	/**
-	 * How many idle statements this connection may keep.
-	 *
-	 * A request typically runs a handful of distinct statements, so the cap exists
-	 * only to keep a long-lived worker from growing a map without bound when an
-	 * application builds SQL from user input. When the cap is reached the pool is
-	 * dropped rather than evicted one entry at a time: the statements it holds are
-	 * about to be re-prepared on demand, which is the cost a cache miss already has.
+	 * Maximum idle statements per connection. Reaching the limit clears the pool to
+	 * bound memory use in long-lived workers with dynamic SQL.
 	 */
 	protected int $statementCacheLimit = 64;
 
 	/**
-	 * Whether to reuse prepared statements between calls.
-	 *
-	 * Off by default, and that default is deliberate. `ATTR_EMULATE_PREPARES` is a
-	 * connection setting an application may rely on, and on an emulating driver
-	 * (pdo_mysql's default) the client-side substitution and quote-escaping happen
-	 * *at execute time*. Reusing the statement object is still correct there, but
-	 * `pdo_mysql` also caches nothing for the named-placeholder shape, so the win is
-	 * unproven off SQLite. A deployment enables it where it has measured the
-	 * difference - see {@see Database::useStatementCache()}.
+	 * Whether to reuse prepared statements. Disabled by default because the benefit
+	 * outside SQLite, including with emulated prepares (`pdo_mysql`'s default), is
+	 * unproven. Enable after measuring; see {@see Database::useStatementCache()}.
 	 */
 	protected bool $statementCacheEnabled = false;
 

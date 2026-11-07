@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- **SQL placeholder substitution** (`Db\Condition`): a `?` inside a substituted value was re-read as a placeholder, which let input escape its string literal. Substitution now runs in a single pass that skips quoted literals.
-- **Encrypted cookies** (`Http\Cookie`, `Http\Cookies`): a failed decryption fell back to the raw `$_COOKIE` value. Failed decryption now returns the default, and reading an unregistered cookie no longer dereferences null.
-- **CSRF method override** (`Security\CsrfMiddleware`): enforcement used `Request::method()`, which honours `_method` and `X-HTTP-Method-Override`. The transport method is now used.
-- **View path traversal** (`Core\ViewEngine`): absolute POSIX, Windows and UNC names were accepted, and `..` was not canonicalised. Names are now confined to their root.
-- **`extract()` shadowing** (`Core\Engines\NativeEngine`): a view variable named `sourcePath` overwrote the template path. Rendering now uses a closure with `EXTR_SKIP`.
+- **SQL placeholder substitution** (`Db\Condition`): A `?` in a substituted value could be mistaken for a placeholder, escaping its string literal. Substitution now skips quoted literals in one pass.
+- **Encrypted cookies** (`Http\Cookie`, `Http\Cookies`): Failed decryption now returns the default instead of the raw cookie value; reading an unregistered cookie no longer dereferences null.
+- **CSRF method override** (`Security\CsrfMiddleware`): Enforcement now checks the transport method, not the method overridden by `_method` or `X-HTTP-Method-Override`.
+- **View path traversal** (`Core\ViewEngine`): View names are canonicalised and confined to their root, including POSIX, Windows, and UNC paths.
+- **`extract()` shadowing** (`Core\Engines\NativeEngine`): Rendering uses a closure with `EXTR_SKIP` to prevent view variables from overwriting the template path.
 - **Identifier clauses** (`Db\Query`): `orderBy()`, `columns()` and `groupBy()` validate the whole term. Use `Sql` nodes for expressions.
 - **PostgreSQL array literals** (`Db\Sql`): `pgArray()` escapes single quotes.
 - **AOP proxy cache** (`Aop\ProxyFactory`): proxies are written to a `0700` directory that is checked for group and world writability. Writes use `tempnam()` with an atomic rename, and files load only after a successful write.
@@ -32,61 +32,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- **`Request::header()` remembers its name-to-key mapping** (`Http\Request`). Every call
-  ran `str_replace` + `strtoupper` to build `"HTTP_X_REQUEST_ID"` from `"X-Request-Id"`,
-  which is a pure function of the name and identical on every request in a worker.
-  Measured with `opcache.jit=tracing`: **0.234 µs → 0.083 µs** per call (−64%), and
-  **−0.43 µs per served `/echo` request** (10.75 → 10.32 µs of PHP CPU, bodies identical).
-
-  The map stores the *key*, never the value. Caching the value would answer a later
-  request from an earlier one's server array, which is the failure the added test
-  (`testACachedHeaderKeyDoesNotLeakAnotherRequestsValue`) exists to catch — it was
-  verified to fail when the value is cached instead.
-
-- **A note on what was measured and rejected:** caching `Dispatcher::buildPipeline()`'s
-  middleware collection looked like the obvious next win and is *not*. Collecting and
-  normalising two middlewares costs **0.077 µs**; building the cache key alone — a count,
-  an `spl_object_id()`, an `implode()` and a concatenation — costs **0.180 µs**, and the
-  array lookup on top makes it worse. Measured end to end, the cache made dispatch
-  **+10% slower** (2.20 → 2.42 µs) and `/echo` +4% (3.82 → 3.98 µs), so it was reverted.
-  The apparent per-middleware growth (0.448 / 0.598 / 0.752 µs for 0/1/2) is the wrapper
-  closures (~0.15 µs each), which cannot be cached because each closes over the request's
-  own `$params`. An index-driven chain that avoids allocating them was also measured and
-  is *slower* (1.626 vs 1.390 µs), so the nested closures stay. The reasoning is recorded
-  in a comment at the site so it is not re-attempted.- **Prepared statements are pooled per connection** (`Db\Database`), opt-in via
-  `Database::useStatementCache()`. `query()` prepared the statement on every call, so the
-  SQL text was parsed and planned again each time — on pdo_sqlite that was
-  `sqlite3_prepare_v2` plus `sqlite3RunParser`, measured at ~4.6% of a busy worker's
-  samples. A statement is now taken from the pool when executed and offered back when it
-  is no longer reachable.
+- **`Request::header()` caches header-name mappings** (`Http\Request`), reducing lookup time from **0.234 µs to 0.083 µs** (−64%) and `/echo` PHP CPU by **0.43 µs/request** (10.75 → 10.32 µs). Only the mapping is cached—not the request-specific value—to prevent cross-request leakage.
+- **Prepared statements are pooled per connection** (`Db\Database`), opt-in via `Database::useStatementCache()`. Statements are reused after they are no longer reachable, avoiding repeated SQL parsing and planning (about 4.6% of busy pdo_sqlite worker samples).
 
   Measured on PHP 8.5.11 with `opcache.jit=tracing`, interleaved:
 
-  | | before | after |
-  | --- | --- | --- |
-  | one `SELECT … LIMIT 20` through `ResultSet` | 13.45 µs | **9.74 µs** (−27.6%) |
-  | the same in a full `/api/items` dispatch | 28.94 µs | **23.82 µs** (−17.7%) |
+  |                                             | before   | after                 |
+  | ------------------------------------------- | -------- | --------------------- |
+  | one `SELECT … LIMIT 20` through `ResultSet` | 13.45 µs | **9.74 µs** (−27.6%)  |
+  | the same in a full `/api/items` dispatch    | 28.94 µs | **23.82 µs** (−17.7%) |
 
-  **The pool is a one-slot-per-SQL pool, not a cache, and that is a correctness
-  requirement.** A cache keyed by SQL hands the same `PDOStatement` to two successive
-  queries; the second `execute()` rewinds the first caller's cursor and a partially
-  consumed reader silently continues with someone else's rows. Taking a statement
-  *removes* it, so a second query on the same SQL while the first is alive prepares its
-  own and two live readers can never share a cursor. For the same reason a statement is
-  released only from `ResultSet::__destruct()`, never from `closeCursor()`: a
-  `ResultSet` that has closed its cursor is still alive and its `fetch()` must return
-  `false`, which the earlier release-on-closeCursor() version broke by handing back the
-  statement while it was still fetchable. Both invariants have regression tests
-  (`tests/Db/StatementCacheTest.php`), each verified to fail when its rule is removed.
+  **One available statement per SQL.** A statement is removed from the pool while in use, so concurrent readers never share a cursor. It is returned only when its `ResultSet` is destroyed, not on `closeCursor()`. Regression tests cover both rules (`tests/Db/StatementCacheTest.php`).
 
-  **Off by default.** On a driver that emulates prepares (`pdo_mysql`'s default) the
-  client-side substitution happens at execute time and the win is unproven; a deployment
-  should enable it where it has measured the difference. The pool is flushed on
-  `connect()`, because statements belong to the handle that prepared them.
-- **Route resolution is cached** (`Core\Router`): `resolveHandler()` parses a handler string into a namespace / controller / action triple. That parse is a pure function of the handler, but it ran on every request of every static route — 0.41 µs of the router's 0.53 µs. It is now parsed once per distinct handler value, including the array and `null` forms (which are cached in separate slots). `match()` drops from 0.53 to 0.28 µs.
-- **The dispatcher stops rebuilding what cannot change** (`Core\Dispatcher`): the `ReflectionMethod` for an action is cached per `class::action` (0.10 µs per request), and one `ResolvedRoute` instance is reused per route identity. `ResolvedRoute` is all-readonly, so the same object can be handed to `setRoute()` for every request that matches the same route. Static routes key on the three names alone; dynamic routes include their variables and are bounded at 256 entries, so walking `/items/{id}` cannot grow the cache without limit in a persistent worker.
-- **A route with no middleware runs its handler directly** (`Core\Dispatcher`): `buildPipeline()` used to build a zero-link closure chain and call it once per request. It now returns the core handler.
-- Scope: these are throughput-neutral at the served level. Dispatch is ~3 µs of a ~200 µs request on a warm worker, so ~0.3 µs saved is ~0.15% — below served-measurement noise (±4%), and an interleaved A/B confirms no difference. The gain is bounded per-request work, not a benchmark result.
+  **Off by default.** The benefit is unproven for emulated prepares (the `pdo_mysql` default); enable only after measuring. `connect()` flushes the pool because statements belong to their connection.
+
+- **Route resolution is cached** (`Core\Router`): Each distinct handler is parsed once (including separate array and `null` forms), reducing `match()` from **0.53 µs to 0.28 µs**.
+- **The dispatcher reuses stable data** (`Core\Dispatcher`): Cache action reflection and reuse readonly `ResolvedRoute` objects. Dynamic-route cache entries include variables and are capped at 256.
+- **Routes without middleware call the handler directly** (`Core\Dispatcher`), avoiding an unnecessary closure chain.
+- Scope: These microbench gains are throughput-neutral in served requests: dispatch is ~3 µs of a ~200 µs request, and the ~0.3 µs saved is below measurement noise (±4%).
 
 ## [0.1.0]
 
