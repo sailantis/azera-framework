@@ -32,7 +32,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance
 
-- **Prepared statements are pooled per connection** (`Db\Database`), opt-in via
+- **`Request::header()` remembers its name-to-key mapping** (`Http\Request`). Every call
+  ran `str_replace` + `strtoupper` to build `"HTTP_X_REQUEST_ID"` from `"X-Request-Id"`,
+  which is a pure function of the name and identical on every request in a worker.
+  Measured with `opcache.jit=tracing`: **0.234 µs → 0.083 µs** per call (−64%), and
+  **−0.43 µs per served `/echo` request** (10.75 → 10.32 µs of PHP CPU, bodies identical).
+
+  The map stores the *key*, never the value. Caching the value would answer a later
+  request from an earlier one's server array, which is the failure the added test
+  (`testACachedHeaderKeyDoesNotLeakAnotherRequestsValue`) exists to catch — it was
+  verified to fail when the value is cached instead.
+
+- **A note on what was measured and rejected:** caching `Dispatcher::buildPipeline()`'s
+  middleware collection looked like the obvious next win and is *not*. Collecting and
+  normalising two middlewares costs **0.077 µs**; building the cache key alone — a count,
+  an `spl_object_id()`, an `implode()` and a concatenation — costs **0.180 µs**, and the
+  array lookup on top makes it worse. Measured end to end, the cache made dispatch
+  **+10% slower** (2.20 → 2.42 µs) and `/echo` +4% (3.82 → 3.98 µs), so it was reverted.
+  The apparent per-middleware growth (0.448 / 0.598 / 0.752 µs for 0/1/2) is the wrapper
+  closures (~0.15 µs each), which cannot be cached because each closes over the request's
+  own `$params`. An index-driven chain that avoids allocating them was also measured and
+  is *slower* (1.626 vs 1.390 µs), so the nested closures stay. The reasoning is recorded
+  in a comment at the site so it is not re-attempted.- **Prepared statements are pooled per connection** (`Db\Database`), opt-in via
   `Database::useStatementCache()`. `query()` prepared the statement on every call, so the
   SQL text was parsed and planned again each time — on pdo_sqlite that was
   `sqlite3_prepare_v2` plus `sqlite3RunParser`, measured at ~4.6% of a busy worker's

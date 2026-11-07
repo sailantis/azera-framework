@@ -43,6 +43,36 @@ final class RequestHeadersTest extends TestCase
     }
 
     /**
+     * The name-to-key map is static, so it outlives the request that filled it. A
+     * cached key must not change the answer for a *different* request: the key is a
+     * function of the name alone, and the value still comes from this request's own
+     * server array.
+     *
+     * This is the failure the cache could cause — one request's header answered from
+     * another's array — and it is worth a test because the map is process-wide.
+     */
+    public function testACachedHeaderKeyDoesNotLeakAnotherRequestsValue(): void
+    {
+        $first  = new Request(['HTTP_X_TRACE' => 'from-first']);
+        $second = new Request(['HTTP_X_TRACE' => 'from-second']);
+
+        $this->assertSame('from-first', $first->header('X-Trace'), 'fills the key cache');
+        $this->assertSame('from-second', $second->header('X-Trace'), 'must read its own array');
+        $this->assertSame('from-first', $first->header('X-Trace'), 'and not be overwritten');
+    }
+
+    /** A header that is absent in a later request stays absent after the key is cached. */
+    public function testACachedHeaderKeyStillReturnsTheDefaultWhenAbsent(): void
+    {
+        $with    = new Request(['HTTP_X_OPTIONAL' => 'present']);
+        $without = new Request([]);
+
+        $this->assertSame('present', $with->header('X-Optional'));
+        $this->assertNull($without->header('X-Optional'));
+        $this->assertSame('fallback', $without->header('X-Optional', 'fallback'));
+    }
+
+    /**
      * The prefixed spelling is deliberately not consulted, because no SAPI
      * produces it. Accepting it as a fallback would hide exactly the mistake
      * that made this a bug: a server building the environment wrongly would

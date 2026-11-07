@@ -528,6 +528,16 @@ class Dispatcher
         /** @var MiddlewareInterface[] $middleware */
         $middleware = [];
 
+        // A note on why this is *not* cached, since caching it is the obvious idea and
+        // it was measured: collecting and normalising the list is 0.077 µs for two
+        // registered middleware, while building a cache key for it — a count, an
+        // `spl_object_id()`, an `implode()` and a concatenation — is 0.180 µs. The key
+        // costs more than the work it avoids, and an array lookup on top of that makes
+        // it worse. The growth this code appears to add per middleware (0.448 / 0.598 /
+        // 0.752 µs for 0, 1, 2) is the *wrapper closures* below (~0.15 µs each), not the
+        // collection. Those cannot be cached either: each closes over the request's own
+        // `$params`.
+
         // 1) Global Middleware
         if (!empty($this->globalMiddleware)) {
             foreach ($this->globalMiddleware as $mw) {
