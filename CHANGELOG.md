@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-08
+
+Installed by `composer require` from this tag. A patch release: no API removed and no
+behaviour changed, only the dynamic-route fatal error below.
+
+**If you are on v0.3.0, upgrade.** That tag ships the bug — any route that has both a path
+variable and an action taking an injected service fails on every request with
+`Serialization of 'Closure' is not allowed`.
+
 ### Fixed
 
 - **Dynamic routes no longer fail when an action receives a closure-backed service.**
@@ -152,6 +161,7 @@ with the packaging and tooling a published library is expected to carry.
 characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.1
 [0.3.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.0
 [0.1.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.0
