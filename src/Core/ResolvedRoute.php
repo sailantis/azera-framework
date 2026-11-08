@@ -3,18 +3,11 @@
 namespace Azera\Core;
 
 /**
- * ResolvedRoute represents the fully resolved route and execution context
- * used by the dispatcher to invoke the matched controller and action.
+ * Resolved route metadata shared across matching requests.
  *
- * It is an immutable VALUE shared across every request that resolves to the same
- * route, so it carries the route's identity only. The action's actual arguments
- * are not part of it: they are the list handed to the invocation, they contain
- * whatever the container injected, and a container can return a request-scoped
- * service that is reset between requests. Caching those would either fail to
- * `serialize()` (services hold closures) or silently carry one request's instance
- * into the next. The dispatcher therefore rebuilds the argument list per request
- * and exposes it through `$params` for inspection only — `vars` is the field to
- * read route parameters from.
+ * `$params` is not cached because it may contain closures or request-scoped
+ * services; the dispatcher rebuilds it for each request. Read URL parameters
+ * from `$vars`; `$params` is empty on cached routes.
  */
 class ResolvedRoute
 {

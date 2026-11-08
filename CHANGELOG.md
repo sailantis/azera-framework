@@ -9,31 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **A route whose action takes an injected service no longer dies with
-  `Serialization of 'Closure' is not allowed` when it also has a path variable.**
-  The dynamic-route cache key was
-  `serialize([$vars, …, $params, …])`, and `$params` is the list the action is
-  *invoked* with — so it holds whatever the container injected. A service holding a
-  closure (`DocsService`'s `MarkdownConverter`, a render callback) cannot be
-  serialized, so every request to such a route was fatal. The live failure was
-  `GET /azera-framework/docs/{segments:*}` →
-  `docsAction(DocsService $docs, array $segments = [])`.
+- **Dynamic routes no longer fail when an action receives a closure-backed service.**
+  The route cache serialized invocation `$params`, including injected services; a
+  closure in a service caused `Serialization of 'Closure' is not allowed` when the
+  route also had path variables (for example, the docs route with `DocsService`).
 
-  A route needed **both** a variable and a service to fail, which is why static
-  routes and service-free routes were all healthy. Introduced with the route cache
-  in 0.3.0.
+  Invocation parameters are no longer cached. They are rebuilt for each dispatch to
+  avoid stale request-scoped services; `ResolvedRoute::$params` remains empty, and
+  route variables are available through `->vars`.
 
-  The argument list is no longer part of the cached route at all. That is the
-  correct boundary rather than merely the one that stops the error: `$params` is
-  per-request by nature, because a service can be `RequestScoped` and is reset
-  between requests, so caching it would have replaced one fatal error with a silent
-  one — a later request receiving an earlier request's service state. The list is
-  rebuilt for each dispatch, and `ResolvedRoute::$params` is now always empty (read
-  route parameters from `->vars`).
-
-  Verified by dispatching the failing shape against both versions: the original dies
-  with the reported exception, the fixed one serves every request. Regression tests
-  in `tests/Mvc/DispatcherCacheTest.php`, mutation-checked against the original code.
+  Regression tests in `tests/Mvc/DispatcherCacheTest.php` cover the failure and were
+  mutation-checked against the original implementation.
 
 ## [0.3.0] - 2026-11-07
 

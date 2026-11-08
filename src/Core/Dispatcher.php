@@ -242,19 +242,9 @@ class Dispatcher
             throw new InvalidControllerException("{$controllerClass} is not a Controller");
         }
 
-        // The `ResolvedRoute` is cached across requests; the argument list is not.
-        //
-        // `resolveActionArguments()` returns the arguments to INVOKE the action with,
-        // so it carries whatever the container injected — a `DocsService` holding a
-        // `MarkdownConverter`, closures and all. That list is per-request by nature: a
-        // service can be request-scoped and is reset between requests, so reusing one
-        // request's instance in another would serve a stale object. It therefore must
-        // never be part of the cached route (see `resolvedRoute()`), and it is rebuilt
-        // here for every request.
-        //
-        // It is built AFTER `setRoute()` so the resolved route's identity is available
-        // to the resolution itself, which is where a request-scoped service is most
-        // likely to be needed.
+        // Cache route metadata, not resolved action arguments: they may contain
+        // request-scoped services or closures and must be rebuilt for each dispatch.
+        // Resolve them after setRoute() so dependencies can use the current route.
         $this->context->setRoute(
             $this->resolvedRoute(
                 $namespace,
