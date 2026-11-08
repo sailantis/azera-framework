@@ -5,6 +5,36 @@ All notable changes to `sailantis/azera-framework` are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **A route whose action takes an injected service no longer dies with
+  `Serialization of 'Closure' is not allowed` when it also has a path variable.**
+  The dynamic-route cache key was
+  `serialize([$vars, …, $params, …])`, and `$params` is the list the action is
+  *invoked* with — so it holds whatever the container injected. A service holding a
+  closure (`DocsService`'s `MarkdownConverter`, a render callback) cannot be
+  serialized, so every request to such a route was fatal. The live failure was
+  `GET /azera-framework/docs/{segments:*}` →
+  `docsAction(DocsService $docs, array $segments = [])`.
+
+  A route needed **both** a variable and a service to fail, which is why static
+  routes and service-free routes were all healthy. Introduced with the route cache
+  in 0.3.0.
+
+  The argument list is no longer part of the cached route at all. That is the
+  correct boundary rather than merely the one that stops the error: `$params` is
+  per-request by nature, because a service can be `RequestScoped` and is reset
+  between requests, so caching it would have replaced one fatal error with a silent
+  one — a later request receiving an earlier request's service state. The list is
+  rebuilt for each dispatch, and `ResolvedRoute::$params` is now always empty (read
+  route parameters from `->vars`).
+
+  Verified by dispatching the failing shape against both versions: the original dies
+  with the reported exception, the fixed one serves every request. Regression tests
+  in `tests/Mvc/DispatcherCacheTest.php`, mutation-checked against the original code.
+
 ## [0.3.0] - 2026-11-07
 
 Installed by `composer require` from this tag. Carries three BREAKING changes and ten security

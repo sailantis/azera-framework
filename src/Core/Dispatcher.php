@@ -242,23 +242,35 @@ class Dispatcher
             throw new InvalidControllerException("{$controllerClass} is not a Controller");
         }
 
-        $params = $this->resolveActionArguments(
-            $controller,
-            $actionName,
-            $vars,
-            $this->context
-        );
-
+        // The `ResolvedRoute` is cached across requests; the argument list is not.
+        //
+        // `resolveActionArguments()` returns the arguments to INVOKE the action with,
+        // so it carries whatever the container injected — a `DocsService` holding a
+        // `MarkdownConverter`, closures and all. That list is per-request by nature: a
+        // service can be request-scoped and is reset between requests, so reusing one
+        // request's instance in another would serve a stale object. It therefore must
+        // never be part of the cached route (see `resolvedRoute()`), and it is rebuilt
+        // here for every request.
+        //
+        // It is built AFTER `setRoute()` so the resolved route's identity is available
+        // to the resolution itself, which is where a request-scoped service is most
+        // likely to be needed.
         $this->context->setRoute(
             $this->resolvedRoute(
                 $namespace,
                 $controllerClass,
                 $actionName,
-                $params,
                 $vars,
                 $groups,
                 $override
             )
+        );
+
+        $params = $this->resolveActionArguments(
+            $controller,
+            $actionName,
+            $vars,
+            $this->context
         );
 
         $pipeline = $this->buildPipeline(
@@ -395,24 +407,33 @@ class Dispatcher
      * matches it.
      *
      * A route's identity is everything the object carries except the request
-     * it served: namespace, controller class, action, argument values, route
-     * variables and groups. Route variables are the only part that can differ
-     * between two requests that matched the same pattern (`/items/{id}` for
-     * two ids), so they lead the key and the rest follows as a constant.
+     * it served: namespace, controller class, action, route variables and
+     * groups. Route variables are the only part that can differ between two
+     * requests that matched the same pattern (`/items/{id}` for two ids), so
+     * they lead the key and the rest follows as a constant.
+     *
+     * The action's ARGUMENTS are deliberately not part of it. They are the list
+     * handed to the invocation, so they contain whatever the container injected
+     * — services, and services hold closures, which `serialize()` refuses. Using
+     * them as part of the key was a fatal error on any route whose action took a
+     * service; using them as part of the VALUE would be worse and quieter, since
+     * a request-scoped service reset between requests would be replaced by the
+     * previous request's instance on the next cache hit. The arguments are
+     * rebuilt per request instead, and the resolved route carries only the
+     * route's own identity.
      *
      * A static route has no route variables, and therefore no way for the
-     * remaining fields to differ between two requests — the arguments are a
-     * pure function of the action's signature — so it is keyed on the three
-     * names alone. That is the hot path, and it must not pay for a serialise:
-     * doing so costs more than the 194 ns object construction this replaces.
-     * A dynamic route pays `serialize()`, which is still cheaper than
-     * rebuilding the object whenever the same variables recur.
+     * remaining fields to differ between two requests — the key is a pure
+     * function of the three names — so it is keyed on those alone. That is the
+     * hot path, and it must not pay for a serialise: doing so costs more than the
+     * 194 ns object construction this replaces. A dynamic route pays
+     * `serialize()`, which is still cheaper than rebuilding the object whenever
+     * the same variables recur.
      */
     private function resolvedRoute(
         string $namespace,
         string $controllerClass,
         string $actionName,
-        array $params,
         array $vars,
         array $groups,
         array $override
@@ -424,14 +445,14 @@ class Dispatcher
                 $namespace,
                 $controllerClass,
                 $actionName,
-                $params,
+                [],
                 $vars,
                 $groups,
                 $override
             );
         }
 
-        $key = "\0v\0" . serialize([$vars, $namespace, $controllerClass, $actionName, $params, $groups, $override]);
+        $key = "\0v\0" . serialize([$vars, $namespace, $controllerClass, $actionName, $groups, $override]);
 
         if (!isset($this->resolvedRoutes[$key]) && count($this->resolvedRoutes) >= self::DYNAMIC_ROUTE_CACHE_MAX) {
             // Drop half, so a steady stream of distinct ids amortises the
@@ -443,7 +464,7 @@ class Dispatcher
             $namespace,
             $controllerClass,
             $actionName,
-            $params,
+            [],
             $vars,
             $groups,
             $override

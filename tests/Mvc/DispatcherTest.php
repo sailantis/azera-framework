@@ -131,7 +131,14 @@ class RoutingStateController extends Controller
             'action'     => $route->action ?? null,
             'groups'     => $route->groups ?? null,
             'vars'       => $route->vars ?? null,
+            // The resolved route carries the route's identity only; the invocation
+            // argument list is rebuilt per request and is not part of it.
             'params'     => $route->params ?? null,
+            // What the dispatcher INVOKED this action with. `func_get_args()`
+            // includes the variadic tail and omits only trailing defaults the
+            // dispatcher did not pass, which is exactly the observable wanted here:
+            // route variables reaching the action.
+            'received'   => \func_get_args(),
         ];
     }
 }
@@ -342,7 +349,15 @@ class DispatcherTest extends TestCase
         $this->assertSame('\\Azera\\Tests\\Mvc\\RoutingStateController', $stored->controller);
         $this->assertSame('fromOverride', $stored->action);
         $this->assertSame(['x', 'y'], $stored->vars['args']);
-        $this->assertSame([42, ['x', 'y']], $stored->params);
+
+        // The route's identity is what is cached and shared across requests, so it
+        // carries no argument list. The arguments are per-request (they hold
+        // whatever the container injected) and are rebuilt for each dispatch.
+        $this->assertSame([], $stored->params, 'the cached route must not carry the invocation arguments');
+
+        // What matters is what the ACTION received: the route variables, cast, in
+        // signature order.
+        $this->assertSame([42, ['x', 'y']], $payload['received']);
     }
 
     public function testOnlyParamsWildcardIsPassedToActionParameters(): void
@@ -366,11 +381,16 @@ class DispatcherTest extends TestCase
         ]);
 
         $this->assertEquals('application/json', $this->responseHeaders($res)['Content-Type']);
+        $payload = json_decode($this->responseBody($res), true);
 
         $stored = $context->route();
         $this->assertNotNull($stored);
-        $this->assertSame([42, null, 'x', 'y'], $stored->params);
+        $this->assertSame([], $stored->params, 'the cached route must not carry the invocation arguments');
         $this->assertSame(['x', 'y'], $stored->vars['params']);
+
+        // The leading 42 is the `$id` route variable and the null is the unfilled
+        // `$args` parameter; what the action actually received is the whole list.
+        $this->assertSame([42, null, 'x', 'y'], $payload['received']);
     }
 
     public function testNullableRegisteredServiceFallsBackToNullInActionInjection(): void

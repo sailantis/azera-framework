@@ -27,6 +27,12 @@ class CacheProbeController extends Controller
     {
         return Response::text('id=' . $id);
     }
+
+    /** Takes an injected service AND a route variable — the shape that crashed. */
+    public function serviceAction(CacheProbeService $service, string $id = ''): Response
+    {
+        return Response::text('served=' . $service->serve());
+    }
 }
 
 /** Records that it ran, without changing the response. */
@@ -196,5 +202,121 @@ class DispatcherCacheTest extends TestCase
         $this->expectException(\Azera\Core\Exceptions\ActionNotFoundException::class);
 
         $dispatcher->dispatch($this->route([], [], 'doesNotExistAction'));
+    }
+
+    // =========================================================================
+    // The route cache must not serialize the action's arguments
+    // =========================================================================
+
+    /**
+     * A dynamic route whose action receives an injected service must dispatch.
+     *
+     * This is a regression test for a fatal error: the dynamic-route cache key was
+     * `serialize([$vars, ..., $params, ...])`, and `$params` is the list the action
+     * is INVOKED with, so it holds whatever the container injected. A service that
+     * holds a closure (a `MarkdownConverter`, a render callback) cannot be
+     * serialized, so every request to such a route died with
+     *
+     *     Exception: Serialization of 'Closure' is not allowed
+     *
+     * A route needed BOTH a variable and a service to fail, which is why the static
+     * and service-free routes were all healthy. The live failure was
+     * `GET /azera-framework/docs/{segments:*}` ->
+     * `docsAction(DocsService $docs, array $segments = [])`.
+     */
+    public function testDynamicRouteWithInjectedServiceDispatches(): void
+    {
+        $context = new AppContext();
+        AppContext::setInstance($context);
+        $context->set(CacheProbeService::class, fn() => new CacheProbeService());
+
+        $dispatcher = new Dispatcher();
+
+        $response = $dispatcher->dispatch($this->route(['id' => '7'], [], 'serviceAction'));
+
+        $this->assertSame('served=1', $response->getBody());
+    }
+
+    /**
+     * The cached route carries the route's identity only — never the argument
+     * list, which is per-request.
+     *
+     * Caching the arguments would be worse than the fatal error it replaced: it
+     * would be silent. A `RequestScoped` service is reset between requests, not
+     * re-instantiated, so a cached argument array would pin the first request's
+     * state and every later request would observe a stale one. Here the service
+     * increments a counter per request and resets it when the scope clears, so a
+     * leak shows up as 1, 2, 3 instead of 1, 1, 1.
+     */
+    public function testCachedRouteDoesNotCarryTheArgumentList(): void
+    {
+        $context = new AppContext();
+        AppContext::setInstance($context);
+        $context->set(CacheProbeService::class, fn() => new CacheProbeService());
+
+        $dispatcher = new Dispatcher();
+        $route      = $this->route(['id' => '7'], [], 'serviceAction');
+
+        $seen = [];
+        for ($i = 0; $i < 3; $i++) {
+            $seen[] = $dispatcher->dispatch($route)->getBody();
+            $context->clearRequestScope();
+        }
+
+        $this->assertSame(
+            ['served=1', 'served=1', 'served=1'],
+            $seen,
+            'each request must see its own request scope, not the first one\'s'
+        );
+
+        // And the resolved route exposes no argument list at all.
+        $this->assertSame([], $context->route()?->params ?? []);
+    }
+
+    /**
+     * Two different route variables must still be two cache entries, so excluding
+     * the arguments from the key did not flatten the cache into one slot.
+     */
+    public function testDifferentRouteVariablesStillCacheSeparately(): void
+    {
+        $dispatcher = new Dispatcher();
+
+        $this->assertSame('id=1', $dispatcher->dispatch($this->route(['id' => '1'], [], 'echoAction'))->getBody());
+        $this->assertSame('id=2', $dispatcher->dispatch($this->route(['id' => '2'], [], 'echoAction'))->getBody());
+        $this->assertSame('id=1', $dispatcher->dispatch($this->route(['id' => '1'], [], 'echoAction'))->getBody());
+
+        $cache = new \ReflectionProperty(Dispatcher::class, 'resolvedRoutes');
+        $cache->setAccessible(true);
+
+        $this->assertCount(2, $cache->getValue($dispatcher));
+    }
+}
+
+/**
+ * A service that cannot be serialized (it holds a closure) and that reports how
+ * many requests it has served in the current scope.
+ *
+ * Both properties are load-bearing for the two tests above: the closure is what
+ * made the old cache key fatal, and the counter is what makes a cached argument
+ * list observable.
+ */
+class CacheProbeService implements \Azera\Lifecycle\RequestScoped
+{
+    public \Closure $renderer;
+    private int $served = 0;
+
+    public function __construct()
+    {
+        $this->renderer = static fn(string $s): string => $s;
+    }
+
+    public function serve(): int
+    {
+        return ++$this->served;
+    }
+
+    public function resetState(): void
+    {
+        $this->served = 0;
     }
 }
