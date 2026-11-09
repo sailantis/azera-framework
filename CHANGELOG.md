@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-09
+
+Installed by `composer require` from this tag. A **minor** release with no breaking changes. Updated product images and readme header.
+
 ## [0.4.1] - 2026-11-09
 
 Installed by `composer require` from this tag. A **minor** release with no breaking changes. Condensed v0.4.0 comments and changelog entries.
