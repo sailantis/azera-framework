@@ -1165,6 +1165,9 @@ class RouterStateTest extends TestCase
 
         $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-unsafe-' . bin2hex(random_bytes(6));
         mkdir($dir, 0775, true);
+        // chmod, not just the mkdir mode: umask masks the mode passed to mkdir, so under
+        // the usual 0022 this would be 0755 and not actually group-writable.
+        chmod($dir, 0775);
 
         $cache  = $dir . DIRECTORY_SEPARATOR . 'routes.php';
         $source = $this->tmpSource();
