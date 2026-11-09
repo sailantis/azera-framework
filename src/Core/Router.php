@@ -1672,7 +1672,6 @@ class Router
             $this->flushed      = false;
             $this->unitsStarted = false;
             $this->forceRebuild = true;
-            $this->ownWriteAt   = 0;
             $this->checkedAt    = 0.0;
             $this->freshVerdict = null;
         }
@@ -1756,22 +1755,6 @@ class Router
                 && (microtime(true) - $this->checkedAt) < $this->revalidateFreq
         ) {
             return;
-        }
-
-        // A table this process wrote itself is authoritative *while it is still ours*:
-        // it is newer than every source by construction, and OPcache could not cache
-        // the file we wrote, so re-reading it would cost a full compile and change
-        // nothing. Once another process replaces it -- a deploy hook, a sibling worker
-        // -- ownership is lost and the new table is evaluated normally.
-        if ($this->ownWriteAt !== 0) {
-            $ownPath = (string) $this->cachePath();
-            clearstatcache(true, $ownPath);
-            if (@filemtime($ownPath) === $this->ownWriteAt) {
-                $this->checkedAt = microtime(true);
-
-                return;
-            }
-            $this->ownWriteAt = 0;
         }
 
         $state = $this->readIfFresh();
@@ -2146,26 +2129,70 @@ class Router
             @opcache_invalidate($path, true);
         }
 
-        // The table in memory IS what was written, so the verdict is positive -- but
-        // only for this process. PHP's OPcache will not cache a file the current
-        // process wrote (verified: every same-process `require` recompiles, even past
-        // `opcache.file_update_protection`), so a re-check at a later timestamp would
-        // pay a full compile for no benefit and swap in an identical table. The file
-        // is left for other processes, which do cache it. Measured: a cold process
-        // requires an 86 KB table in ~1.9 ms once, then 1 us.
+        // OPcache refuses to cache a file whose mtime is within
+        // `opcache.file_update_protection` (2 s by default) of now -- a guard against
+        // reading a half-written file during a deploy. `rename()` above is atomic, so
+        // that guard can never be useful for this file, but it does apply: without the
+        // backdate below, OPcache rejects the table and *every* `require` in this
+        // process recompiles it. Measured: 529 us per request against 12.4 us.
+        //
+        // Backdating the mtime makes it look older than the window, which is a lie
+        // about when it was written and true about everything that matters (the file
+        // is complete, and its own freshness stamp lives in the envelope, not in this
+        // mtime). The cost of the lie is that `routes:status` reports a write time up
+        // to a few seconds early.
+        $this->makeOpcacheAcceptable($path);
+
+        // Populate OPcache now, in the process that did the write. This is the one
+        // moment it is cheap for *this* process: every later request in this worker
+        // would otherwise pay the same compile, and a fresh `Router` per request means
+        // per-instance bookkeeping cannot help them. The result is discarded -- it is
+        // identical to the table already in memory.
+        if ($this->opcacheEnabled()) {
+            clearstatcache(true, $path);
+            require $path;
+        }
+
         $this->freshVerdict = true;
-        $this->ownWriteAt   = filemtime($path) ?: time();
         $this->checkedAt    = microtime(true);
     }
 
     /**
-     * The mtime of the file this process wrote, or 0.
+     * Make the freshly written table acceptable to OPcache's update-protection window.
      *
-     * `readIfFresh()` refuses a table whose mtime is at or before the compile stamp,
-     * which is the deploy-safety rule. A file this process wrote itself carries exactly
-     * that mtime, so it needs to be recognised rather than read back.
+     * See the call site: OPcache ignores any file modified less than
+     * `opcache.file_update_protection` seconds ago, and a file this process just wrote
+     * is by definition inside that window. Applied unconditionally -- the mtime is not
+     * load-bearing (the envelope carries the real compile stamp), and OPcache may be
+     * enabled in another SAPI sharing this file even when it is off in this one.
      */
-    private int $ownWriteAt = 0;
+    private function makeOpcacheAcceptable(string $path): void
+    {
+        $protection = (int) (ini_get('opcache.file_update_protection') ?: 2);
+        $target     = time() - $protection - 1;
+
+        // Only ever move the mtime backwards, and only when that is needed.
+        clearstatcache(true, $path);
+        $current = @filemtime($path);
+        if ($current !== false && $current <= $target) {
+            return;
+        }
+
+        @touch($path, $target);
+        clearstatcache(true, $path);
+    }
+
+    private function opcacheEnabled(): bool
+    {
+        $enabled = (bool) ini_get('opcache.enable');
+        if (!$enabled) {
+            return false;
+        }
+
+        // Under CLI, OPcache is off unless enabled_cli is set, and without it the
+        // require below would just recompile -- the cost we are trying to avoid.
+        return PHP_SAPI !== 'cli' || (bool) ini_get('opcache.enable_cli');
+    }
 
     /**
      * Empty the table, keeping the validators.
@@ -2279,7 +2306,12 @@ class Router
         if (\is_array($state)) {
             $status['routes'] = $this->countRoutesIn($state);
         }
-        $status['compiled'] = (int) (@filemtime($path) ?: 0);
+
+        // The envelope's stamp, not the file's mtime: the mtime is deliberately
+        // backdated past OPcache's update-protection window (see writeCache()), so
+        // reporting it would show a write time a few seconds in the past.
+        $stamp = (int) ($state['__cache']['compiled'] ?? 0);
+        $status['compiled'] = $stamp > 0 ? $stamp : null;
 
         // Freshness is a property of the files, not of the file's age, so reuse the
         // same check the runtime uses rather than approximating it here.

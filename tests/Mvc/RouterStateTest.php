@@ -817,7 +817,13 @@ class RouterStateTest extends TestCase
         $this->assertSame(1, $builds, 'a stale table is rebuilt through the units');
     }
 
-    public function testATableThisProcessWroteIsNeverReread(): void
+    /**
+     * The behaviour that replaced `ownWriteAt`: a source edited under a table this
+     * process wrote must be noticed. It was not, because the ownership shortcut
+     * skipped the source mtimes entirely -- a worker that wrote its own table served
+     * stale routes until restart.
+     */
+    public function testATableThisProcessWroteStillSeesASourceEdit(): void
     {
         $cache  = $this->tmpPath('.php');
         $source = $this->tmpSource();
@@ -833,18 +839,15 @@ class RouterStateTest extends TestCase
         $router->match('/x', 'GET');
         $this->assertSame(1, $builds, 'the miss built it');
 
-        // Break the source and wait past the window. A self-written table is still
-        // authoritative: re-reading it would pay a full OPcache compile (this process
-        // cannot cache a file it wrote) to swap in an identical table.
-        touch($source, time() + 5);
+        touch($source, time() - 1);
         clearstatcache(true, $source);
         sleep(2);
 
         $router->match('/x', 'GET');
-        $this->assertSame(1, $builds, 'a self-written table is not re-checked');
+        $this->assertSame(2, $builds, 'a self-written table is re-checked like any other');
     }
 
-    public function testOwnershipOfTheFileIsLostWhenAnotherProcessReplacesIt(): void
+    public function testAnotherProcessReplacingTheTableIsAdoptedRatherThanRebuilt(): void
     {
         $cache  = $this->tmpPath('.php');
         $source = $this->tmpSource();
@@ -860,17 +863,49 @@ class RouterStateTest extends TestCase
         $this->assertSame(1, $builds);
 
         // Another process rebuilds and replaces the file (a deploy hook, or a sibling
-        // worker). The new table must be adopted rather than ignored as "ours".
+        // worker). Its table must be adopted, not rebuilt from the units.
         $other = (new Router())->setCachePath($cache);
         $other->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
         $other->compileCache();
-        touch($cache, time() + 10);
-        clearstatcache(true, $cache);
 
         sleep(2);
         $router->match('/x', 'GET');
 
         $this->assertSame(1, $builds, 'the replaced table was read, not rebuilt');
+    }
+
+    /**
+     * OPcache ignores a file modified within `opcache.file_update_protection` seconds
+     * of now, so a table written during a request would be recompiled on every later
+     * request of that worker. Measured: 529 us against 12.4 us.
+     */
+    public function testTheWrittenTableIsBackdatedOutOfOpcachesProtectionWindow(): void
+    {
+        $cache  = $this->tmpPath('.php');
+        $source = $this->tmpSource();
+
+        $router = (new Router())->setCachePath($cache);
+        $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
+        $this->assertSame(1, $router->compileCache());
+
+        clearstatcache(true, $cache);
+        $protection = (int) (ini_get('opcache.file_update_protection') ?: 2);
+
+        $this->assertLessThanOrEqual(
+            time() - $protection,
+            (int) filemtime($cache),
+            'the mtime must look older than the protection window',
+        );
+
+        // The envelope keeps the real time, so freshness and reporting are unaffected.
+        $state = require $cache;
+        $this->assertEqualsWithDelta(
+            time(),
+            (int) $state['__cache']['compiled'],
+            5,
+            'the envelope still records when it was really compiled',
+        );
+        $this->assertTrue($router->cacheStatus()['fresh'], 'and it still counts as fresh');
     }
 
     public function testRevalidateFreqIsClampedToZero(): void
