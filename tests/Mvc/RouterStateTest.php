@@ -268,6 +268,23 @@ class RouterStateTest extends TestCase
             }
         }
         $this->tmpFiles = [];
+
+        // A derived default path leaves a file in the system temp directory, whose
+        // name the test cannot predict from here. Sweep the ones this test process
+        // created rather than leaking a table per run.
+        foreach (glob(sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera_routes'
+            . DIRECTORY_SEPARATOR . 'routes-*.php') ?: [] as $file) {
+            if (@filemtime($file) >= $this->startedAt) {
+                @unlink($file);
+            }
+        }
+    }
+
+    private int $startedAt;
+
+    protected function setUp(): void
+    {
+        $this->startedAt = time();
     }
 
     public function testCachedOptsTheCacheInAndDefersUntilTheTableIsRead(): void
