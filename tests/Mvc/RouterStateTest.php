@@ -332,6 +332,24 @@ class RouterStateTest extends TestCase
         $router->match('/a', 'GET');
     }
 
+    public function testReDeclaringAfterAFlushRebuildsInsteadOfAppending(): void
+    {
+        $cache  = $this->tmpPath('.php');
+        $source = $this->tmpSource();
+
+        $router = (new Router())->enableCache($cache);
+        $router->cached($source, static fn(Router $r) => $r->get('/first', 'A::b'));
+        $this->assertNotNull($router->match('/first', 'GET'));
+
+        // A worker that re-runs its bootstrap reaches cached() again. The old table must
+        // be dropped and rebuilt from the declarations, never appended to.
+        $router->cached($source, static fn(Router $r) => $r->get('/second', 'A::b'));
+        $this->assertNotNull($router->match('/second', 'GET'));
+        $this->assertNull($router->match('/first', 'GET'), 'the old table is gone, not merged');
+
+        $this->assertSame(1, count($router->allRoutes()));
+    }
+
     public function testCachedThrowsInsideAGroupCallback(): void
     {
         $router = (new Router())->enableCache($this->tmpPath('.php'));
@@ -368,6 +386,25 @@ class RouterStateTest extends TestCase
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('before any route is registered');
+
+        $router->enableCache($this->tmpPath('.php'));
+    }
+
+    public function testEnablingTheCacheTwiceWithTheSamePathIsANoOp(): void
+    {
+        $path   = $this->tmpPath('.php');
+        $router = (new Router())->enableCache($path);
+
+        // A worker that re-runs its bootstrap must not fail here.
+        $this->assertSame($path, $router->enableCache($path)->cachePath());
+    }
+
+    public function testEnablingTheCacheTwiceWithDifferentPathsThrows(): void
+    {
+        $router = (new Router())->enableCache($this->tmpPath('.php'));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('already enabled');
 
         $router->enableCache($this->tmpPath('.php'));
     }

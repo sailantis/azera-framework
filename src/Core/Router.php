@@ -1447,7 +1447,18 @@ class Router
     private function configureCache(string $path, bool $lazy): static
     {
         if ($this->cachePath !== null) {
-            throw new LogicException('The route cache is already enabled.');
+            // Re-entrant bootstrapping (a worker that calls boot() again for the same
+            // database) re-runs this line. Same path is a no-op rather than an error;
+            // a different path would mean two caches for one table, which cannot work.
+            if ($this->cachePath === $path) {
+                return $this;
+            }
+
+            throw new LogicException(sprintf(
+                'The route cache is already enabled for "%s", cannot switch to "%s".',
+                $this->cachePath,
+                $path,
+            ));
         }
         if ($this->static !== [] || $this->groups !== [] || $this->units !== []) {
             throw new LogicException(sprintf(
@@ -1572,11 +1583,22 @@ class Router
         }
 
         if ($this->flushed) {
-            throw new LogicException(
-                'cached() cannot be called after the route table has been built or '
-                . 'restored: the routes would land in a table that is already complete, '
-                . 'which changes match results when two routes tie on specificity.',
-            );
+            // Re-declaration. A process that re-runs its bootstrap (a worker, or a
+            // front controller invoked twice in one test process) reaches cached() again
+            // after the table was already built. The declarations are the truth, so the
+            // old table is dropped and rebuilt from them -- never appended to, which is
+            // the mixing this class exists to prevent.
+            //
+            // The file on disk is not consulted for this rebuild: it was written from the
+            // previous declaration and its sources may not have changed at all, so a
+            // freshness check would happily restore exactly the table being replaced.
+            $this->resetTable();
+            $this->units        = [];
+            $this->flushed      = false;
+            $this->forceRebuild = true;
+            $this->ownWriteAt   = 0;
+            $this->checkedAt    = 0.0;
+            $this->freshVerdict = null;
         }
 
         $depth = count($this->middlewareGroupStack)
@@ -1701,7 +1723,10 @@ class Router
             return;
         }
 
-        if ($this->cachePath !== null) {
+        $force           = $this->forceRebuild;
+        $this->forceRebuild = false;
+
+        if ($this->cachePath !== null && !$force) {
             $state = $this->readIfFresh();
             if ($state !== null) {
                 $this->restoreState($state);
@@ -1715,6 +1740,9 @@ class Router
             $this->tryWriteCache();
         }
     }
+
+    /** Set when the declarations changed after a flush, so the file must not be trusted. */
+    private bool $forceRebuild = false;
 
     /**
      * Run every unit in declaration order, replacing whatever the table held.
