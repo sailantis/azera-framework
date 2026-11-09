@@ -577,9 +577,9 @@ php console.php routes:cache
 
 This keeps the one-time OPcache compile of the table out of the first production request.
 Without it the first request after a deploy compiles the file itself — 0.44 ms for a
-120-route table — and every later request loads it in about 1 µs. Under php-fpm the
-compile is paid once per worker process unless the table is already in the FPM master's
-shared OPcache.
+120-route table — and every later request loads and matches it in about 6 µs. Under
+php-fpm the compile is paid once per worker process unless the table is already in the
+FPM master's shared OPcache.
 
 ---
 

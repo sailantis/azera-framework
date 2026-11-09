@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-09
+
+Installed by `composer require` from this tag. A **minor** release. It is a breaking one:
+routes and route middleware must now be strings, which is a new error for code that passed
+objects. It also carries the fix that lets the framework load on PHP 8.5 at all — v0.3.1
+fatals there, so upgrade if your target is 8.5.
+
 ### Added
 - **Route cache.** Declaring routes inside `cached($files, $closure)` compiles the route
   table to a PHP file and `require`s it instead of rebuilding it on every cold request.
-  On the homepage's real 120-route table that is 1131 µs down to 159 µs, and under
+  On the homepage's real 120-route table that is 191 µs down to 5.7 µs, and under
   nginx + php-fpm `/echo` at c=96 goes from 23,814 to 49,174 rps.
 
   Nothing needs to be called in addition: `cached()` is what turns the cache on, and the
@@ -62,6 +69,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RoutesTask::verifyAction()`. A stale table rebuilds itself on the next read, so
   comparison against a rebuilt table no longer has a failure mode to report;
   `routes:status --strict` is the check worth putting in CI.
+
+### Fixed
+
+- **The framework loads on PHP 8.5.** Two 8.5 changes broke it outright:
+  `#[\Attribute]` on an abstract class is now a fatal error, which
+  `Azera\Aop\Advice` carried (the flag belongs on the concrete subclasses, where it
+  always also was); and `ReflectionProperty::setAccessible()` is deprecated, which was
+  called in 25 places including the console help renderer. Both are fixed, the suite
+  reports no deprecations on 8.5, and the CI matrix now tests 8.2 through 8.5.
+
+  This is why v0.3.1 cannot be used on the PHP 8.5 targets the benchmark runs on.
 
 ## [0.3.1] - 2026-11-08
 
@@ -217,7 +235,8 @@ with the packaging and tooling a published library is expected to carry.
 characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.0
 [0.3.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.1
 [0.3.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.0
 [0.1.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.1.0

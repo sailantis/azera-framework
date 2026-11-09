@@ -465,17 +465,32 @@ Measured on the VM, PHP 8.5, with the table in a shared OPcache — a warm `requ
 |---|---|
 | build 9 benchmark routes from their units | 14.2 µs (median), 1.58 µs per route |
 | `require` + `restoreState()` | 0.4 µs |
-| the homepage's real 120-route table | **1131 µs → 159 µs, 7.1×** |
+| the homepage's real 124-declaration table (120 routes) | **191 µs → 5.7 µs, 33.5×** |
 
-The 120-route figure is the one that matters: the homepage's `registerRoutes()` uses
-nested `prefix()`/`controller()` closures, so its build is dominated by closure and
-group overhead rather than by route count. On the wire that is `/echo` at c=96 on
-nginx + php-fpm going from **23,814 to 49,174 rps**, and the framework's own share of CPU
-per request from 339 µs to 86 µs.
+The homepage figure is the one that matters: its `registerRoutes()` uses nested
+`prefix()`/`controller()` closures, so its build is dominated by closure and group
+overhead rather than by route count. Measured by running that project's own
+`registerRoutes()` on the VM, PHP 8.5, with a warm table in shared OPcache, 200
+iterations each way, medians. The table the app itself compiles is 86 KB.
+
+That 5.7 µs is what a request pays *after* the Router class and the table are already in
+shared memory — the steady state of an FPM worker or a Volucer worker. The very first
+request in a fresh process pays the class load and the one-time compile on top; see
+*The one-time compile* below.
+
+On the wire the cache took `/echo` at c=96 on nginx + php-fpm from **23,814 to 49,174
+rps**, and the framework's own share of CPU per request from 339 µs to 86 µs.
 
 Per-route costs about 0.6–1.6 µs to build depending on how deeply the registration is
 grouped, so the saving scales with the table: a small app saves microseconds, and a
-120-route app saves a millisecond.
+120-route app saves about 185 µs.
+
+Backdating the written table's mtime is what makes this work. OPcache refuses to cache a
+file whose mtime is within `opcache.file_update_protection` of now, so a table written
+during a request would be recompiled by the *next* request — 529 µs per request under
+php-fpm, worse than not caching at all. The table is therefore written with an mtime
+older than that window, which is why the file's own mtime is not authoritative and the
+freshness stamps live in the envelope.
 
 ### The one-time compile
 
@@ -486,8 +501,8 @@ in shared OPcache memory, and shared memory is per FPM master — so a restart, 
 `opcache_reset()`, makes every worker pay it once.
 
 Warm the table during deploy (`azera routes:cache`) so that compile lands in the deploy
-step instead of the first production request. Every request after it loads the table in
-about 1 µs.
+step instead of the first production request. Every request after it loads and matches
+the 120-route table in about 6 µs.
 
 ### Not measured here
 
