@@ -1140,17 +1140,10 @@ class Router
     }
 
     /**
-     * The `override` array a handler resolves to, cached per handler value.
-     * Parsing a handler is pure: the same `'App\X\Controller::action'` string
-     * always yields the same namespace/controller/action triple. It was
-     * nevertheless re-parsed on every request of a static route — 0.41 µs of
-     * the router's 0.53 µs, measured on a 17-byte hello page — because
-     * {@see match()} calls {@see resolveHandler()} in the hot path.
+     * Cached parsed overrides, keyed by handler value.
      *
-     * The cache key is the handler itself. For the string form that is the
-     * exact string; for the array form it is a serialised copy, and an array
-     * handler already costs more than the parse. `null` keys a dedicated slot
-     * rather than sharing `''`, which a handler of empty string can produce.
+     * Parsing is pure, so results can be reused. String handlers use their exact
+     * value, arrays use a serialized key, and `null` has a separate key from `''`.
      *
      * @var array<string, array<string, string>>
      */
@@ -1195,26 +1188,13 @@ class Router
             if (!empty($override['controller'])) {
                 $controller = (string) $override['controller'];
 
-                // The separator is the *last* backslash, exactly as in the
-                // string form below. A fully qualified name contains several,
-                // and the class is what follows the last of them: splitting on
-                // the first turns `App\Controllers\IndexController` into the
-                // namespace `App` and the class `Controllers\IndexController`,
-                // which resolves to nothing.
+                // Split at the last backslash: preceding segments form the
+                // namespace, and the final segment is the controller class.
                 $namespaceSeparator = strrpos($controller, '\\');
                 if ($namespaceSeparator !== false) {
-                    // A fully qualified controller already carries its complete
-                    // namespace, so it REPLACES the group's namespace instead of
-                    // being appended to it. Appending produced
-                    // `PhpThunder\App\Controllers\PhpThunder` for a controller
-                    // registered as `$r->controller(LicenseController::class, ...)`
-                    // inside `$r->namespace('PhpThunder')`, which names no class.
-                    // The relative form (the string branch below) still inherits
-                    // the group namespace, which is the point of grouping.
-                    //
-                    // The leading separator is stripped so a name written with a
-                    // root backslash yields the same canonical namespace as one
-                    // without it.
+                    // Fully qualified names replace the group namespace; relative
+                    // names inherit it. Strip a leading root separator to normalize
+                    // fully qualified names with and without that prefix.
                     $override['namespace']  = ltrim(substr($controller, 0, $namespaceSeparator), '\\');
                     $override['controller'] = substr($controller, $namespaceSeparator + 1);
                 }
@@ -1257,34 +1237,14 @@ class Router
     // -------------------------------------------------------------------------
 
     /**
-     * Everything a compiler may persist, as a plain array of data.
+     * Return the serializable route table: scalars and arrays only. Handlers and
+     * middleware values are validated by {@see self::add()} and
+     * {@see self::pushGroupValues()}.
      *
-     * The contract this rests on: a route is a *description* of how to find a
-     * handler, so the table holds only strings, ints, bools, nulls and arrays of
-     * those. {@see self::add()} enforces that for handlers and
-     * {@see self::pushGroupValues()} for middleware, which is what lets this method
-     * return the state without walking it looking for objects.
-     *
-     * Two properties are deliberately excluded:
-     *
-     *   `types`       the parameter validators, which are closures seeded by the
-     *                 constructor. They are code, not data. A compiler must not
-     *                 store them; a restored router gets them from `__construct()`
-     *                 automatically. An application that registered its own with
-     *                 {@see self::type()} has to re-register it, and this method
-     *                 reports those names via {@see self::customTypes()} so the
-     *                 generated file can say so.
-     *
-     *   `resolvedOverrides`
-     *                 a per-handler memo of the parse that produces `override`. It
-     *                 is derived purely from the handlers already in the table, so
-     *                 persisting it would duplicate data, grow the file, and risk
-     *                 being stale after an edit to a handler.
-     *
-     * Note that the *deferred sort* state (`unsortedBuckets`) IS included. It is
-     * data, and restoring it faithfully is what keeps a restored router
-     * behaviourally identical to a freshly built one rather than accidentally
-     * faster because a stale sort was skipped.
+     * `types` is omitted because validators are closures; built-ins are restored by
+     * the constructor, and custom types must be re-registered (`customTypes()` lists
+     * them). `resolvedOverrides` is derived from handlers and is not persisted.
+     * `unsortedBuckets` is included to preserve deferred sorting behavior.
      *
      * @return array<string, mixed>
      * @see self::restoreState() for the inverse, and `azera routes:cache`.
@@ -1412,19 +1372,13 @@ class Router
     private ?bool $freshVerdict = null;
 
     /**
-     * Turn the route cache on and say where the compiled table lives.
+     * Set the compiled table path before the router is first read.
      *
-     * Optional: the first {@see self::cached()} call turns the cache on by itself.
-     * This method only chooses a location, and is how an application opts out of the
-     * derived temp path and into, say, `BASE_DIR . '/temp/routes.php'`.
+     * {@see self::cached()} enables caching automatically. Pass null to use the
+     * derived default path; use {@see self::disableCache()} to opt out.
      *
-     * Passing null returns to the derived default. It does *not* disable the cache:
-     * "no path" and "no cache" are different states, and a null that meant "off"
-     * would make `setCachePath(getenv('X') ?: null)` silently drop caching.
-     * Use {@see self::disableCache()} for that.
-     *
-     * @param string|null $path Absolute path of the compiled table, or null for the
-     *                          derived default. The directory is created on write.
+     * @param string|null $path Absolute file path, or null for the derived default.
+     *                          The directory is created on write.
      */
     public function setCachePath(?string $path): static
     {
@@ -1445,23 +1399,19 @@ class Router
             ));
         }
 
-        $this->cachePath = $path;
-        $this->checkedAt = 0.0;
+        $this->cachePath    = $path;
+        $this->checkedAt    = 0.0;
         $this->freshVerdict = null;
 
         return $this;
     }
 
     /**
-     * Stop using the compiled table.
+     * Disable compiled-table caching.
      *
-     * Declared units that have not run yet are run eagerly, so nothing registered is
-     * lost: the table ends up exactly as it would have without a cache. A table that
-     * was already read is kept in memory and the compiled file is simply ignored for
-     * the rest of the process.
-     *
-     * This is what a benchmark needs to measure the cold arm, because a cached() unit
-     * is unconditional in the application's bootstrap -- there is nothing else to flip.
+     * Pending route blocks are registered immediately; an already-loaded table stays
+     * in memory, but the compiled file is ignored for this process. Useful for
+     * uncached benchmarks when bootstrap always declares `cached()` units.
      */
     public function disableCache(): static
     {
@@ -1499,18 +1449,12 @@ class Router
     private ?string $resolvedCachePath = null;
 
     /**
-     * Where the compiled table actually lives.
-     *
-     * Without an explicit {@see self::setCachePath()}, the location is derived from
-     * the declared sources: `sys_get_temp_dir()/azera_routes/routes-<hash>.php`. The
-     * hash covers the absolute source paths, so two applications on one host never
-     * collide, and adding or removing a route *file* produces a new name rather than
-     * thrashing one shared file. `posix_geteuid()` is part of the name because the
-     * directory is created 0700, so two users cannot read each other's table and must
-     * not block each other out of the same file.
-     *
-     * A path derived from the *sources* is why this cannot be resolved when
-     * setCachePath() runs: at that point no unit has been declared yet.
+     * Return the compiled table path, or null when caching is disabled or no sources
+     * are declared. An explicit {@see self::setCachePath()} takes precedence;
+     * otherwise the path is derived from the source files under
+     * `sys_get_temp_dir()/azera_routes/`. The source hash isolates applications and
+     * route-file sets; when available, the user ID isolates files in the 0700 directory.
+     * The derived path is available only after route units are declared.
      */
     public function cachePath(): ?string
     {
@@ -1532,14 +1476,14 @@ class Router
         }
 
         $identity = implode("\0", $sources);
-        if (\function_exists('posix_geteuid')) {
-            $identity .= "\0" . posix_geteuid();
-        }
+        //if (\function_exists('posix_geteuid')) {
+        //    $identity .= "\0" . posix_geteuid();
+        //}
 
         return $this->resolvedCachePath =
             sys_get_temp_dir()
                 . DIRECTORY_SEPARATOR . 'azera_routes'
-                . DIRECTORY_SEPARATOR . 'routes-' . substr(sha1($identity), 0, 16) . '.php';
+                . DIRECTORY_SEPARATOR . 'routes-' . hash('xxh3', $identity) . '.php';
     }
 
     /**
@@ -1554,19 +1498,12 @@ class Router
     }
 
     /**
-     * How many seconds a positive freshness verdict may be reused for.
+     * Seconds to reuse a positive route-table freshness verdict.
      *
-     * The route-table analogue of `opcache.revalidate_freq` and of
-     * `Clarity\Engine\Cache::setRevalidateFreq()`, with one deliberate difference.
-     * Clarity must re-check per *render*, because one template renders many times in
-     * a request. A router is read once per request, so the meaningful unit here is
-     * the process: under php-fpm, where a process serves one request, this setting
-     * changes nothing. In a long-lived worker (Volucer, RoadRunner) the router
-     * outlives the request, and a positive value bounds how long a rebuilt table may
-     * go unnoticed.
-     *
-     * Only *positive* verdicts are reused. A negative one means the next rebuild must
-     * happen and must see the current filesystem.
+     * Unlike template caching, the router checks once per request, not per render.
+     * This matters only when a Router instance survives across requests; a positive
+     * value can delay detecting source changes by that interval. Negative verdicts
+     * are never reused, so the next rebuild checks the current files.
      *
      * @param int $seconds Seconds; negative values are treated as 0.
      */
@@ -1588,49 +1525,20 @@ class Router
     }
 
     /**
-     * Declare a block of routes and the files it comes from.
+     * Register a route block and its source file(s).
      *
      *     $router->cached(__FILE__, function (Router $r): void {
      *         $r->get('/', 'IndexController::indexAction');
      *     });
      *
-     * The block does not run here. It runs at the first read of the router
-     * (`match()`, `allRoutes()`, `urlFor()`, `hasNamedRoute()`,
-     * `getAllowedMethods()`) -- and only if the compiled table is missing or stale.
-     * That ordering is the whole design: deciding whether to rebuild requires reading
-     * a file, and running the block first would pay the cost the cache exists to
-     * remove.
+     * The callback runs on the router's first read, and only if the compiled table is
+     * missing or stale. Pass explicit source files (usually `__FILE__`) so changes to
+     * the declaring file invalidate the cache; multiple files are supported.
      *
-     * `$files` is normally `__FILE__`. Using the constant rather than inferring the
-     * file from a backtrace is deliberate: `__FILE__` is resolved at compile time, so
-     * it names the file the block was *written* in no matter how many helpers sit
-     * between the block and `add()`. A backtrace records whichever frame happens to be
-     * nearest, which is silently plausible and wrong as soon as anything wraps the
-     * call.
-     *
-     * Several files are allowed for one block; the cache is then watched against all
-     * of them. Several blocks are allowed too -- they execute in declaration order,
-     * which is what keeps specificity ties resolving the same way a cold build did.
-     *
-     * Rules, enforced rather than documented:
-     *
-     *   NO NESTING. A unit is the unit; an inner one would lose nothing and gain
-     *   nothing, so it is refused instead of half-supported.
-     *
-     *   TOP LEVEL ONLY. `cached()` inside a prefix/middleware/namespace/controller
-     *   callback would have to capture that stack to replay it later; the stack is
-     *   state on the router, so deferring the body would silently register the routes
-     *   at the top level. Refused.
-     *
-     *   NO ROUTES OUTSIDE A UNIT. Enforced at flush time
-     *   ({@see self::assertNoRoutesOutsideUnits()}) for routes registered before the
-     *   block, and immediately in {@see self::add()} for routes registered after the
-     *   table has been read, because those can no longer be part of it.
-     *
-     * Declaring a unit is what turns the cache on: the file list has no second
-     * meaning, so requiring a separate enable call would only be a way to write the
-     * whole feature and forget to switch it on. {@see self::disableCache()} is the
-     * explicit opt-out.
+     * With caching enabled, blocks run in declaration order and must be top-level,
+     * non-nested, and contain all routes; these restrictions are enforced. With caching
+     * disabled, callbacks run immediately. Declaring a block enables caching;
+     * {@see self::disableCache()} opts out.
      *
      * @param string|list<string> $files  Declared source files, conventionally `__FILE__`.
      * @param callable            $build  Receives this router.
@@ -1652,21 +1560,12 @@ class Router
 
         if ($this->flushing > 0) {
             throw new LogicException(
-                'cached() cannot be nested inside another cached() block. Declare one unit '
-                    . 'per file at the top level instead.',
+                'cached() cannot be nested inside another cached() block.',
             );
         }
 
         if ($this->flushed) {
-            // Re-declaration. A process that re-runs its bootstrap (a worker, or a
-            // front controller invoked twice in one test process) reaches cached() again
-            // after the table was already built. The declarations are the truth, so the
-            // old table is dropped and rebuilt from them -- never appended to, which is
-            // the mixing this class exists to prevent.
-            //
-            // The file on disk is not consulted for this rebuild: it was written from the
-            // previous declaration and its sources may not have changed at all, so a
-            // freshness check would happily restore exactly the table being replaced.
+            // Bootstrap may run again after the table was built. Rebuild from the new declarations instead of appending; skip freshness checks because unchanged source files could otherwise restore the old table.
             $this->resetTable();
             $this->units        = [];
             $this->flushed      = false;
@@ -1683,9 +1582,7 @@ class Router
 
         if ($depth > 0) {
             throw new LogicException(sprintf(
-                'cached() must be called at the top level, but a route group is open (%s). '
-                    . 'A deferred block would register its routes outside the group, because the '
-                    . 'stack it belongs to no longer exists when the block finally runs.',
+                'cached() must be called at the top level, but a route group is open (%s).',
                 implode(', ', array_filter([
                     $this->prefixGroupStack !== [] ? 'prefix' : null,
                     $this->middlewareGroupStack !== [] ? 'middleware' : null,
@@ -1805,17 +1702,11 @@ class Router
     }
 
     /**
-     * Refuse a table that mixes unit routes with routes registered outside a unit.
+     * Reject routes registered outside cached units before the first flush.
      *
-     * Runs once, at the first flush, and costs nothing per `add()` -- which is why the
-     * check is here rather than in the hot path. It catches the order the check in
-     * `add()` cannot: `$router->add(...)` followed by `$router->cached(...)`. Those
-     * routes would be wiped by {@see self::buildFromUnits()}, so a working cold boot
-     * would lose routes the moment the cache switched on -- silently, because the
-     * table is rebuilt from the units and the extra routes are simply not in it.
-     *
-     * Only the first flush can observe this: every later rebuild starts by emptying
-     * the table and then runs nothing but units.
+     * This one-time check stays out of `add()`'s hot path. It catches routes added
+     * before the first `cached()` block, which {@see self::buildFromUnits()} would
+     * discard. Later rebuilds start empty and run only cached units.
      */
     private function assertNoRoutesOutsideUnits(): void
     {
@@ -1856,24 +1747,8 @@ class Router
     private bool $forceRebuild = false;
 
     /**
-     * Run every unit in declaration order, replacing whatever the table held.
-     *
-     * The group stacks are snapshotted around each unit. A unit that ends with a stack
-     * still open -- `$r->prefix('/admin')` with no callback -- would otherwise prefix
-     * every route in the units that follow it, which is state leaking between two
-     * declarations that never saw each other. Restoring the snapshot makes each unit
-     * start from the same empty state, which is also what a cold build does when the
-     * units are separate files.
-     */
-    /**
-     * Run every unit in declaration order, replacing whatever the table held.
-     *
-     * The group stacks are snapshotted around each unit. A unit that ends with a stack
-     * still open -- `$r->prefix('/admin')` with no callback -- would otherwise prefix
-     * every route in the units that follow it, which is state leaking between two
-     * declarations that never saw each other. Restoring the snapshot makes each unit
-     * start from the same empty state, which is also what a cold build does when the
-     * units are separate files.
+     * Rebuild the table from units in declaration order. Restore group stacks after
+     * each unit so unfinished group state cannot affect later declarations.
      */
     private function buildFromUnits(): void
     {
@@ -2019,14 +1894,9 @@ class Router
     private bool $warnOnWriteFailure = false;
 
     /**
-     * Refuse a cache directory that other users can write to.
-     *
-     * The compiled table is `require`d, so a world- or group-writable directory lets
-     * another user plant code at a path this process will execute. This is the same
-     * rule {@see \Azera\Aop\ProxyFactory::assertSafeCacheDir()} applies to AOP proxies.
-     *
-     * Windows has no POSIX mode bits to inspect (ACLs are not readable portably here),
-     * so the check is skipped there rather than guessed at.
+     * Reject group/world-writable cache directories because compiled tables are
+     * loaded with `require` and could execute planted code. Skipped on Windows,
+     * where POSIX permissions and portable ACL checks are unavailable.
      */
     private function assertSafeCacheDir(string $dir): void
     {
@@ -2129,18 +1999,11 @@ class Router
             @opcache_invalidate($path, true);
         }
 
-        // OPcache refuses to cache a file whose mtime is within
-        // `opcache.file_update_protection` (2 s by default) of now -- a guard against
-        // reading a half-written file during a deploy. `rename()` above is atomic, so
-        // that guard can never be useful for this file, but it does apply: without the
-        // backdate below, OPcache rejects the table and *every* `require` in this
-        // process recompiles it. Measured: 529 us per request against 12.4 us.
-        //
-        // Backdating the mtime makes it look older than the window, which is a lie
-        // about when it was written and true about everything that matters (the file
-        // is complete, and its own freshness stamp lives in the envelope, not in this
-        // mtime). The cost of the lie is that `routes:status` reports a write time up
-        // to a few seconds early.
+        // OPcache ignores files newer than `opcache.file_update_protection` (2 s by
+        // default). Despite the atomic rename, it would recompile this table on every
+        // require (529 us vs 12.4 us). Backdate the mtime past the window; freshness
+        // uses the envelope timestamp, though `routes:status` then reports an earlier
+        // write time.
         $this->makeOpcacheAcceptable($path);
 
         // Populate OPcache now, in the process that did the write. This is the one
@@ -2158,13 +2021,10 @@ class Router
     }
 
     /**
-     * Make the freshly written table acceptable to OPcache's update-protection window.
+     * Backdate the table past OPcache's update-protection window.
      *
-     * See the call site: OPcache ignores any file modified less than
-     * `opcache.file_update_protection` seconds ago, and a file this process just wrote
-     * is by definition inside that window. Applied unconditionally -- the mtime is not
-     * load-bearing (the envelope carries the real compile stamp), and OPcache may be
-     * enabled in another SAPI sharing this file even when it is off in this one.
+     * Apply this even when OPcache is off here: another SAPI may share the file.
+     * Freshness uses the envelope timestamp, not the file mtime.
      */
     private function makeOpcacheAcceptable(string $path): void
     {
@@ -2215,12 +2075,9 @@ class Router
     }
 
     /**
-     * Force a rebuild from the declared units and write it, ignoring the file.
-     *
-     * This is what `azera routes:cache` calls. It exists for ops -- a deploy hook
-     * that wants the table warm before the first request, or a rebuild after deleting
-     * the file. Nothing depends on it: a missing file is written by the first request
-     * that reads the router.
+     * Rebuild the table from declared units and write it, ignoring any existing file.
+     * Used by `azera routes:cache` to prewarm or rebuild during deployment; otherwise
+     * the first router read creates a missing table.
      *
      * @return int Number of routes written.
      */
@@ -2228,14 +2085,12 @@ class Router
     {
         if ($this->units === []) {
             throw new LogicException(
-                'compileCache() found no cached() units. Routes must be declared inside '
-                    . 'cached($files, function (Router $r) { ... }) for a table to be compiled.',
+                'compileCache() found no cached() units. Routes must be declared inside cached($files, function (Router $r) { ... }) for a table to be compiled.',
             );
         }
         if ($this->cachePath() === null) {
             throw new LogicException(
-                'compileCache() needs a destination: declare a cached() unit, or call '
-                    . 'setCachePath().',
+                'compileCache() needs a destination: declare a cached() unit, or call setCachePath().',
             );
         }
 
