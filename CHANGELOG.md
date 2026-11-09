@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Route cache.** `Router::enableCache($path)` + `cached($files, $closure)` compile the
+  route table to a PHP file and `require` it instead of rebuilding it on every cold
+  request. On the homepage's real 120-route table that is 1131 µs down to 159 µs, and
+  under nginx + php-fpm `/echo` at c=96 goes from 23,814 to 49,174 rps.
+
+  Nothing needs to be called in addition: the first request that reads the router
+  decides between restoring the file and building the table, and writes the file when it
+  had to build. `azera routes:cache|clear|status|list` remain available for deploys, CI
+  and inspection.
+
+  `cached()` records its closure instead of running it, so the freshness decision happens
+  before registration. The declared files are watched by mtime; a source added *or*
+  removed also invalidates, as does a source edited in the same second the table was
+  compiled. `setRevalidateFreq($seconds)` bounds staleness in a long-lived worker
+  (Volucer, RoadRunner) the way `opcache.revalidate_freq` does, and
+  `enableCacheLazy()` reads without ever writing from a request.
+
+- `Router::cachedSources()`, `cachePath()`, `cacheStatus()`, `compileCache()`,
+  `clearCache()`, `setRevalidateFreq()`, `getRevalidateFreq()`, `warnOnWriteFailure()`.
+
+### Changed
+
+- **Routes and route middleware are data, enforced unconditionally.** A handler array
+  value that is not a string, and a middleware array value that is not a string, now
+  throw `InvalidArgumentException` whether or not a route cache is enabled. They could
+  never mean anything at dispatch time (the dispatcher reads them as class and method
+  names), and they were the only thing that could make `exportState()` unsafe to
+  `var_export`.
+- `cached()` accepts `string|array $files` and registers a unit rather than executing it.
+  With no cache enabled it still runs eagerly, so an application that never calls
+  `enableCache()` behaves exactly as before.
+
+### Removed
+
+- `Router::recordSources()`, `recordedSources()`, `markCompiled()`, `restoreIfCached()`,
+  `forget()`. Recording is gone: `cached()` now *declares* its sources instead of the
+  router inferring them, which is what makes several route files safe.
+- `RoutesTask::verifyAction()`. A stale table rebuilds itself on the next read, so
+  comparison against a rebuilt table no longer has a failure mode to report;
+  `routes:status --strict` is the check worth putting in CI.
+
 ## [0.3.1] - 2026-11-08
 
 Installed by `composer require` from this tag. A patch release: no API removed and no

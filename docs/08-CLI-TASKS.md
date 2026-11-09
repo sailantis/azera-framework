@@ -548,6 +548,41 @@ All of these work without any framework bootstrap — they only need `composer.j
 
 ---
 
+## Built-in: Routes Task
+
+Manages the compiled route table produced by the [route cache](02-CORE-ROUTING.md#route-cache).
+
+None of these commands is required: the router writes the table itself the first time a
+request reads it after the sources change. They exist for deploys, CI and inspection.
+
+```bash
+php console.php routes:list              # every registered route, with handler and middleware
+php console.php routes:status            # is the file there, fresh, how many routes, which files
+php console.php routes:status --strict   # exit 1 unless it exists and is fresh (CI gate)
+php console.php routes:cache             # rebuild from the cached() units now and write
+php console.php routes:clear             # delete the compiled file
+```
+
+`routes:cache` reports the route count, the file size and every watched source. It
+refuses to run when the cache is not enabled or no `cached()` unit is declared, printing
+the two lines needed to fix that, rather than writing a table that could never be judged
+fresh.
+
+### Warming during a deploy
+
+```bash
+php console.php routes:clear
+php console.php routes:cache
+```
+
+This keeps the one-time OPcache compile of the table out of the first production request.
+Without it the first request after a deploy compiles the file itself — 0.44 ms for a
+120-route table — and every later request loads it in about 1 µs. Under php-fpm the
+compile is paid once per worker process unless the table is already in the FPM master's
+shared OPcache.
+
+---
+
 ## Built-in: Sync Task
 
 Azera ships with a ready-made `ModelSyncTask` that keeps your PHP model files in sync with the live database schema (DB → PHP). It is registered under the `Azera\Cli\Tasks` namespace and is auto-discovered – **no extra setup required**.

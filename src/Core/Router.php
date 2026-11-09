@@ -74,7 +74,26 @@ class Router
      */
     public function type(string $name, callable $validator): static
     {
+        if ($this->flushing > 0) {
+            // Validators are closures and are not exported, so a restored table never
+            // runs this block. A type registered in here would be absent on every cache
+            // hit, and the failure -- "Unknown validator" at dispatch time -- would
+            // appear only in production. Register types before the units instead.
+            throw new LogicException(
+                'type() cannot be called inside a cached() block: validators are code and '
+                . 'are not stored in the compiled table, so a cache hit would never run this '
+                . 'registration and the type would be unknown at dispatch time. Register it '
+                . 'before the cached() units.',
+            );
+        }
+        if ($this->flushed) {
+            // A live table already holds the token type names; adding a validator
+            // afterwards is fine, but doing it from inside a rebuild is not.
+            $this->resolvedOverrides = [];
+        }
+
         $this->types[$name] = $validator;
+
         return $this;
     }
 
@@ -104,6 +123,8 @@ class Router
      */
     public function getAllowedMethods(string $uri): array
     {
+        $this->ensureFlushed();
+
         $methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'];
         $allowed = [];
         foreach ($methods as $m) {
@@ -119,7 +140,7 @@ class Router
      *
      * @param string|array|null $method HTTP method(s) for the route (e.g., 'GET', ['GET', 'POST'], or '*' for all methods)
      * @param string $pattern Route pattern (e.g., '/blog/{slug}', '/{controller}/{action}/{params:*}')
-     * @param string|array|null $handler Optional handler definition to override controller/action. Can be a string like 'Admin::dashboard' or an array with keys 'namespace', 'controller', 'action'.
+     * @param string|array|null $handler Optional handler definition to override controller/action. Can be a string like 'Admin::dashboard' or an array of strings with keys 'namespace', 'controller', 'action'.
      * @return static For method chaining
      */
     public function add(
@@ -127,6 +148,42 @@ class Router
         string $pattern,
         string|array|null $handler = null
     ): static {
+
+        if ($this->cachePath !== null && $this->flushing === 0) {
+            // Every route must belong to a cached() unit once a cache is enabled.
+            // A route registered outside one cannot be attributed to a file, so the
+            // compiled table could never tell when it went stale -- and restoring
+            // over it would silently drop it. Both orders are caught here, so the
+            // check does not depend on a later cached() call ever happening.
+            throw new LogicException(sprintf(
+                'Route "%s %s" was registered outside a cached() block, in %s. With a route '
+                . 'cache enabled every route must be declared inside cached(), otherwise the '
+                . 'compiled table has no source list to detect staleness against.',
+                \is_array($method) ? implode('|', $method) : (string) $method,
+                $pattern,
+                $this->callingFile(),
+            ));
+        }
+
+        // A handler array carries `controller`/`action`/`namespace`/`name`, and the
+        // `array` half of the type accepts anything inside it. Objects and closures
+        // there would be persisted into the route table and cannot mean anything at
+        // dispatch time (the dispatcher reads these as class and method *names*).
+        // Checked unconditionally rather than only while compiling: routes are a
+        // description of how to find a handler, never the handler itself.
+        if (\is_array($handler)) {
+            foreach ($handler as $key => $value) {
+                if (!\is_string($value)) {
+                    throw new InvalidArgumentException(sprintf(
+                        'Route handler key "%s" must be a string, %s given. A route is a '
+                        . 'description of which controller and action to call, never the '
+                        . 'callable itself.',
+                        (string) $key,
+                        get_debug_type($value),
+                    ));
+                }
+            }
+        }
 
         $routeName = null;
         if (\is_array($handler)) {
@@ -270,6 +327,8 @@ class Router
      */
     public function setName(string $name): static
     {
+        $this->ensureFlushed();
+
         if ($name === '') {
             throw new InvalidArgumentException('Route name cannot be empty');
         }
@@ -289,6 +348,8 @@ class Router
      */
     public function hasNamedRoute(string $name): bool
     {
+        $this->ensureFlushed();
+
         return isset($this->namedRoutes[$name]);
     }
 
@@ -303,6 +364,8 @@ class Router
      */
     public function urlFor(string $name, array $params = [], array $query = []): string
     {
+        $this->ensureFlushed();
+
         if (!isset($this->namedRoutes[$name])) {
             throw new RuntimeException("Unknown route name: $name");
         }
@@ -330,6 +393,8 @@ class Router
      */
     public function allRoutes(): array
     {
+        $this->ensureFlushed();
+
         $routes = [];
 
         // Build a reverse lookup: tokens → route name
@@ -455,6 +520,24 @@ class Router
         }
 
         foreach ($values as $value) {
+            if (!\is_string($value)) {
+                // The `string|array` parameter type accepts an array of anything; only
+                // this check stops an object (or a closure) reaching the route table
+                // through it. Verified before the check existed: middleware arrays of
+                // objects were accepted, and `serialize()` on the table then threw
+                // "Serialization of 'class@anonymous' is not allowed".
+                //
+                // Routes and their middleware are a description of how to find a
+                // handler, never the handler itself, so this is a contract rather than
+                // a convenience -- see {@see self::exportState()}, which depends on it
+                // to write a route cache without inspecting every value.
+                throw new InvalidArgumentException(sprintf(
+                    'Middleware group values must be strings, %s given. '
+                    . 'Routes and route middleware are data; use a class name or a '
+                    . 'registered middleware group name, never an instance or closure.',
+                    get_debug_type($value),
+                ));
+            }
             $stack[] = $value;
         }
     }
@@ -856,6 +939,8 @@ class Router
      */
     public function match(string $uri, string $method = 'GET'): ?array
     {
+        $this->ensureFlushed();
+
         $method = strtoupper($method);
         // Per RFC 7231: HEAD is identical to GET; route HEAD requests as GET
         if ($method === 'HEAD') {
@@ -1165,6 +1250,867 @@ class Router
         }
 
         return $override;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Compiled route table (route:cache)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Everything a compiler may persist, as a plain array of data.
+     *
+     * The contract this rests on: a route is a *description* of how to find a
+     * handler, so the table holds only strings, ints, bools, nulls and arrays of
+     * those. {@see self::add()} enforces that for handlers and
+     * {@see self::pushGroupValues()} for middleware, which is what lets this method
+     * return the state without walking it looking for objects.
+     *
+     * Two properties are deliberately excluded:
+     *
+     *   `types`       the parameter validators, which are closures seeded by the
+     *                 constructor. They are code, not data. A compiler must not
+     *                 store them; a restored router gets them from `__construct()`
+     *                 automatically. An application that registered its own with
+     *                 {@see self::type()} has to re-register it, and this method
+     *                 reports those names via {@see self::customTypes()} so the
+     *                 generated file can say so.
+     *
+     *   `resolvedOverrides`
+     *                 a per-handler memo of the parse that produces `override`. It
+     *                 is derived purely from the handlers already in the table, so
+     *                 persisting it would duplicate data, grow the file, and risk
+     *                 being stale after an edit to a handler.
+     *
+     * Note that the *deferred sort* state (`unsortedBuckets`) IS included. It is
+     * data, and restoring it faithfully is what keeps a restored router
+     * behaviourally identical to a freshly built one rather than accidentally
+     * faster because a stale sort was skipped.
+     *
+     * @return array<string, mixed>
+     * @see self::restoreState() for the inverse, and `azera routes:cache`.
+     */
+    public function exportState(): array
+    {
+        return [
+            'static'               => $this->static,
+            'groups'               => $this->groups,
+            'namedRoutes'          => $this->namedRoutes,
+            'middlewareGroupStack' => $this->middlewareGroupStack,
+            'prefixGroupStack'     => $this->prefixGroupStack,
+            'namespaceGroupStack'  => $this->namespaceGroupStack,
+            'controllerGroupStack' => $this->controllerGroupStack,
+            'lastAddedTokens'      => $this->lastAddedTokens,
+            'autoOptions'          => $this->autoOptions,
+            'unsortedBuckets'      => $this->unsortedBuckets,
+        ];
+    }
+
+    /**
+     * Replace this router's table with a previously exported one.
+     *
+     * Only the keys {@see self::exportState()} produces are applied, so a file
+     * written by an older release cannot reintroduce a property that has since been
+     * removed, and cannot overwrite `types`. Unknown keys are ignored rather than
+     * assigned, which keeps the method safe against a hand-edited cache file.
+     *
+     * This does not clear the table first: it overwrites the keys it knows, so
+     * restoring onto a router that already has routes replaces its routes for those
+     * buckets. Call {@see self::forget()} first if that matters -- the CLI task and
+     * every benchmark entry point do.
+     *
+     * @param array<string, mixed> $state
+     * @return static
+     */
+    public function restoreState(array $state): static
+    {
+        $known = [
+            'static',
+            'groups',
+            'namedRoutes',
+            'middlewareGroupStack',
+            'prefixGroupStack',
+            'namespaceGroupStack',
+            'controllerGroupStack',
+            'lastAddedTokens',
+            'autoOptions',
+            'unsortedBuckets',
+        ];
+
+        foreach ($known as $property) {
+            if (\array_key_exists($property, $state)) {
+                $this->{$property} = $state[$property];
+            }
+        }
+
+        // The memo is keyed by handler and derived from them; a restored table has
+        // different handler strings than whatever was memoised here, so drop it
+        // rather than serve answers for a table that no longer exists.
+        $this->resolvedOverrides = [];
+
+        return $this;
+    }
+
+    /**
+     * The parameter type names this router knows that the constructor does not.
+     *
+     * These are the ones registered with {@see self::type()}. Their validators are
+     * closures and therefore cannot be cached, so an application using them must
+     * re-register them after restoring a compiled table -- exactly as it registered
+     * them when building the table in the first place. The `routes:cache` command
+     * writes this list into the generated file's header so the requirement is
+     * visible where it matters.
+     *
+     * @return list<string>
+     */
+    public function customTypes(): array
+    {
+        $builtIn = ['int', 'alpha', 'alnum', 'uuid', '*'];
+        return array_values(array_diff(array_keys($this->types), $builtIn));
+    }
+
+    // -------------------------------------------------------------------------
+    //  Route cache
+    // -------------------------------------------------------------------------
+
+    /**
+     * Envelope key written alongside the table. Not part of the table itself, so
+     * {@see self::exportState()} stays pure data and {@see self::restoreState()}
+     * ignores it through its known-keys list.
+     */
+    private const CACHE_VERSION = 1;
+
+    /** Where the compiled table lives, or null when caching is off. */
+    private ?string $cachePath = null;
+
+    /**
+     * The declared units, in the order cached() was called.
+     *
+     * Each entry is `['files' => list<string>, 'build' => callable]`. Nothing in
+     * here has run yet: the point of deferral is that whether to run at all depends
+     * on a file that has not been read.
+     *
+     * @var list<array{files: list<string>, build: callable}>
+     */
+    private array $units = [];
+
+    /** True once the table has been built or restored. */
+    private bool $flushed = false;
+
+    /**
+     * How many units are currently executing.
+     *
+     * Guards `add()`'s mixed-mode check, which must not fire for the routes a unit
+     * legitimately registers. A counter rather than a boolean because one unit may
+     * call another through a shared helper, and the state has to fall back correctly.
+     */
+    private int $flushing = 0;
+
+    /** Seconds a positive freshness verdict is reused for. */
+    private int $revalidateFreq = 0;
+
+    /** When the last filesystem verdict was reached (microtime). */
+    private float $checkedAt = 0.0;
+
+    /** The last filesystem verdict; null when it was negative. */
+    private ?bool $freshVerdict = null;
+
+    /**
+     * Turn the route cache on and say where it lives.
+     *
+     * Must be called before any route is registered: a cache needs every route to
+     * be attributable to a file, and a route registered beforehand has no file.
+     *
+     * @param string $path Absolute path of the compiled table. Its directory is
+     *                     created on the first write.
+     */
+    public function enableCache(string $path): static
+    {
+        return $this->configureCache($path, false);
+    }
+
+    /**
+     * Enable the cache but never write from a request path.
+     *
+     * The table is still read and restored; only the build-on-miss write is skipped.
+     * Useful when the code directory is read-only and warming is a deploy-step job
+     * (`azera routes:cache`), and it removes the one behaviour a request path can
+     * otherwise trigger -- creating and replacing a file.
+     */
+    public function enableCacheLazy(string $path): static
+    {
+        return $this->configureCache($path, true);
+    }
+
+    /** True when a miss builds in memory but does not write. */
+    private bool $lazy = false;
+
+    private function configureCache(string $path, bool $lazy): static
+    {
+        if ($this->cachePath !== null) {
+            throw new LogicException('The route cache is already enabled.');
+        }
+        if ($this->static !== [] || $this->groups !== [] || $this->units !== []) {
+            throw new LogicException(sprintf(
+                'enableCache() must be called before any route is registered, but a route '
+                . 'was already added%s. A cache needs every route to declare its source '
+                . 'file, which routes registered before this call never did.',
+                $this->units !== [] ? ' and cached() units are already pending' : '',
+            ));
+        }
+
+        $this->cachePath = $path;
+        $this->lazy      = $lazy;
+
+        return $this;
+    }
+
+    /**
+     * How many seconds a positive freshness verdict may be reused for.
+     *
+     * The route-table analogue of `opcache.revalidate_freq` and of
+     * `Clarity\Engine\Cache::setRevalidateFreq()`, with one deliberate difference.
+     * Clarity must re-check per *render*, because one template renders many times in
+     * a request. A router is read once per request, so the meaningful unit here is
+     * the process: under php-fpm, where a process serves one request, this setting
+     * changes nothing. In a long-lived worker (Volucer, RoadRunner) the router
+     * outlives the request, and a positive value bounds how long a rebuilt table may
+     * go unnoticed.
+     *
+     * Only *positive* verdicts are reused. A negative one means the next rebuild must
+     * happen and must see the current filesystem.
+     *
+     * @param int $seconds Seconds; negative values are treated as 0.
+     */
+    public function setRevalidateFreq(int $seconds): static
+    {
+        $this->revalidateFreq = max(0, $seconds);
+        $this->checkedAt      = 0.0;
+        $this->freshVerdict   = null;
+
+        return $this;
+    }
+
+    /**
+     * How many seconds a positive freshness verdict is reused for.
+     */
+    public function getRevalidateFreq(): int
+    {
+        return $this->revalidateFreq;
+    }
+
+    /**
+     * Where the compiled table lives, or null when caching is off.
+     */
+    public function cachePath(): ?string
+    {
+        return $this->cachePath;
+    }
+
+    /**
+     * Declare a block of routes and the files it comes from.
+     *
+     *     $router->cached(__FILE__, function (Router $r): void {
+     *         $r->get('/', 'IndexController::indexAction');
+     *     });
+     *
+     * The block does not run here. It runs at the first read of the router
+     * (`match()`, `allRoutes()`, `urlFor()`, `hasNamedRoute()`,
+     * `getAllowedMethods()`) -- and only if the compiled table is missing or stale.
+     * That ordering is the whole design: deciding whether to rebuild requires reading
+     * a file, and running the block first would pay the cost the cache exists to
+     * remove.
+     *
+     * `$files` is normally `__FILE__`. Using the constant rather than inferring the
+     * file from a backtrace is deliberate: `__FILE__` is resolved at compile time, so
+     * it names the file the block was *written* in no matter how many helpers sit
+     * between the block and `add()`. A backtrace records whichever frame happens to be
+     * nearest, which is silently plausible and wrong as soon as anything wraps the
+     * call.
+     *
+     * Several files are allowed for one block; the cache is then watched against all
+     * of them. Several blocks are allowed too -- they execute in declaration order,
+     * which is what keeps specificity ties resolving the same way a cold build did.
+     *
+     * Rules, enforced rather than documented:
+     *
+     *   NO NESTING. A unit is the unit; an inner one would lose nothing and gain
+     *   nothing, so it is refused instead of half-supported.
+     *
+     *   TOP LEVEL ONLY. `cached()` inside a prefix/middleware/namespace/controller
+     *   callback would have to capture that stack to replay it later; the stack is
+     *   state on the router, so deferring the body would silently register the routes
+     *   at the top level. Refused.
+     *
+     *   NO ROUTES OUTSIDE A UNIT. Enforced in {@see self::add()}, which is the only
+     *   place a route enters the table.
+     *
+     * With no cache enabled there is nothing to decide, so the block simply runs.
+     *
+     * @param string|list<string> $files  Declared source files, conventionally `__FILE__`.
+     * @param callable            $build  Receives this router.
+     */
+    public function cached(string|array $files, callable $build): static
+    {
+        if ($this->cachePath === null) {
+            // No cache configured: nothing to defer, so registration stays eager and
+            // an application that never opts in keeps its current behaviour exactly.
+            $this->flushing++;
+            try {
+                $build($this);
+            } finally {
+                $this->flushing--;
+            }
+
+            return $this;
+        }
+
+        if ($this->flushing > 0) {
+            throw new LogicException(
+                'cached() cannot be nested inside another cached() block. Declare one unit '
+                . 'per file at the top level instead.',
+            );
+        }
+
+        if ($this->flushed) {
+            throw new LogicException(
+                'cached() cannot be called after the route table has been built or '
+                . 'restored: the routes would land in a table that is already complete, '
+                . 'which changes match results when two routes tie on specificity.',
+            );
+        }
+
+        $depth = count($this->middlewareGroupStack)
+            + count($this->prefixGroupStack)
+            + count($this->namespaceGroupStack)
+            + count($this->controllerGroupStack);
+
+        if ($depth > 0) {
+            throw new LogicException(sprintf(
+                'cached() must be called at the top level, but a route group is open (%s). '
+                . 'A deferred block would register its routes outside the group, because the '
+                . 'stack it belongs to no longer exists when the block finally runs.',
+                implode(', ', array_filter([
+                    $this->prefixGroupStack !== [] ? 'prefix' : null,
+                    $this->middlewareGroupStack !== [] ? 'middleware' : null,
+                    $this->namespaceGroupStack !== [] ? 'namespace' : null,
+                    $this->controllerGroupStack !== [] ? 'controller' : null,
+                ])),
+            ));
+        }
+
+        $list = [];
+        foreach ((array) $files as $file) {
+            if (!\is_string($file) || $file === '') {
+                throw new InvalidArgumentException(sprintf(
+                    'cached() expects file paths, %s given.',
+                    get_debug_type($file),
+                ));
+            }
+            $list[$file] = true;
+        }
+
+        $this->units[] = ['files' => array_keys($list), 'build' => $build];
+
+        return $this;
+    }
+
+    /**
+     * The declared source files of every unit, deduplicated, in declaration order.
+     *
+     * @return list<string>
+     */
+    public function cachedSources(): array
+    {
+        $files = [];
+        foreach ($this->units as $unit) {
+            foreach ($unit['files'] as $file) {
+                $files[$file] = true;
+            }
+        }
+
+        return array_keys($files);
+    }
+
+    // -------------------------------------------------------------------------
+    //  Flushing
+    // -------------------------------------------------------------------------
+
+    /**
+     * Make sure the table exists, then apply the revalidation policy.
+     *
+     * Called from every way of reading the router, so a caller never has to know
+     * whether the table is deferred, restored or live.
+     */
+    protected function ensureFlushed(): void
+    {
+        if (!$this->flushed) {
+            $this->flushNow();
+            return;
+        }
+
+        if ($this->cachePath === null || $this->revalidateFreq <= 0) {
+            return;
+        }
+
+        // A verdict reached recently is still trusted.
+        if ($this->freshVerdict === true
+            && (microtime(true) - $this->checkedAt) < $this->revalidateFreq
+        ) {
+            return;
+        }
+
+        // A table this process wrote itself is authoritative *while it is still ours*:
+        // it is newer than every source by construction, and OPcache could not cache
+        // the file we wrote, so re-reading it would cost a full compile and change
+        // nothing. Once another process replaces it -- a deploy hook, a sibling worker
+        // -- ownership is lost and the new table is evaluated normally.
+        if ($this->ownWriteAt !== 0) {
+            clearstatcache(true, (string) $this->cachePath);
+            if (@filemtime((string) $this->cachePath) === $this->ownWriteAt) {
+                $this->checkedAt = microtime(true);
+
+                return;
+            }
+            $this->ownWriteAt = 0;
+        }
+
+        $state = $this->readIfFresh();
+        if ($state === null) {
+            // The files changed under a live table: rebuild it from the units rather
+            // than serving routes that no longer match the code.
+            $this->buildFromUnits();
+            if (!$this->lazy) {
+                $this->tryWriteCache();
+            }
+            return;
+        }
+
+        // Someone else rebuilt it (a deploy hook, another process). Adopt their table
+        // so this process stops serving the previous one.
+        $this->restoreState($state);
+    }
+
+    /**
+     * First read: restore the compiled table, or build it and write it.
+     */
+    private function flushNow(): void
+    {
+        $this->flushed = true;
+
+        if ($this->units === []) {
+            return;
+        }
+
+        if ($this->cachePath !== null) {
+            $state = $this->readIfFresh();
+            if ($state !== null) {
+                $this->restoreState($state);
+                return;
+            }
+        }
+
+        $this->buildFromUnits();
+
+        if ($this->cachePath !== null && !$this->lazy) {
+            $this->tryWriteCache();
+        }
+    }
+
+    /**
+     * Run every unit in declaration order, replacing whatever the table held.
+     *
+     * The group stacks are snapshotted around each unit. A unit that ends with a stack
+     * still open -- `$r->prefix('/admin')` with no callback -- would otherwise prefix
+     * every route in the units that follow it, which is state leaking between two
+     * declarations that never saw each other. Restoring the snapshot makes each unit
+     * start from the same empty state, which is also what a cold build does when the
+     * units are separate files.
+     */
+    private function buildFromUnits(): void
+    {
+        $this->resetTable();
+
+        foreach ($this->units as $unit) {
+            $snapshot = $this->snapshotGroupStacks();
+            $this->flushing++;
+            try {
+                ($unit['build'])($this);
+            } finally {
+                $this->flushing--;
+                $this->restoreGroupStacks($snapshot);
+            }
+        }
+    }
+
+    /**
+     * Read the compiled table if it exists and no declared source is newer.
+     *
+     * Records the verdict for {@see self::setRevalidateFreq()}: a positive one with
+     * its timestamp, a negative one as "nothing to reuse".
+     *
+     * @return array<string, mixed>|null The table, or null when it must be rebuilt.
+     */
+    private function readIfFresh(): ?array
+    {
+        $this->checkedAt    = microtime(true);
+        $this->freshVerdict = null;
+
+        $path = $this->cachePath;
+        if ($path === null || !is_file($path)) {
+            return null;
+        }
+
+        // A corrupt or half-copied file must not take the application down: the units
+        // can always rebuild, and a cache is an optimisation. A fatal parse error
+        // cannot be caught, so the file is also checked for a plausible shape first --
+        // but the guard below is what covers the file changing between the check and
+        // the include.
+        try {
+            $state = @include $path;
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!\is_array($state) || !isset($state['__cache']) || !\is_array($state['__cache'])) {
+            return null;
+        }
+
+        $meta = $state['__cache'];
+
+        if (($meta['version'] ?? null) !== self::CACHE_VERSION) {
+            return null;
+        }
+
+        $recorded = $meta['files'] ?? null;
+        if (!\is_array($recorded)) {
+            return null;
+        }
+
+        // The declared set must match, not just each recorded entry: that is what
+        // catches a route file being added or removed, which leaves every surviving
+        // mtime untouched.
+        $declared = $this->cachedSources();
+        $onDisk   = array_map('strval', array_keys($recorded));
+        sort($declared);
+        sort($onDisk);
+        if ($declared !== $onDisk) {
+            return null;
+        }
+
+        $compiled = (int) ($meta['compiled'] ?? 0);
+
+        foreach ($recorded as $file => $mtime) {
+            $file = (string) $file;
+
+            // PHP's stat cache survives across requests in a long-lived worker, so
+            // without this the check answers with the mtime it saw at boot and stops
+            // noticing edits: measured, 0.055 us and lying, against 0.84 us and honest.
+            clearstatcache(true, $file);
+
+            $current = @filemtime($file);
+            if ($current === false) {
+                return null;
+            }
+
+            if ($current !== (int) $mtime) {
+                return null;
+            }
+
+            // A source modified in the same second the table was compiled counts as
+            // newer. A deploy that finishes inside one clock tick would otherwise
+            // restore a table built from the previous code -- a bug that appears only
+            // under a fast pipeline, which is the worst kind to debug.
+            if ($current >= $compiled) {
+                return null;
+            }
+        }
+
+        $this->freshVerdict = true;
+
+        return $state;
+    }
+
+    /**
+     * Write the table, downgrading an I/O failure to a warning.
+     *
+     * A request path must not fail because the cache directory is read-only, full, or
+     * owned by another user: the table in memory is already correct, and the only
+     * consequence of not writing is that the next request rebuilds. `compileCache()`
+     * uses the strict {@see self::writeCache()} instead, because there an operator
+     * asked for the file and deserves the error.
+     */
+    private function tryWriteCache(): void
+    {
+        try {
+            $this->writeCache();
+        } catch (RuntimeException $e) {
+            $this->checkedAt    = microtime(true);
+            $this->freshVerdict = null;   // nothing to trust; re-check next read
+            if ($this->warnOnWriteFailure) {
+                trigger_error(
+                    'Route cache not written: ' . $e->getMessage()
+                        . ' The table was built in memory and this request is unaffected.',
+                    E_USER_WARNING,
+                );
+            }
+        }
+    }
+
+    /** Whether a failed write should raise a warning. Off by default. */
+    private bool $warnOnWriteFailure = false;
+
+    /**
+     * Report a failed background write instead of failing silently.
+     *
+     * Off by default: a container whose cache directory is mounted read-only is a
+     * legitimate configuration, and the only cost is rebuilding per request.
+     */
+    public function warnOnWriteFailure(bool $on = true): static
+    {
+        $this->warnOnWriteFailure = $on;
+
+        return $this;
+    }
+
+    /**
+     * Write the current table, with its freshness envelope, atomically.
+     */
+    private function writeCache(): void
+    {
+        $path = $this->cachePath;
+        if ($path === null) {
+            return;
+        }
+
+        $dir = dirname($path);
+        if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
+            throw new RuntimeException("Cannot create route cache directory: {$dir}");
+        }
+
+        $compiled = time();
+
+        $files = [];
+        foreach ($this->cachedSources() as $file) {
+            clearstatcache(true, $file);
+            $files[$file] = (int) (@filemtime($file) ?: 0);
+        }
+
+        $state = $this->exportState();
+        $state['__cache'] = [
+            'version'  => self::CACHE_VERSION,
+            'compiled' => $compiled,
+            'files'    => $files,
+        ];
+
+        $code = "<?php\n\n"
+            . "// Generated by the Azera route cache. Do not edit.\n"
+            . '// Routes: ' . $this->countRoutes() . "\n"
+            . '// PHP: ' . PHP_VERSION . "\n"
+            . "// Sources watched for staleness:\n"
+            . implode('', array_map(static fn(string $f): string => "//   {$f}\n", array_keys($files)))
+            . "\nreturn "
+            . var_export($state, true)
+            . ";\n";
+
+        // Write then rename: a request that includes a half-written table during a
+        // deploy is a fatal error, and rename() within one filesystem is atomic.
+        $tmp = $path . '.tmp.' . getmypid();
+        if (@file_put_contents($tmp, $code, \LOCK_EX) === false) {
+            throw new RuntimeException("Cannot write route cache: {$tmp}");
+        }
+        if (!@rename($tmp, $path)) {
+            @unlink($tmp);
+            throw new RuntimeException("Cannot move {$tmp} to {$path}");
+        }
+
+        clearstatcache(true, $path);
+        if (\function_exists('opcache_invalidate')) {
+            @opcache_invalidate($path, true);
+        }
+
+        // The table in memory IS what was written, so the verdict is positive -- but
+        // only for this process. PHP's OPcache will not cache a file the current
+        // process wrote (verified: every same-process `require` recompiles, even past
+        // `opcache.file_update_protection`), so a re-check at a later timestamp would
+        // pay a full compile for no benefit and swap in an identical table. The file
+        // is left for other processes, which do cache it. Measured: a cold process
+        // requires an 86 KB table in ~1.9 ms once, then 1 us.
+        $this->freshVerdict   = true;
+        $this->ownWriteAt     = filemtime($path) ?: time();
+        $this->checkedAt      = microtime(true);
+    }
+
+    /**
+     * The mtime of the file this process wrote, or 0.
+     *
+     * `readIfFresh()` refuses a table whose mtime is at or before the compile stamp,
+     * which is the deploy-safety rule. A file this process wrote itself carries exactly
+     * that mtime, so it needs to be recognised rather than read back.
+     */
+    private int $ownWriteAt = 0;
+
+    /**
+     * Empty the table, keeping the validators.
+     *
+     * Validators are code, they are the same either way, and clearing them would
+     * silently break a rebuilt table that uses a custom type.
+     */
+    private function resetTable(): void
+    {
+        $this->static               = [];
+        $this->groups               = [];
+        $this->namedRoutes          = [];
+        $this->middlewareGroupStack = [];
+        $this->prefixGroupStack     = [];
+        $this->namespaceGroupStack  = [];
+        $this->controllerGroupStack = [];
+        $this->lastAddedTokens      = null;
+        $this->unsortedBuckets      = [];
+        $this->resolvedOverrides    = [];
+    }
+
+    /**
+     * Force a rebuild from the declared units and write it, ignoring the file.
+     *
+     * This is what `azera routes:cache` calls. It exists for ops -- a deploy hook
+     * that wants the table warm before the first request, or a rebuild after deleting
+     * the file. Nothing depends on it: a missing file is written by the first request
+     * that reads the router.
+     *
+     * @return int Number of routes written.
+     */
+    public function compileCache(): int
+    {
+        if ($this->cachePath === null) {
+            throw new LogicException(
+                'compileCache() needs a destination: call enableCache() first.',
+            );
+        }
+        if ($this->units === []) {
+            throw new LogicException(
+                'compileCache() found no cached() units. Routes must be declared inside '
+                . 'cached($files, function (Router $r) { ... }) for a table to be compiled.',
+            );
+        }
+
+        $this->flushed = true;
+        $this->buildFromUnits();
+        $this->writeCache();
+
+        return $this->countRoutes();
+    }
+
+    /**
+     * Delete the compiled table.
+     *
+     * @return bool True when a file was removed.
+     */
+    public function clearCache(): bool
+    {
+        $path = $this->cachePath;
+        if ($path === null || !is_file($path)) {
+            return false;
+        }
+
+        @unlink($path);
+        clearstatcache(true, $path);
+        if (\function_exists('opcache_invalidate')) {
+            @opcache_invalidate($path, true);
+        }
+
+        $this->checkedAt    = 0.0;
+        $this->freshVerdict = null;
+
+        return true;
+    }
+
+    /**
+     * Describe the compiled table without trusting it.
+     *
+     * @return array{enabled: bool, path: ?string, exists: bool, fresh: bool, routes: int, files: list<string>, compiled: ?int}
+     */
+    public function cacheStatus(): array
+    {
+        $path = $this->cachePath;
+
+        $status = [
+            'enabled'  => $path !== null,
+            'path'     => $path,
+            'exists'   => false,
+            'fresh'    => false,
+            'routes'   => 0,
+            'files'    => [],
+            'compiled' => null,
+        ];
+
+        if ($path === null) {
+            return $status;
+        }
+
+        $status['files'] = $this->cachedSources();
+
+        if (!is_file($path)) {
+            return $status;
+        }
+
+        $status['exists'] = true;
+
+        $state = require $path;
+        if (\is_array($state)) {
+            $status['routes'] = $this->countRoutesIn($state);
+        }
+        $status['compiled'] = (int) (@filemtime($path) ?: 0);
+
+        // Freshness is a property of the files, not of the file's age, so reuse the
+        // same check the runtime uses rather than approximating it here.
+        $status['fresh'] = $this->readIfFresh() !== null;
+
+        return $status;
+    }
+
+    /**
+     * Number of routes currently in the table.
+     */
+    private function countRoutes(): int
+    {
+        return $this->countRoutesIn($this->exportState());
+    }
+
+    /**
+     * @param array<string, mixed> $state
+     */
+    private function countRoutesIn(array $state): int
+    {
+        $n = 0;
+        foreach ($state['static'] ?? [] as $byPath) {
+            $n += count($byPath);
+        }
+        foreach ($state['groups'] ?? [] as $bucket) {
+            foreach ($bucket as $list) {
+                $n += count($list);
+            }
+        }
+
+        return $n;
+    }
+
+    /**
+     * The application file that called into the router, for error messages.
+     *
+     * A backtrace is affordable here because this only runs on the throw path. It is
+     * used for diagnostics only -- never to decide staleness, which is what
+     * `cached($files, ...)` exists to declare explicitly.
+     */
+    private function callingFile(): string
+    {
+        foreach (debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 4) as $frame) {
+            $file = $frame['file'] ?? null;
+            if ($file !== null && $file !== __FILE__) {
+                return $file;
+            }
+        }
+
+        return 'an unknown file';
     }
 
 }

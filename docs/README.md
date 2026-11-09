@@ -13,7 +13,7 @@ area you need.
 - [Architecture](01-ARCHITECTURE.md) — How `AppContext`, the MVC layer,
   the database layer and the CLI layer fit together.
 - [MVC Routing](02-CORE-ROUTING.md) — `Router`, named routes, parameter
-  validation, route groups and middleware.
+  validation, route groups and middleware, and the route cache.
 
 ## Controllers & Views
 

@@ -323,7 +323,154 @@ $router->add('GET', '/hello/{name}', 'WelcomeController::helloAction');
 // GET /hello/World → {"message":"Hello, World!"}
 ```
 
+## Route Cache
+
+A cold SAPI — php-fpm, php-cgi, Volucer's spawn_cgi — builds the whole route table
+inside the timed request, because nothing survives between requests. On a 120-route
+table that build is most of the framework's per-request cost, and it is pure
+repetition: the same routes are registered on every request, forever.
+
+The router can compile the table to a PHP file and `require` it instead.
+
+```php
+// In your bootstrap, BEFORE any route is registered.
+$router->enableCache(BASE_DIR . '/temp/routes.php');
+$router->setRevalidateFreq(60);          // optional
+
+// Declare the routes as one or more units. `__FILE__` is what the cache watches.
+$router->cached(__FILE__, function (Router $r): void {
+    $r->get('/', 'IndexController::indexAction');
+    $r->prefix('/clarity-engine', function (Router $r): void {
+        $r->get('/docs/{segments:*}', 'Docs::docsAction');
+    });
+});
+```
+
+Nothing else is required. There is no `load()` call and no deploy step: the first
+request that reads the router (`match()`, `allRoutes()`, `urlFor()`,
+`hasNamedRoute()`, `getAllowedMethods()`) decides between restoring the file and
+building the table, and **writes the file when it had to build**.
+
+### Why `cached()` exists
+
+Deciding whether to reuse the file requires reading it, which has to happen *before*
+the routes are registered. `cached()` therefore only *records* a block; the block runs
+later, and only if the table has to be rebuilt. A route registered outside such a
+block is refused, because nothing could tell when it went stale.
+
+`__FILE__` — not a backtrace — is what gets watched. It is resolved at compile time, so
+it names the file the block was *written* in however many helpers sit between the block
+and `add()`.
+
+Several units are allowed and run in declaration order, which is what keeps
+specificity ties resolving the way a cold build did.
+
+### Staleness
+
+The compiled file records, per declared source, its mtime at compile time, plus the
+compile timestamp. It is rebuilt when:
+
+- any declared source's mtime changed
+- **a source file was added or removed** (the declared set must match the recorded set)
+- a source no longer exists
+- a source's mtime equals the compile stamp — a deploy that finishes inside one clock
+  tick must not be mistaken for fresh
+- the envelope version differs
+
+`filemtime()` is read after `clearstatcache()`. Without it PHP answers from its own stat
+cache, which in a long-lived worker survives across requests and stops seeing edits.
+
+### `revalidateFreq`
+
+By default the file is checked once per process, at the first read. Under php-fpm that
+is exactly one check per request, which is all that is needed.
+
+In a long-lived worker (Volucer, RoadRunner) the router outlives the request, and
+`setRevalidateFreq($seconds)` bounds how long a rebuilt table may go unnoticed — the
+route-table analogue of `opcache.revalidate_freq` and of
+`Clarity\Engine\Cache::setRevalidateFreq()`. Only positive verdicts are reused; a
+stale verdict always triggers a rebuild on the next read.
+
+A table this process wrote itself is authoritative while its file is unchanged: PHP's
+OPcache will not cache a file the current process wrote, so re-reading it would cost a
+full compile to swap in an identical table. Once another process replaces the file, the
+new table is evaluated normally.
+
+### Rules
+
+- `enableCache()` must come before the first route.
+- Every route must be inside a `cached()` block. A route outside one throws, and the
+  message names the file.
+- `cached()` may not nest, and may not be called inside a `prefix()`/`middleware()`/
+  `namespace()`/`controller()` callback — the block would run later, outside that group.
+- `type()` must be called before the units. Validators are closures, are not compiled,
+  and a restored table never runs the blocks that register them.
+- Routes and route middleware are data: handlers are strings or arrays of strings, and
+  middleware are strings. Objects and closures are rejected.
+
+### Writing
+
+The file is written with `tmp` + `rename`, so a request can never include a half-written
+table. A failed write is not fatal — the table in memory is already correct, and the
+next request rebuilds. Call `warnOnWriteFailure()` to be told about it.
+
+`enableCacheLazy()` instead of `enableCache()` reads and restores but never writes from
+a request; warming is then a deploy step (`azera routes:cache`).
+
+### CLI
+
+```
+azera routes:status          is the file there, and is it fresh?
+azera routes:status --strict exit 1 unless it exists and is fresh (for CI)
+azera routes:cache           rebuild now and write, ignoring the file
+azera routes:clear           delete the file
+azera routes:list            list the routed table
+```
+
+`routes:cache` reports the number of routes, the byte size, and every watched file.
+
+### What this is worth
+
+Measured on the VM, PHP 8.5, with the table in a shared OPcache — a warm `require` and
+`restoreState()`, against building the same routes from their units in the same process:
+
+| | per request |
+|---|---|
+| build 9 benchmark routes from their units | 14.2 µs (median), 1.58 µs per route |
+| `require` + `restoreState()` | 0.4 µs |
+| the homepage's real 120-route table | **1131 µs → 159 µs, 7.1×** |
+
+The 120-route figure is the one that matters: the homepage's `registerRoutes()` uses
+nested `prefix()`/`controller()` closures, so its build is dominated by closure and
+group overhead rather than by route count. On the wire that is `/echo` at c=96 on
+nginx + php-fpm going from **23,814 to 49,174 rps**, and the framework's own share of CPU
+per request from 339 µs to 86 µs.
+
+Per-route costs about 0.6–1.6 µs to build depending on how deeply the registration is
+grouped, so the saving scales with the table: a small app saves microseconds, and a
+120-route app saves a millisecond.
+
+### The one-time compile
+
+The first `require` of a file in a process that has not compiled it before costs a full
+compile: 0.44 ms for a 120-route table, 1.6 ms at 500 routes, 7.2 ms at 2000 on this
+hardware. Under php-fpm that happens once per worker process unless the table is already
+in shared OPcache memory, and shared memory is per FPM master — so a restart, or an
+`opcache_reset()`, makes every worker pay it once.
+
+Warm the table during deploy (`azera routes:cache`) so that compile lands in the deploy
+step instead of the first production request. Every request after it loads the table in
+about 1 µs.
+
+### Not measured here
+
+Windows and some CLI builds have no shared OPcache, so a `require` there recompiles
+every time (1.7 ms for 86 KB) and the hit path is *slower* than the build. That is a
+property of the environment, not of the cache: check `opcache_is_script_cached()` before
+drawing conclusions from a local timing.
+
 ## See Also
 
 - [Controllers & Views](03-CONTROLLERS-VIEWS.md)
+- [CLI Tasks](08-CLI-TASKS.md)
 - [API Reference](api/README.md)
