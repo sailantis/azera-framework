@@ -18,6 +18,11 @@ class Transactional extends Advice
 }
 ```
 
+The `#[\Attribute]` flag belongs on the concrete subclasses, not here: PHP 8.5
+rejects `#[\Attribute]` on an abstract class. That is also where it worked all
+along -- an attribute is identified by the class written at the use site, so the
+flag on the base class only ever described a class nobody instantiates.
+
 
 
 ---

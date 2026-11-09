@@ -6,7 +6,7 @@ Class Database
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Db/Database.php#L63)</small>
+### __construct() · <small>[🗎](../../src/Db/Database.php#L86)</small>
 
 `public function __construct(string $dsn, string $user = '', string $pass = '', array $options = []): mixed`
 
@@ -32,7 +32,7 @@ Create a new database connection using the provided DSN, credentials and options
 
 ---
 
-### connect() · <small>[🗎](../../src/Db/Database.php#L97)</small>
+### connect() · <small>[🗎](../../src/Db/Database.php#L120)</small>
 
 `public function connect(): mixed`
 
@@ -49,7 +49,7 @@ Establish a new PDO connection using the current configuration
 
 ---
 
-### events() · <small>[🗎](../../src/Db/Database.php#L114)</small>
+### events() · <small>[🗎](../../src/Db/Database.php#L141)</small>
 
 `public function events(): Psr\EventDispatcher\EventDispatcherInterface`
 
@@ -65,7 +65,7 @@ so dispatch() is always safe and cheap (single no-op method call).
 
 ---
 
-### setAutoReconnect() · <small>[🗎](../../src/Db/Database.php#L130)</small>
+### setAutoReconnect() · <small>[🗎](../../src/Db/Database.php#L157)</small>
 
 `public function setAutoReconnect(bool $enabled = true, int $maxAttempts = 0, float $retryDelay = 1, float $backoffMultiplier = 2, float $maxRetryDelay = 30, bool $jitter = true, callable|null $onReconnect = null): static`
 
@@ -90,7 +90,7 @@ Configure automatic reconnection behavior with detailed options
 
 ---
 
-### getAutoReconnect() · <small>[🗎](../../src/Db/Database.php#L155)</small>
+### getAutoReconnect() · <small>[🗎](../../src/Db/Database.php#L182)</small>
 
 `public function getAutoReconnect(): array|bool`
 
@@ -103,7 +103,7 @@ Get auto-reconnect configuration
 
 ---
 
-### query() · <small>[🗎](../../src/Db/Database.php#L167)</small>
+### query() · <small>[🗎](../../src/Db/Database.php#L194)</small>
 
 `public function query(string $statement, array|null $params = null): PDOStatement|bool`
 
@@ -127,7 +127,93 @@ Execute a SQL statement with optional parameters and return the resulting statem
 
 ---
 
-### prepare() · <small>[🗎](../../src/Db/Database.php#L210)</small>
+### useStatementCache() · <small>[🗎](../../src/Db/Database.php#L248)</small>
+
+`public function useStatementCache(bool $enabled = true, int $limit = 64): static`
+
+Enable or disable reuse of prepared statements between calls.
+
+Enable it where the win has been measured. On SQLite it is worth about 3.8 µs
+of a 12.5 µs query, because `PDO::query()` re-parses and re-plans the SQL text
+on every call (`sqlite3_prepare_v2`), while a reused statement only re-runs
+the compiled program. The correctness rule is independent of the driver: see
+{@see \Database::$idleStatements} for why taking a statement removes it from
+the pool, which is what keeps two live `ResultSet`s from sharing a cursor.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$enabled` | bool | `true` | Whether to reuse statements. |
+| `$limit` | int | `64` | Maximum idle statements held per connection. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### usesStatementCache() · <small>[🗎](../../src/Db/Database.php#L262)</small>
+
+`public function usesStatementCache(): bool`
+
+Whether statements are reused between calls. See [`Database::useStatementCache()`](Db_Database.md#usestatementcache).
+
+**Return value**
+
+- Type: `bool`
+
+
+---
+
+### releaseStatement() · <small>[🗎](../../src/Db/Database.php#L302)</small>
+
+`public function releaseStatement(string $statement, PDOStatement $stmt): void`
+
+Offer an exhausted statement back to the pool.
+
+Called through [`Database::releaseStatement()`](Db_Database.md#releasestatement), which a `ResultSet` reaches
+on `closeCursor()` and on destruction. A returned statement is always
+`closeCursor()`ed first: on SQLite in WAL mode an open cursor holds a read
+snapshot, and handing one back to the pool would keep that snapshot alive on
+the connection, blocking writers from other connections.
+
+Releasing is best-effort and idempotent - a slot that is already occupied keeps
+what it has rather than replacing it, so a double release cannot pin two
+statements in one slot and lose one of them.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$statement` | string | - |  |
+| `$stmt` | PDOStatement | - |  |
+
+**Return value**
+
+- Type: `void`
+
+
+---
+
+### flushStatementCache() · <small>[🗎](../../src/Db/Database.php#L333)</small>
+
+`public function flushStatementCache(): void`
+
+Drop every pooled statement.
+
+Called when the connection is replaced (see [`Database::connect()`](Db_Database.md#connect)), because
+statements prepared on the previous handle cannot be executed on the new one.
+
+**Return value**
+
+- Type: `void`
+
+
+---
+
+### prepare() · <small>[🗎](../../src/Db/Database.php#L349)</small>
 
 `public function prepare(string $statement): Azera\Db\Statement`
 
@@ -154,7 +240,7 @@ concurrently without clobbering a single shared slot.
 
 ---
 
-### processPdoException() · <small>[🗎](../../src/Db/Database.php#L237)</small>
+### processPdoException() · <small>[🗎](../../src/Db/Database.php#L376)</small>
 
 `public function processPdoException(PDOException $exception, string $operation, string|null $sql = null, array|null $params = null): mixed`
 
@@ -178,7 +264,7 @@ concurrently without clobbering a single shared slot.
 
 ---
 
-### selectRow() · <small>[🗎](../../src/Db/Database.php#L368)</small>
+### selectRow() · <small>[🗎](../../src/Db/Database.php#L507)</small>
 
 `public function selectRow(string $query, array|null $params = null, int $fetchMode = 0): array|bool`
 
@@ -199,7 +285,7 @@ Fetch a single row from the database as object, associative array, or numeric ar
 
 ---
 
-### selectAll() · <small>[🗎](../../src/Db/Database.php#L383)</small>
+### selectAll() · <small>[🗎](../../src/Db/Database.php#L522)</small>
 
 `public function selectAll(string $query, array|null $params = null, int $fetchMode = 0): array`
 
@@ -220,7 +306,7 @@ Fetch all rows from the database as an array of objects, associative arrays, or 
 
 ---
 
-### rowCount() · <small>[🗎](../../src/Db/Database.php#L395)</small>
+### rowCount() · <small>[🗎](../../src/Db/Database.php#L534)</small>
 
 `public function rowCount(): int`
 
@@ -234,7 +320,7 @@ Return the number of rows affected by the last executed statement.
 
 ---
 
-### getDefaultFetchMode() · <small>[🗎](../../src/Db/Database.php#L406)</small>
+### getDefaultFetchMode() · <small>[🗎](../../src/Db/Database.php#L545)</small>
 
 `public function getDefaultFetchMode(): int`
 
@@ -250,7 +336,7 @@ every result set.
 
 ---
 
-### inTransaction() · <small>[🗎](../../src/Db/Database.php#L420)</small>
+### inTransaction() · <small>[🗎](../../src/Db/Database.php#L559)</small>
 
 `public function inTransaction(): bool`
 
@@ -264,7 +350,7 @@ Whether a transaction is currently active on this connection
 
 ---
 
-### lastInsertId() · <small>[🗎](../../src/Db/Database.php#L424)</small>
+### lastInsertId() · <small>[🗎](../../src/Db/Database.php#L563)</small>
 
 `public function lastInsertId(string|null $table = null, string|null $field = null): string|bool`
 
@@ -282,7 +368,7 @@ Whether a transaction is currently active on this connection
 
 ---
 
-### begin() · <small>[🗎](../../src/Db/Database.php#L460)</small>
+### begin() · <small>[🗎](../../src/Db/Database.php#L599)</small>
 
 `public function begin(bool $nesting = true): int|bool`
 
@@ -306,7 +392,7 @@ Begin a new transaction, or create a savepoint if nested transactions are enable
 
 ---
 
-### commit() · <small>[🗎](../../src/Db/Database.php#L504)</small>
+### commit() · <small>[🗎](../../src/Db/Database.php#L643)</small>
 
 `public function commit(bool $nesting = true): int|bool`
 
@@ -330,7 +416,7 @@ Commit the current transaction or release the current savepoint (for nested tran
 
 ---
 
-### rollback() · <small>[🗎](../../src/Db/Database.php#L551)</small>
+### rollback() · <small>[🗎](../../src/Db/Database.php#L690)</small>
 
 `public function rollback(bool $nesting = true): int|bool`
 
@@ -353,7 +439,7 @@ Rollback the current transaction or to a savepoint if nesting is enabled and sup
 
 ---
 
-### quote() · <small>[🗎](../../src/Db/Database.php#L597)</small>
+### quote() · <small>[🗎](../../src/Db/Database.php#L736)</small>
 
 `public function quote(string|null $str): string|bool`
 
@@ -372,7 +458,7 @@ Quote a string for use in a query.
 
 ---
 
-### quoteIdentifier() · <small>[🗎](../../src/Db/Database.php#L612)</small>
+### quoteIdentifier() · <small>[🗎](../../src/Db/Database.php#L751)</small>
 
 `public function quoteIdentifier(string|null ...$args): string`
 
@@ -394,7 +480,7 @@ Parts are joined with a dot separator. NULL parts are skipped. "*" is passed thr
 
 ---
 
-### getInternalConnection() · <small>[🗎](../../src/Db/Database.php#L641)</small>
+### getInternalConnection() · <small>[🗎](../../src/Db/Database.php#L780)</small>
 
 `public function getInternalConnection(): PDO|null`
 
@@ -408,7 +494,7 @@ Return the underlying PDO connection instance.
 
 ---
 
-### builder() · <small>[🗎](../../src/Db/Database.php#L650)</small>
+### builder() · <small>[🗎](../../src/Db/Database.php#L789)</small>
 
 `public function builder(): Azera\Db\Query`
 
@@ -421,7 +507,7 @@ Create a new Query builder instance associated with this database connection.
 
 ---
 
-### supportsReturning() · <small>[🗎](../../src/Db/Database.php#L663)</small>
+### supportsReturning() · <small>[🗎](../../src/Db/Database.php#L802)</small>
 
 `public function supportsReturning(): bool`
 
@@ -437,7 +523,7 @@ also support it. Older servers must fall back to lastInsertId() for ID backfilli
 
 ---
 
-### getDriver() · <small>[🗎](../../src/Db/Database.php#L697)</small>
+### getDriver() · <small>[🗎](../../src/Db/Database.php#L836)</small>
 
 `public function getDriver(): string`
 

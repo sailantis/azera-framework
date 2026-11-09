@@ -804,7 +804,7 @@ Built-in help task for a specific task
 
 ---
 
-### terminalWidth() · <small>[🗎](../../src/Cli/Console/HelpRendering.php#L531)</small>
+### terminalWidth() · <small>[🗎](../../src/Cli/Console/HelpRendering.php#L530)</small>
 
 `public function terminalWidth(): int`
 
@@ -817,7 +817,7 @@ Return detected terminal width (columns). Falls back to 80.
 
 ---
 
-### wrapText() · <small>[🗎](../../src/Cli/Console/HelpRendering.php#L915)</small>
+### wrapText() · <small>[🗎](../../src/Cli/Console/HelpRendering.php#L914)</small>
 
 `public function wrapText(string $text, int $width): array`
 

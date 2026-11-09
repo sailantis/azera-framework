@@ -6,7 +6,7 @@ Forward-only cursor over an executed statement. Provides various fetch methods t
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Db/ResultSet.php#L38)</small>
+### __construct() · <small>[🗎](../../src/Db/ResultSet.php#L45)</small>
 
 `public function __construct(Azera\Db\Database $connection, PDOStatement $statement, string|null $sqlStatement = null, array|null $boundParams = null, bool $isReadQuery = true): mixed`
 
@@ -29,7 +29,7 @@ Create a new ResultSet wrapping a PDO statement result.
 
 ---
 
-### fetch() · <small>[🗎](../../src/Db/ResultSet.php#L58)</small>
+### fetch() · <small>[🗎](../../src/Db/ResultSet.php#L65)</small>
 
 `public function fetch(): object|array|false`
 
@@ -43,7 +43,7 @@ Fetch next row as object or array depending on fetch mode.
 
 ---
 
-### fetchAssoc() · <small>[🗎](../../src/Db/ResultSet.php#L68)</small>
+### fetchAssoc() · <small>[🗎](../../src/Db/ResultSet.php#L75)</small>
 
 `public function fetchAssoc(): array|false`
 
@@ -57,7 +57,7 @@ Fetch next row as associative array.
 
 ---
 
-### fetchObject() · <small>[🗎](../../src/Db/ResultSet.php#L78)</small>
+### fetchObject() · <small>[🗎](../../src/Db/ResultSet.php#L85)</small>
 
 `public function fetchObject(): object|false`
 
@@ -71,7 +71,7 @@ Fetch next row as object.
 
 ---
 
-### fetchColumn() · <small>[🗎](../../src/Db/ResultSet.php#L89)</small>
+### fetchColumn() · <small>[🗎](../../src/Db/ResultSet.php#L96)</small>
 
 `public function fetchColumn(int $column = 0): mixed`
 
@@ -91,7 +91,7 @@ Fetch next row as a single column value.
 
 ---
 
-### fetchAllAssoc() · <small>[🗎](../../src/Db/ResultSet.php#L99)</small>
+### fetchAllAssoc() · <small>[🗎](../../src/Db/ResultSet.php#L106)</small>
 
 `public function fetchAllAssoc(): array`
 
@@ -105,7 +105,7 @@ Return all rows as associative array.
 
 ---
 
-### fetchAllObject() · <small>[🗎](../../src/Db/ResultSet.php#L110)</small>
+### fetchAllObject() · <small>[🗎](../../src/Db/ResultSet.php#L117)</small>
 
 `public function fetchAllObject(): array`
 
@@ -119,7 +119,7 @@ Return all rows as object.
 
 ---
 
-### fetchAllColumn() · <small>[🗎](../../src/Db/ResultSet.php#L122)</small>
+### fetchAllColumn() · <small>[🗎](../../src/Db/ResultSet.php#L129)</small>
 
 `public function fetchAllColumn(int $column = 0): array`
 
@@ -139,7 +139,7 @@ Fetch all values from a single column.
 
 ---
 
-### fetchAll() · <small>[🗎](../../src/Db/ResultSet.php#L134)</small>
+### fetchAll() · <small>[🗎](../../src/Db/ResultSet.php#L141)</small>
 
 `public function fetchAll(int $fetchMode = 0): array`
 
@@ -159,7 +159,7 @@ Fetch all rows as objects or arrays depending on fetch mode.
 
 ---
 
-### setFetchMode() · <small>[🗎](../../src/Db/ResultSet.php#L145)</small>
+### setFetchMode() · <small>[🗎](../../src/Db/ResultSet.php#L152)</small>
 
 `public function setFetchMode(int $fetchMode): void`
 
@@ -178,7 +178,7 @@ Set the default fetch mode for this result set.
 
 ---
 
-### getSql() · <small>[🗎](../../src/Db/ResultSet.php#L154)</small>
+### getSql() · <small>[🗎](../../src/Db/ResultSet.php#L161)</small>
 
 `public function getSql(): string|null`
 
@@ -192,7 +192,7 @@ Return the SQL statement that was executed to produce this result set, if availa
 
 ---
 
-### getBindings() · <small>[🗎](../../src/Db/ResultSet.php#L163)</small>
+### getBindings() · <small>[🗎](../../src/Db/ResultSet.php#L170)</small>
 
 `public function getBindings(): array|null`
 
@@ -206,7 +206,7 @@ Return the variables that were bound to the SQL statement, if available.
 
 ---
 
-### toArray() · <small>[🗎](../../src/Db/ResultSet.php#L176)</small>
+### toArray() · <small>[🗎](../../src/Db/ResultSet.php#L183)</small>
 
 `public function toArray(): array`
 
@@ -223,7 +223,7 @@ that expect array-like data (e.g. Clarity's castToArray).
 
 ---
 
-### refresh() · <small>[🗎](../../src/Db/ResultSet.php#L191)</small>
+### refresh() · <small>[🗎](../../src/Db/ResultSet.php#L198)</small>
 
 `public function refresh(): void`
 
@@ -244,7 +244,7 @@ the write, so it is rejected.
 
 ---
 
-### rewind() · <small>[🗎](../../src/Db/ResultSet.php#L217)</small>
+### rewind() · <small>[🗎](../../src/Db/ResultSet.php#L227)</small>
 
 `public function rewind(): void`
 
@@ -262,7 +262,7 @@ row so that valid() returns true and PHP's foreach can begin.
 
 ---
 
-### current() · <small>[🗎](../../src/Db/ResultSet.php#L226)</small>
+### current() · <small>[🗎](../../src/Db/ResultSet.php#L236)</small>
 
 `public function current(): mixed`
 
@@ -275,7 +275,7 @@ Return the current row (fetched lazily on first access).
 
 ---
 
-### key() · <small>[🗎](../../src/Db/ResultSet.php#L236)</small>
+### key() · <small>[🗎](../../src/Db/ResultSet.php#L246)</small>
 
 `public function key(): int`
 
@@ -288,7 +288,7 @@ Return the zero-based position of the current row within this traversal.
 
 ---
 
-### next() · <small>[🗎](../../src/Db/ResultSet.php#L242)</small>
+### next() · <small>[🗎](../../src/Db/ResultSet.php#L252)</small>
 
 `public function next(): void`
 
@@ -301,7 +301,7 @@ Advance to the next row.
 
 ---
 
-### valid() · <small>[🗎](../../src/Db/ResultSet.php#L249)</small>
+### valid() · <small>[🗎](../../src/Db/ResultSet.php#L259)</small>
 
 `public function valid(): bool`
 
@@ -314,7 +314,7 @@ Return true while the current row is not false/null (i.e., while rows remain).
 
 ---
 
-### count() · <small>[🗎](../../src/Db/ResultSet.php#L258)</small>
+### count() · <small>[🗎](../../src/Db/ResultSet.php#L268)</small>
 
 `public function count(): int`
 
@@ -328,7 +328,7 @@ Return the number of rows affected/returned by the underlying statement.
 
 ---
 
-### closeCursor() · <small>[🗎](../../src/Db/ResultSet.php#L274)</small>
+### closeCursor() · <small>[🗎](../../src/Db/ResultSet.php#L293)</small>
 
 `public function closeCursor(): void`
 
@@ -340,6 +340,15 @@ important for statements that only partially consumed their result set
 SQLite in WAL mode, an open cursor on a write statement keeps the write
 lock held on its connection, blocking writes from other connections.
 
+**Deliberately does not hand the statement back to the pool.** `closeCursor()`
+means "I have finished reading", not "this object is gone": the `ResultSet` is
+still alive and still fetchable afterwards, and PHP's contract there is that
+`fetch()` returns `false`. Returning the statement at this point broke that
+contract — a second query would take the same `PDOStatement`, its `execute()`
+would rewind the cursor, and the first reader's next `fetch()` would silently
+answer with the *other* query's rows instead of `false`. The pool is therefore
+fed from [`ResultSet::__destruct()`](Db_ResultSet.md#__destruct) only, where nothing can read any more.
+
 **Return value**
 
 - Type: `void`
@@ -347,12 +356,17 @@ lock held on its connection, blocking writes from other connections.
 
 ---
 
-### __destruct() · <small>[🗎](../../src/Db/ResultSet.php#L283)</small>
+### __destruct() · <small>[🗎](../../src/Db/ResultSet.php#L307)</small>
 
 `public function __destruct(): mixed`
 
-Ensure the underlying statement cursor is released when the result set
-goes out of scope, so that any Database locks it holds are freed.
+Return the cursor to the connection's statement pool, once, at the end of life.
+
+This is the only safe release point. A statement offered from `closeCursor()`
+could be re-executed by a later query while this object was still reachable and
+still answering `fetch()` — see [`ResultSet::closeCursor()`](Db_ResultSet.md#closecursor) for the sequence
+that produced another query's rows. At destruction there is no reachable
+`ResultSet` left, so reuse cannot be observed.
 
 **Return value**
 

@@ -2,8 +2,11 @@
 
 **Full name:** [Azera\Core\ResolvedRoute](../../src/Core/ResolvedRoute.php)
 
-ResolvedRoute represents the fully resolved route and execution context
-used by the dispatcher to invoke the matched controller and action.
+Resolved route metadata shared across matching requests.
+
+`$params` is not cached because it may contain closures or request-scoped
+services; the dispatcher rebuilds it for each request. Read URL parameters
+from `$vars`; `$params` is empty on cached routes.
 
 ## Public Properties
 
@@ -17,7 +20,7 @@ used by the dispatcher to invoke the matched controller and action.
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Core/ResolvedRoute.php#L22)</small>
+### __construct() · <small>[🗎](../../src/Core/ResolvedRoute.php#L25)</small>
 
 `public function __construct(string|null $namespace, string $controller, string $action, array $params, array $vars, array $groups, array $override): mixed`
 
@@ -30,7 +33,7 @@ Create a new ResolvedRoute instance with the given parameters.
 | `$namespace` | string\|null | - | Effective namespace for the controller, after applying route group namespaces. Null if no namespace is used. |
 | `$controller` | string | - | Resolved controller class name. |
 | `$action` | string | - | Resolved action method name. |
-| `$params` | array | - | Resolved action method parameters. |
+| `$params` | array | - | Resolved action method parameters. Empty for a cached route; see the class docblock. |
 | `$vars` | array | - | Associative array of route variables extracted from the URL (e.g. ['id' => '123']). |
 | `$groups` | array | - | List of middleware groups to apply for this route. |
 | `$override` | array | - | Associative array of route overrides (e.g. ['controller' => 'OtherController', 'action' => 'otherAction']). |

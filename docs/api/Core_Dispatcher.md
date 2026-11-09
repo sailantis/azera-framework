@@ -65,7 +65,7 @@ applied in the order they are listed on the route.
 
 ---
 
-### getBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L70)</small>
+### getBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L107)</small>
 
 `public function getBaseNamespace(): string`
 
@@ -79,7 +79,7 @@ Get the base namespace for controllers.
 
 ---
 
-### setBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L81)</small>
+### setBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L118)</small>
 
 `public function setBaseNamespace(string $baseNamespace): static`
 
@@ -98,7 +98,7 @@ Set the base namespace for controllers. This namespace will be prefixed to all c
 
 ---
 
-### getDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L92)</small>
+### getDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L129)</small>
 
 `public function getDefaultController(): string`
 
@@ -112,7 +112,7 @@ Get the default controller name used when a route doesn't provide one.
 
 ---
 
-### setDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L103)</small>
+### setDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L140)</small>
 
 `public function setDefaultController(string $defaultController): static`
 
@@ -135,7 +135,7 @@ Set the default controller name.
 
 ---
 
-### getDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L117)</small>
+### getDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L154)</small>
 
 `public function getDefaultAction(): string`
 
@@ -149,7 +149,7 @@ Get the default action name used when a route doesn't provide one.
 
 ---
 
-### setDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L128)</small>
+### setDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L165)</small>
 
 `public function setDefaultAction(string $defaultAction): static`
 
@@ -172,7 +172,7 @@ Set the default action name.
 
 ---
 
-### dispatch() · <small>[🗎](../../src/Core/Dispatcher.php#L145)</small>
+### dispatch() · <small>[🗎](../../src/Core/Dispatcher.php#L182)</small>
 
 `public function dispatch(array $routeInfo): Azera\Http\Response`
 

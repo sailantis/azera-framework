@@ -119,7 +119,7 @@ Add a new route to the router. The route can be defined for specific HTTP method
 
 ---
 
-### get() · <small>[🗎](../../src/Core/Router.php#L268)</small>
+### get() · <small>[🗎](../../src/Core/Router.php#L265)</small>
 
 `public function get(string $pattern, array|string|null $handler = null): static`
 
@@ -140,7 +140,7 @@ Convenience method to add a GET route.
 
 ---
 
-### post() · <small>[🗎](../../src/Core/Router.php#L280)</small>
+### post() · <small>[🗎](../../src/Core/Router.php#L277)</small>
 
 `public function post(string $pattern, array|string|null $handler = null): static`
 
@@ -161,7 +161,7 @@ Convenience method to add a POST route.
 
 ---
 
-### put() · <small>[🗎](../../src/Core/Router.php#L292)</small>
+### put() · <small>[🗎](../../src/Core/Router.php#L289)</small>
 
 `public function put(string $pattern, array|string|null $handler = null): static`
 
@@ -182,7 +182,7 @@ Convenience method to add a PUT route.
 
 ---
 
-### delete() · <small>[🗎](../../src/Core/Router.php#L304)</small>
+### delete() · <small>[🗎](../../src/Core/Router.php#L301)</small>
 
 `public function delete(string $pattern, array|string|null $handler = null): static`
 
@@ -203,7 +203,7 @@ Convenience method to add a DELETE route.
 
 ---
 
-### patch() · <small>[🗎](../../src/Core/Router.php#L316)</small>
+### patch() · <small>[🗎](../../src/Core/Router.php#L313)</small>
 
 `public function patch(string $pattern, array|string|null $handler = null): static`
 
@@ -224,7 +224,7 @@ Convenience method to add a PATCH route.
 
 ---
 
-### setName() · <small>[🗎](../../src/Core/Router.php#L328)</small>
+### setName() · <small>[🗎](../../src/Core/Router.php#L325)</small>
 
 `public function setName(string $name): static`
 
@@ -248,7 +248,7 @@ Assign a name to the most recently added route. This allows you to generate URLs
 
 ---
 
-### hasNamedRoute() · <small>[🗎](../../src/Core/Router.php#L349)</small>
+### hasNamedRoute() · <small>[🗎](../../src/Core/Router.php#L346)</small>
 
 `public function hasNamedRoute(string $name): bool`
 
@@ -268,7 +268,7 @@ Check if a named route exists.
 
 ---
 
-### urlFor() · <small>[🗎](../../src/Core/Router.php#L365)</small>
+### urlFor() · <small>[🗎](../../src/Core/Router.php#L362)</small>
 
 `public function urlFor(string $name, array $params = [], array $query = []): string`
 
@@ -294,7 +294,7 @@ Generate a URL for a named route, substituting parameters as needed.
 
 ---
 
-### allRoutes() · <small>[🗎](../../src/Core/Router.php#L394)</small>
+### allRoutes() · <small>[🗎](../../src/Core/Router.php#L391)</small>
 
 `public function allRoutes(): array`
 
@@ -314,7 +314,7 @@ Each entry is an associative array with keys:
 
 ---
 
-### prefix() · <small>[🗎](../../src/Core/Router.php#L556)</small>
+### prefix() · <small>[🗎](../../src/Core/Router.php#L553)</small>
 
 `public function prefix(string $prefix, callable|null $callback = null): static`
 
@@ -342,7 +342,7 @@ $router->add('GET', '/dashboard', 'Admin::dashboard');
 
 ---
 
-### middleware() · <small>[🗎](../../src/Core/Router.php#L590)</small>
+### middleware() · <small>[🗎](../../src/Core/Router.php#L587)</small>
 
 `public function middleware(array|string $name, callable|null $callback = null): static`
 
@@ -370,7 +370,7 @@ $router->add('GET', '/admin/dashboard', 'Admin::dashboard');
 
 ---
 
-### namespace() · <small>[🗎](../../src/Core/Router.php#L626)</small>
+### namespace() · <small>[🗎](../../src/Core/Router.php#L623)</small>
 
 `public function namespace(string $namespace, callable|null $callback = null): static`
 
@@ -398,7 +398,7 @@ $router->add('GET', '/dashboard', 'Dashboard::view');
 
 ---
 
-### controller() · <small>[🗎](../../src/Core/Router.php#L668)</small>
+### controller() · <small>[🗎](../../src/Core/Router.php#L665)</small>
 
 `public function controller(string $controller, callable|null $callback = null): static`
 
@@ -426,7 +426,7 @@ $router->add('GET', '/dashboard', '::view');
 
 ---
 
-### match() · <small>[🗎](../../src/Core/Router.php#L940)</small>
+### match() · <small>[🗎](../../src/Core/Router.php#L937)</small>
 
 `public function match(string $uri, string $method = 'GET'): array|null`
 
@@ -447,38 +447,18 @@ Attempt to match the given URI and HTTP method against the registered routes.
 
 ---
 
-### exportState() · <small>[🗎](../../src/Core/Router.php#L1292)</small>
+### exportState() · <small>[🗎](../../src/Core/Router.php#L1249)</small>
 
 `public function exportState(): array`
 
-Everything a compiler may persist, as a plain array of data.
+Return the serializable route table: scalars and arrays only. Handlers and
+middleware values are validated by `self::add()` and
+`self::pushGroupValues()`.
 
-The contract this rests on: a route is a *description* of how to find a
-handler, so the table holds only strings, ints, bools, nulls and arrays of
-those. `self::add()` enforces that for handlers and
-`self::pushGroupValues()` for middleware, which is what lets this method
-return the state without walking it looking for objects.
-
-Two properties are deliberately excluded:
-
-  `types`       the parameter validators, which are closures seeded by the
-                constructor. They are code, not data. A compiler must not
-                store them; a restored router gets them from `__construct()`
-                automatically. An application that registered its own with
-                `self::type()` has to re-register it, and this method
-                reports those names via `self::customTypes()` so the
-                generated file can say so.
-
-  `resolvedOverrides`
-                a per-handler memo of the parse that produces `override`. It
-                is derived purely from the handlers already in the table, so
-                persisting it would duplicate data, grow the file, and risk
-                being stale after an edit to a handler.
-
-Note that the *deferred sort* state (`unsortedBuckets`) IS included. It is
-data, and restoring it faithfully is what keeps a restored router
-behaviourally identical to a freshly built one rather than accidentally
-faster because a stale sort was skipped.
+`types` is omitted because validators are closures; built-ins are restored by
+the constructor, and custom types must be re-registered (`customTypes()` lists
+them). `resolvedOverrides` is derived from handlers and is not persisted.
+`unsortedBuckets` is included to preserve deferred sorting behavior.
 
 **Return value**
 
@@ -487,7 +467,7 @@ faster because a stale sort was skipped.
 
 ---
 
-### restoreState() · <small>[🗎](../../src/Core/Router.php#L1324)</small>
+### restoreState() · <small>[🗎](../../src/Core/Router.php#L1281)</small>
 
 `public function restoreState(array $state): static`
 
@@ -516,7 +496,7 @@ every benchmark entry point do.
 
 ---
 
-### customTypes() · <small>[🗎](../../src/Core/Router.php#L1365)</small>
+### customTypes() · <small>[🗎](../../src/Core/Router.php#L1322)</small>
 
 `public function customTypes(): array`
 
@@ -536,26 +516,20 @@ visible where it matters.
 
 ---
 
-### setCachePath() · <small>[🗎](../../src/Core/Router.php#L1429)</small>
+### setCachePath() · <small>[🗎](../../src/Core/Router.php#L1380)</small>
 
 `public function setCachePath(string|null $path): static`
 
-Turn the route cache on and say where the compiled table lives.
+Set the compiled table path before the router is first read.
 
-Optional: the first `self::cached()` call turns the cache on by itself.
-This method only chooses a location, and is how an application opts out of the
-derived temp path and into, say, `BASE_DIR . '/temp/routes.php'`.
-
-Passing null returns to the derived default. It does *not* disable the cache:
-"no path" and "no cache" are different states, and a null that meant "off"
-would make `setCachePath(getenv('X') ?: null)` silently drop caching.
-Use `self::disableCache()` for that.
+`self::cached()` enables caching automatically. Pass null to use the
+derived default path; use `self::disableCache()` to opt out.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$path` | string\|null | - | Absolute path of the compiled table, or null for the<br>derived default. The directory is created on write. |
+| `$path` | string\|null | - | Absolute file path, or null for the derived default.<br>The directory is created on write. |
 
 **Return value**
 
@@ -564,19 +538,15 @@ Use `self::disableCache()` for that.
 
 ---
 
-### disableCache() · <small>[🗎](../../src/Core/Router.php#L1466)</small>
+### disableCache() · <small>[🗎](../../src/Core/Router.php#L1413)</small>
 
 `public function disableCache(): static`
 
-Stop using the compiled table.
+Disable compiled-table caching.
 
-Declared units that have not run yet are run eagerly, so nothing registered is
-lost: the table ends up exactly as it would have without a cache. A table that
-was already read is kept in memory and the compiled file is simply ignored for
-the rest of the process.
-
-This is what a benchmark needs to measure the cold arm, because a cached() unit
-is unconditional in the application's bootstrap -- there is nothing else to flip.
+Pending route blocks are registered immediately; an already-loaded table stays
+in memory, but the compiled file is ignored for this process. Useful for
+uncached benchmarks when bootstrap always declares `cached()` units.
 
 **Return value**
 
@@ -585,22 +555,17 @@ is unconditional in the application's bootstrap -- there is nothing else to flip
 
 ---
 
-### cachePath() · <small>[🗎](../../src/Core/Router.php#L1515)</small>
+### cachePath() · <small>[🗎](../../src/Core/Router.php#L1456)</small>
 
 `public function cachePath(): string|null`
 
-Where the compiled table actually lives.
+Return the compiled table path, or null when caching is disabled or no sources
+are declared. An explicit `self::setCachePath()` takes precedence;
+otherwise the path is derived from the source files under
+`sys_get_temp_dir()/azera_routes/`. The source hash isolates applications and
+route-file sets; when available, the user ID isolates files in the 0700 directory.
 
-Without an explicit `self::setCachePath()`, the location is derived from
-the declared sources: `sys_get_temp_dir()/azera_routes/routes-<hash>.php`. The
-hash covers the absolute source paths, so two applications on one host never
-collide, and adding or removing a route *file* produces a new name rather than
-thrashing one shared file. `posix_geteuid()` is part of the name because the
-directory is created 0700, so two users cannot read each other's table and must
-not block each other out of the same file.
-
-A path derived from the *sources* is why this cannot be resolved when
-setCachePath() runs: at that point no unit has been declared yet.
+The derived path is available only after route units are declared.
 
 **Return value**
 
@@ -609,7 +574,7 @@ setCachePath() runs: at that point no unit has been declared yet.
 
 ---
 
-### resolvedCachePath() · <small>[🗎](../../src/Core/Router.php#L1551)</small>
+### resolvedCachePath() · <small>[🗎](../../src/Core/Router.php#L1492)</small>
 
 `public function resolvedCachePath(): string|null`
 
@@ -625,23 +590,16 @@ cache a name that the application has not actually opted into.
 
 ---
 
-### setRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1573)</small>
+### setRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1507)</small>
 
 `public function setRevalidateFreq(int $seconds): static`
 
-How many seconds a positive freshness verdict may be reused for.
+Seconds to reuse a positive route-table freshness verdict.
 
-The route-table analogue of `opcache.revalidate_freq` and of
-`Clarity\Engine\Cache::setRevalidateFreq()`, with one deliberate difference.
-Clarity must re-check per *render*, because one template renders many times in
-a request. A router is read once per request, so the meaningful unit here is
-the process: under php-fpm, where a process serves one request, this setting
-changes nothing. In a long-lived worker (Volucer, RoadRunner) the router
-outlives the request, and a positive value bounds how long a rebuilt table may
-go unnoticed.
-
-Only *positive* verdicts are reused. A negative one means the next rebuild must
-happen and must see the current filesystem.
+Unlike template caching, the router checks once per request, not per render.
+This matters only when a Router instance survives across requests; a positive
+value can delay detecting source changes by that interval. Negative verdicts
+are never reused, so the next rebuild checks the current files.
 
 **Parameters**
 
@@ -656,7 +614,7 @@ happen and must see the current filesystem.
 
 ---
 
-### getRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1585)</small>
+### getRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1519)</small>
 
 `public function getRevalidateFreq(): int`
 
@@ -669,53 +627,24 @@ How many seconds a positive freshness verdict is reused for.
 
 ---
 
-### cached() · <small>[🗎](../../src/Core/Router.php#L1638)</small>
+### cached() · <small>[🗎](../../src/Core/Router.php#L1543)</small>
 
 `public function cached(array|string $files, callable $build): static`
 
-Declare a block of routes and the files it comes from.
+Register a route block and its source file(s).
 
 $router->cached(__FILE__, function (Router $r): void {
         $r->get('/', 'IndexController::indexAction');
     });
 
-The block does not run here. It runs at the first read of the router
-(`match()`, `allRoutes()`, `urlFor()`, `hasNamedRoute()`,
-`getAllowedMethods()`) -- and only if the compiled table is missing or stale.
-That ordering is the whole design: deciding whether to rebuild requires reading
-a file, and running the block first would pay the cost the cache exists to
-remove.
+The callback runs on the router's first read, and only if the compiled table is
+missing or stale. Pass explicit source files (usually `__FILE__`) so changes to
+the declaring file invalidate the cache; multiple files are supported.
 
-`$files` is normally `__FILE__`. Using the constant rather than inferring the
-file from a backtrace is deliberate: `__FILE__` is resolved at compile time, so
-it names the file the block was *written* in no matter how many helpers sit
-between the block and `add()`. A backtrace records whichever frame happens to be
-nearest, which is silently plausible and wrong as soon as anything wraps the
-call.
-
-Several files are allowed for one block; the cache is then watched against all
-of them. Several blocks are allowed too -- they execute in declaration order,
-which is what keeps specificity ties resolving the same way a cold build did.
-
-Rules, enforced rather than documented:
-
-  NO NESTING. A unit is the unit; an inner one would lose nothing and gain
-  nothing, so it is refused instead of half-supported.
-
-  TOP LEVEL ONLY. `cached()` inside a prefix/middleware/namespace/controller
-  callback would have to capture that stack to replay it later; the stack is
-  state on the router, so deferring the body would silently register the routes
-  at the top level. Refused.
-
-  NO ROUTES OUTSIDE A UNIT. Enforced at flush time
-  (`self::assertNoRoutesOutsideUnits()`) for routes registered before the
-  block, and immediately in `self::add()` for routes registered after the
-  table has been read, because those can no longer be part of it.
-
-Declaring a unit is what turns the cache on: the file list has no second
-meaning, so requiring a separate enable call would only be a way to write the
-whole feature and forget to switch it on. `self::disableCache()` is the
-explicit opt-out.
+With caching enabled, blocks run in declaration order and must be top-level,
+non-nested, and contain all routes; these restrictions are enforced. With caching
+disabled, callbacks run immediately. Declaring a block enables caching;
+`self::disableCache()` opts out.
 
 **Parameters**
 
@@ -731,7 +660,7 @@ explicit opt-out.
 
 ---
 
-### cachedSources() · <small>[🗎](../../src/Core/Router.php#L1720)</small>
+### cachedSources() · <small>[🗎](../../src/Core/Router.php#L1613)</small>
 
 `public function cachedSources(): array`
 
@@ -744,7 +673,7 @@ The declared source files of every unit, deduplicated, in declaration order.
 
 ---
 
-### warnOnWriteFailure() · <small>[🗎](../../src/Core/Router.php#L2075)</small>
+### warnOnWriteFailure() · <small>[🗎](../../src/Core/Router.php#L1925)</small>
 
 `public function warnOnWriteFailure(bool $on = true): static`
 
@@ -766,16 +695,14 @@ legitimate configuration, and the only cost is rebuilding per request.
 
 ---
 
-### compileCache() · <small>[🗎](../../src/Core/Router.php#L2200)</small>
+### compileCache() · <small>[🗎](../../src/Core/Router.php#L2081)</small>
 
 `public function compileCache(): int`
 
-Force a rebuild from the declared units and write it, ignoring the file.
+Rebuild the table from declared units and write it, ignoring any existing file.
 
-This is what `azera routes:cache` calls. It exists for ops -- a deploy hook
-that wants the table warm before the first request, or a rebuild after deleting
-the file. Nothing depends on it: a missing file is written by the first request
-that reads the router.
+Used by `azera routes:cache` to prewarm or rebuild during deployment; otherwise
+the first router read creates a missing table.
 
 **Return value**
 
@@ -785,7 +712,7 @@ that reads the router.
 
 ---
 
-### clearCache() · <small>[🗎](../../src/Core/Router.php#L2228)</small>
+### clearCache() · <small>[🗎](../../src/Core/Router.php#L2107)</small>
 
 `public function clearCache(): bool`
 
@@ -799,7 +726,7 @@ Delete the compiled table.
 
 ---
 
-### cacheStatus() · <small>[🗎](../../src/Core/Router.php#L2252)</small>
+### cacheStatus() · <small>[🗎](../../src/Core/Router.php#L2131)</small>
 
 `public function cacheStatus(): array`
 

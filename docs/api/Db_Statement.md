@@ -10,7 +10,7 @@ executed concurrently without clobbering a single shared slot.
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Db/Statement.php#L32)</small>
+### __construct() · <small>[🗎](../../src/Db/Statement.php#L35)</small>
 
 `public function __construct(Azera\Db\Database $db, PDOStatement $statement, string $sql): mixed`
 
@@ -31,7 +31,7 @@ Create a new PreparedStatement wrapping an already-prepared PDO statement.
 
 ---
 
-### execute() · <small>[🗎](../../src/Db/Statement.php#L49)</small>
+### execute() · <small>[🗎](../../src/Db/Statement.php#L52)</small>
 
 `public function execute(array $params = []): Azera\Db\Statement|bool`
 
@@ -58,7 +58,7 @@ auto-reconnect logic, mirroring Database::query().
 
 ---
 
-### rowCount() · <small>[🗎](../../src/Db/Statement.php#L81)</small>
+### rowCount() · <small>[🗎](../../src/Db/Statement.php#L84)</small>
 
 `public function rowCount(): int`
 
@@ -71,7 +71,7 @@ Return the number of rows affected by the last execution.
 
 ---
 
-### columnCount() · <small>[🗎](../../src/Db/Statement.php#L90)</small>
+### columnCount() · <small>[🗎](../../src/Db/Statement.php#L93)</small>
 
 `public function columnCount(): int`
 
@@ -84,7 +84,7 @@ Return the number of columns in the result set.
 
 ---
 
-### getStatement() · <small>[🗎](../../src/Db/Statement.php#L99)</small>
+### getStatement() · <small>[🗎](../../src/Db/Statement.php#L102)</small>
 
 `public function getStatement(): PDOStatement`
 
@@ -97,7 +97,7 @@ Return the underlying PDO statement instance.
 
 ---
 
-### getSql() · <small>[🗎](../../src/Db/Statement.php#L108)</small>
+### getSql() · <small>[🗎](../../src/Db/Statement.php#L111)</small>
 
 `public function getSql(): string`
 
@@ -110,7 +110,7 @@ Return the original SQL string this statement was prepared from.
 
 ---
 
-### closeCursor() · <small>[🗎](../../src/Db/Statement.php#L124)</small>
+### closeCursor() · <small>[🗎](../../src/Db/Statement.php#L127)</small>
 
 `public function closeCursor(): void`
 
@@ -129,7 +129,7 @@ connections.
 
 ---
 
-### __destruct() · <small>[🗎](../../src/Db/Statement.php#L133)</small>
+### __destruct() · <small>[🗎](../../src/Db/Statement.php#L136)</small>
 
 `public function __destruct(): mixed`
 
