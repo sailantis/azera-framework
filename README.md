@@ -1,9 +1,9 @@
 ![Azera Logo](docs/images/azera-logo-text.svg)
 
-<h3 style="text-align:center;">
+<h3 align="center" style="text-align:center;">
 Lightweight by Design. Powerful in Practice.
 </h3>
-<p style="text-align:center;" class="">
+<p align="center" style="text-align:center;" class="">
 A lightweight, fast PHP framework for building modern Web applications and CLI tools. Azera combines the best ideas from frameworks like Phalcon, CodeIgniter, Laravel and Symfony into a minimal yet powerful toolkit.
 </p>
 
