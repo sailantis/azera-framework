@@ -54,7 +54,7 @@ request that reads the router.
 
 ---
 
-### clearAction() · <small>[🗎](../../src/Cli/Tasks/RoutesTask.php#L112)</small>
+### clearAction() · <small>[🗎](../../src/Cli/Tasks/RoutesTask.php#L100)</small>
 
 `public function clearAction(): void`
 
@@ -67,7 +67,7 @@ Delete the compiled table.
 
 ---
 
-### statusAction() · <small>[🗎](../../src/Cli/Tasks/RoutesTask.php#L139)</small>
+### statusAction() · <small>[🗎](../../src/Cli/Tasks/RoutesTask.php#L127)</small>
 
 `public function statusAction(): void`
 
@@ -85,7 +85,7 @@ longer exists.
 
 ---
 
-### listAction() · <small>[🗎](../../src/Cli/Tasks/RoutesTask.php#L192)</small>
+### listAction() · <small>[🗎](../../src/Cli/Tasks/RoutesTask.php#L183)</small>
 
 `public function listAction(): void`
 

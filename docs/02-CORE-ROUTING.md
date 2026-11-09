@@ -333,11 +333,13 @@ repetition: the same routes are registered on every request, forever.
 The router can compile the table to a PHP file and `require` it instead.
 
 ```php
-// In your bootstrap, BEFORE any route is registered.
-$router->enableCache(BASE_DIR . '/temp/routes.php');
+// Optional: choose where the table lives. Without this it is derived from the
+// declared sources and written under the system temp directory.
+$router->setCachePath(BASE_DIR . '/temp/routes.php');
 $router->setRevalidateFreq(60);          // optional
 
-// Declare the routes as one or more units. `__FILE__` is what the cache watches.
+// Declare the routes as one or more units. This is what turns the cache on, and
+// `__FILE__` is what the cache watches.
 $router->cached(__FILE__, function (Router $r): void {
     $r->get('/', 'IndexController::indexAction');
     $r->prefix('/clarity-engine', function (Router $r): void {
@@ -355,8 +357,12 @@ building the table, and **writes the file when it had to build**.
 
 Deciding whether to reuse the file requires reading it, which has to happen *before*
 the routes are registered. `cached()` therefore only *records* a block; the block runs
-later, and only if the table has to be rebuilt. A route registered outside such a
-block is refused, because nothing could tell when it went stale.
+later, and only if the table has to be rebuilt.
+
+Declaring a unit is also what enables the cache. The file list has no other meaning, so
+a separate `enableCache()` call would only be a way to write the whole feature and
+forget to switch it on. `disableCache()` is the explicit opt-out; with it the blocks run
+immediately and no file is ever touched. A route registered outside such ablock is refused, because nothing could tell when it went stale.
 
 `__FILE__` — not a backtrace — is what gets watched. It is resolved at compile time, so
 it names the file the block was *written* in however many helpers sit between the block
@@ -364,6 +370,30 @@ and `add()`.
 
 Several units are allowed and run in declaration order, which is what keeps
 specificity ties resolving the way a cold build did.
+
+### Where the file lives
+
+`setCachePath($path)` chooses the location. Without it the path is derived from the
+declared sources:
+
+```
+sys_get_temp_dir()/azera_routes/routes-<hash>.php
+```
+
+The hash covers the absolute source paths and the effective uid, so two applications —
+or two users — on one host never share a file, and adding or removing a route *file*
+produces a new name rather than thrashing one shared table. A derived path is why the
+resolution happens at the first read rather than when `cached()` is called.
+
+The default is convenient, not durable: `/tmp` is swept by the OS, some service
+managers give a unit a private `/tmp`, and a container may not preserve it between
+deploys. Production deployments that warm the table in a deploy hook should pass an
+explicit path inside the application, e.g. `BASE_DIR . '/temp/routes.php'`.
+
+The directory is created `0700` and the table `0600`. A directory that is group- or
+world-writable is refused — the file is `require`d, so loading from one would be
+executing code another user can plant. When that happens the router quietly rebuilds in
+memory instead of failing the request.
 
 ### Staleness
 
@@ -398,9 +428,9 @@ new table is evaluated normally.
 
 ### Rules
 
-- `enableCache()` must come before the first route.
-- Every route must be inside a `cached()` block. A route outside one throws, and the
-  message names the file.
+- Every route must be inside a `cached()` block. A route registered before the first
+  block is refused at the first read (it would silently vanish on the next rebuild), and
+  a route registered after the table has been read is refused immediately.
 - `cached()` may not nest, and may not be called inside a `prefix()`/`middleware()`/
   `namespace()`/`controller()` callback — the block would run later, outside that group.
 - `type()` must be called before the units. Validators are closures, are not compiled,
@@ -413,9 +443,6 @@ new table is evaluated normally.
 The file is written with `tmp` + `rename`, so a request can never include a half-written
 table. A failed write is not fatal — the table in memory is already correct, and the
 next request rebuilds. Call `warnOnWriteFailure()` to be told about it.
-
-`enableCacheLazy()` instead of `enableCache()` reads and restores but never writes from
-a request; warming is then a deploy step (`azera routes:cache`).
 
 ### CLI
 

@@ -190,7 +190,7 @@ class RouterStateTest extends TestCase
         touch($source, time() - 60);
 
         try {
-            $router = (new Router())->enableCache($cache);
+            $router = (new Router())->setCachePath($cache);
             $router->type('slug', static fn($v) => preg_match('/^[a-z-]+$/', $v) === 1);
             $router->cached($source, static fn(Router $r) => $r->get('/blog/{slug:slug}', 'Blog::view'));
 
@@ -270,37 +270,85 @@ class RouterStateTest extends TestCase
         $this->tmpFiles = [];
     }
 
-    public function testCachedRunsImmediatelyWhenNoCacheIsEnabled(): void
+    public function testCachedOptsTheCacheInAndDefersUntilTheTableIsRead(): void
     {
         $router = new Router();
         $ran    = false;
 
-        $router->cached(__FILE__, function (Router $r) use (&$ran): void {
-            $ran = true;
-            $r->get('/a', 'A::b');
-        });
-
-        $this->assertTrue($ran, 'with no cache there is nothing to decide, so it stays eager');
-
-        $state = $router->exportState();
-        $this->assertSame([], $state['__cache'] ?? [], 'and nothing is persisted');
-    }
-
-    public function testCachedDefersUntilTheTableIsRead(): void
-    {
-        $router = new Router();
-        $router->enableCache($this->tmpPath('.php'));
-
-        $ran = false;
         $router->cached($this->tmpSource(), function (Router $r) use (&$ran): void {
             $ran = true;
             $r->get('/deferred', 'A::b');
         });
 
-        $this->assertFalse($ran, 'registration must wait for the freshness decision');
+        $this->assertFalse($ran, 'declaring a unit is what opts in, so registration waits');
 
         $this->assertNotNull($router->match('/deferred', 'GET'));
         $this->assertTrue($ran);
+    }
+
+    public function testDisableCacheMakesRegistrationEagerAgain(): void
+    {
+        $router = new Router();
+        $router->disableCache();
+
+        $ran = false;
+        $router->cached($this->tmpSource(), function (Router $r) use (&$ran): void {
+            $ran = true;
+            $r->get('/eager', 'A::b');
+        });
+
+        $this->assertTrue($ran, 'opted out: nothing to defer, so the block runs here');
+        $this->assertNull($router->cachePath());
+    }
+
+    public function testDisableCacheDoesNotLoseUnitsDeclaredBeforeIt(): void
+    {
+        $router = new Router();
+        $router->cached($this->tmpSource(), static fn(Router $r) => $r->get('/kept', 'A::b'));
+
+        // Nothing was read yet, so disabling has to run the pending unit rather than
+        // drop it: the routes are the application's, not the cache's.
+        $router->disableCache();
+
+        $this->assertNotNull($router->match('/kept', 'GET'));
+    }
+
+    public function testTheDefaultPathIsDerivedFromTheDeclaredSourcesAndNeverCollides(): void
+    {
+        $a = $this->tmpSource();
+        $b = $this->tmpSource();
+
+        $one = (new Router())->cached($a, static fn(Router $r) => $r->get('/a', 'A::b'));
+        $two = (new Router())->cached($b, static fn(Router $r) => $r->get('/b', 'A::b'));
+
+        $first  = (string) $one->cachePath();
+        $second = (string) $two->cachePath();
+
+        $this->assertStringStartsWith(sys_get_temp_dir(), $first);
+        $this->assertStringStartsWith('routes-', basename($first));
+        $this->assertNotSame($first, $second, 'two apps in the temp dir must not share a file');
+
+        // Stable within a process and for the same declaration.
+        $this->assertSame($first, $one->cachePath());
+        $this->assertSame(1, $one->compileCache());
+        $this->assertFileExists($first);
+        $this->tmpFiles[] = $first;
+    }
+
+    public function testSetCachePathOverridesTheDerivedDefault(): void
+    {
+        $cache  = $this->tmpPath('.php');
+        $source = $this->tmpSource();
+
+        $router = (new Router())->setCachePath($cache);
+        $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
+
+        $this->assertSame($cache, $router->cachePath());
+
+        // null goes back to the derived default rather than disabling the cache.
+        $router->setCachePath(null);
+        $this->assertStringStartsWith(sys_get_temp_dir(), (string) $router->cachePath());
+        $this->assertNotSame($cache, $router->cachePath());
     }
 
     public function testCachedSourcesReportsEveryDeclaredFileInOrder(): void
@@ -308,7 +356,7 @@ class RouterStateTest extends TestCase
         $a = $this->tmpSource();
         $b = $this->tmpSource();
 
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = (new Router())->setCachePath($this->tmpPath('.php'));
         $router->cached($a, static fn(Router $r) => $r->get('/a', 'A::b'));
         $router->cached([$b, $a], static fn(Router $r) => $r->get('/b', 'A::b'));
 
@@ -317,7 +365,7 @@ class RouterStateTest extends TestCase
 
     public function testCachedThrowsWhenANestedUnitIsExecuted(): void
     {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = (new Router())->setCachePath($this->tmpPath('.php'));
         $file   = $this->tmpSource();
 
         $router->cached($file, function (Router $r) use ($file): void {
@@ -337,7 +385,7 @@ class RouterStateTest extends TestCase
         $cache  = $this->tmpPath('.php');
         $source = $this->tmpSource();
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($source, static fn(Router $r) => $r->get('/first', 'A::b'));
         $this->assertNotNull($router->match('/first', 'GET'));
 
@@ -352,7 +400,7 @@ class RouterStateTest extends TestCase
 
     public function testCachedThrowsInsideAGroupCallback(): void
     {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = (new Router())->setCachePath($this->tmpPath('.php'));
         $file   = $this->tmpSource();
 
         $this->expectException(\LogicException::class);
@@ -365,7 +413,7 @@ class RouterStateTest extends TestCase
 
     public function testTypeThrowsInsideACachedUnit(): void
     {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = (new Router())->setCachePath($this->tmpPath('.php'));
         $file   = $this->tmpSource();
 
         $router->cached($file, function (Router $r): void {
@@ -379,77 +427,91 @@ class RouterStateTest extends TestCase
         $router->match('/anything', 'GET');
     }
 
-    public function testEnableCacheAfterARouteThrows(): void
+    public function testSetCachePathAfterTheTableIsReadThrows(): void
+    {
+        $router = (new Router())->setCachePath($this->tmpPath('.php'));
+        $router->cached($this->tmpSource(), static fn(Router $r) => $r->get('/a', 'A::b'));
+        $router->match('/a', 'GET');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('already read');
+
+        $router->setCachePath($this->tmpPath('.php'));
+    }
+
+    public function testSettingTheSamePathTwiceIsANoOp(): void
+    {
+        $path   = $this->tmpPath('.php');
+        $router = (new Router())->setCachePath($path);
+
+        // A worker that re-runs its bootstrap must not fail here.
+        $this->assertSame($path, $router->setCachePath($path)->cachePath());
+    }
+
+    public function testSetCachePathRejectsAnEmptyString(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        (new Router())->setCachePath('');
+    }
+
+    // -------------------------------------------------------------------------
+    //  Routes outside a unit
+    // -------------------------------------------------------------------------
+
+    /**
+     * The order the eager check could never cover: a route registered before the
+     * first cached() block. The table would be rebuilt from the units alone, so that
+     * route would silently vanish -- a working cold boot that loses a route the
+     * moment the cache is declared.
+     */
+    public function testARouteRegisteredBeforeTheFirstUnitThrowsAtFlushTime(): void
     {
         $router = new Router();
         $router->get('/before', 'A::b');
+        $router->cached($this->tmpSource(), static fn(Router $r) => $r->get('/inside', 'A::b'));
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('before any route is registered');
+        $this->expectExceptionMessage('before the first cached() block');
 
-        $router->enableCache($this->tmpPath('.php'));
+        $router->match('/inside', 'GET');
     }
 
-    public function testEnablingTheCacheTwiceWithTheSamePathIsANoOp(): void
+    /**
+     * The same guard for a dynamic route, which lands in `groups` rather than
+     * `static` -- a different structure, so a separate path through the check.
+     */
+    public function testADynamicRouteRegisteredBeforeTheFirstUnitAlsoThrows(): void
     {
-        $path   = $this->tmpPath('.php');
-        $router = (new Router())->enableCache($path);
-
-        // A worker that re-runs its bootstrap must not fail here.
-        $this->assertSame($path, $router->enableCache($path)->cachePath());
-    }
-
-    public function testEnablingTheCacheTwiceWithDifferentPathsThrows(): void
-    {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = new Router();
+        $router->get('/items/{id:int}', 'A::b');
+        $router->cached($this->tmpSource(), static fn(Router $r) => $r->get('/inside', 'A::b'));
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('already enabled');
+        $this->expectExceptionMessage('before the first cached() block');
 
-        $router->enableCache($this->tmpPath('.php'));
+        $router->match('/inside', 'GET');
     }
 
-    // -------------------------------------------------------------------------
-    //  Mixed mode
-    // -------------------------------------------------------------------------
-
-    public function testARouteOutsideACachedUnitThrows(): void
+    public function testARouteRegisteredAfterTheTableIsReadThrows(): void
     {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = new Router();
+        $router->cached($this->tmpSource(), static fn(Router $r) => $r->get('/inside', 'A::b'));
+        $router->match('/inside', 'GET');
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('outside a cached() block');
+        $this->expectExceptionMessage('after the route table had already been read');
 
-        $router->get('/plain', 'A::b');
+        $router->get('/late', 'A::b');
     }
 
-    public function testARouteOutsideACachedUnitThrowsEvenAfterACachedUnit(): void
+    public function testARouteRegisteredAfterTheReadIsAllowedWhenTheCacheIsDisabled(): void
     {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
-        $file   = $this->tmpSource();
+        $router = new Router();
+        $router->disableCache();
+        $router->get('/late', 'A::b');
 
-        $router->cached($file, static fn(Router $r) => $r->get('/inside', 'A::b'));
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('outside a cached() block');
-
-        $router->get('/trailing', 'A::b');
-    }
-
-    public function testTheMixedModeErrorNamesTheOffendingFile(): void
-    {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
-
-        try {
-            $router->get('/plain', 'A::b');
-            $this->fail('expected a LogicException');
-        } catch (\LogicException $e) {
-            $this->assertStringContainsString(
-                __FILE__,
-                $e->getMessage(),
-                'the message has to say which file registered the stray route',
-            );
-        }
+        $this->assertNotNull($router->match('/late', 'GET'), 'no cache, no table to invalidate');
     }
 
     /**
@@ -487,7 +549,7 @@ class RouterStateTest extends TestCase
     /** Build a router whose single unit registers one static route. */
     private function cacheRouter(string $cachePath, string $source, string $uri = '/cached'): Router
     {
-        $router = (new Router())->enableCache($cachePath);
+        $router = (new Router())->setCachePath($cachePath);
         $router->cached($source, function (Router $r) use ($uri): void {
             $r->get($uri, 'A::b');
         });
@@ -532,7 +594,7 @@ class RouterStateTest extends TestCase
         $this->assertNotNull($this->cacheRouter($cache, $source)->match('/cached', 'GET'));
 
         // Second process: the unit would throw if it ran at all.
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($source, static function (Router $r): void {
             throw new \RuntimeException('the unit must not run on a cache hit');
         });
@@ -559,14 +621,14 @@ class RouterStateTest extends TestCase
         $cache = $this->tmpPath('.php');
         $first = $this->tmpSource();
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($first, static fn(Router $r) => $r->get('/one', 'A::b'));
         $this->assertNotNull($router->match('/one', 'GET'));
 
         // A second unit appears. Every recorded mtime is unchanged, so only comparing
         // the *set* of declared files can catch this.
         $second = $this->tmpSource();
-        $router2 = (new Router())->enableCache($cache);
+        $router2 = (new Router())->setCachePath($cache);
         $router2->cached($first, static fn(Router $r) => $r->get('/one', 'A::b'));
         $router2->cached($second, static fn(Router $r) => $r->get('/two', 'A::b'));
 
@@ -579,12 +641,12 @@ class RouterStateTest extends TestCase
         $kept  = $this->tmpSource();
         $gone  = $this->tmpSource();
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($kept, static fn(Router $r) => $r->get('/kept', 'A::b'));
         $router->cached($gone, static fn(Router $r) => $r->get('/gone', 'A::b'));
         $this->assertNotNull($router->match('/gone', 'GET'));
 
-        $router2 = (new Router())->enableCache($cache);
+        $router2 = (new Router())->setCachePath($cache);
         $router2->cached($kept, static fn(Router $r) => $r->get('/kept', 'A::b'));
 
         $this->assertNull($router2->match('/gone', 'GET'), 'a removed route file must invalidate');
@@ -606,7 +668,7 @@ class RouterStateTest extends TestCase
         touch($source, $now);
         clearstatcache(true, $source);
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($source, static function (Router $r): void {
             throw new \RuntimeException('an equal mtime must not be trusted');
         });
@@ -626,7 +688,7 @@ class RouterStateTest extends TestCase
         $built->get('/x', 'A::b');
         $this->writeState($cache, $built->exportState());
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($source, static fn(Router $r) => $r->get('/fresh', 'A::b'));
 
         $this->assertNotNull($router->match('/fresh', 'GET'));
@@ -644,7 +706,7 @@ class RouterStateTest extends TestCase
         unlink($source);
         clearstatcache(true, $source);
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($source, static function (Router $r): void {
             throw new \RuntimeException('a missing source cannot be judged fresh');
         });
@@ -662,7 +724,7 @@ class RouterStateTest extends TestCase
         $cache  = $this->tmpPath('.php');
         $source = $this->tmpSource();
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->setRevalidateFreq(3600);
         $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
 
@@ -687,7 +749,7 @@ class RouterStateTest extends TestCase
         $this->cacheRouter($cache, $source, '/x')->compileCache();
 
         $builds = 0;
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->setRevalidateFreq(1);
         $router->cached($source, function (Router $r) use (&$builds): void {
             $builds++;
@@ -720,7 +782,7 @@ class RouterStateTest extends TestCase
         $this->cacheRouter($cache, $source, '/x')->compileCache();
 
         $builds = 0;
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->setRevalidateFreq(1);
         $router->cached($source, function (Router $r) use (&$builds): void {
             $builds++;
@@ -744,7 +806,7 @@ class RouterStateTest extends TestCase
         $source = $this->tmpSource();
 
         $builds = 0;
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->setRevalidateFreq(1);
         $router->cached($source, function (Router $r) use (&$builds): void {
             $builds++;
@@ -771,7 +833,7 @@ class RouterStateTest extends TestCase
         $source = $this->tmpSource();
 
         $builds = 0;
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->setRevalidateFreq(1);
         $router->cached($source, function (Router $r) use (&$builds): void {
             $builds++;
@@ -782,7 +844,7 @@ class RouterStateTest extends TestCase
 
         // Another process rebuilds and replaces the file (a deploy hook, or a sibling
         // worker). The new table must be adopted rather than ignored as "ours".
-        $other = (new Router())->enableCache($cache);
+        $other = (new Router())->setCachePath($cache);
         $other->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
         $other->compileCache();
         touch($cache, time() + 10);
@@ -808,7 +870,7 @@ class RouterStateTest extends TestCase
         $a     = $this->tmpSource();
         $b     = $this->tmpSource();
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         // A sticky group call: `prefix()` with no callback leaves the stack open.
         $router->cached($a, static function (Router $r): void {
             $r->prefix('/sticky');
@@ -828,7 +890,7 @@ class RouterStateTest extends TestCase
         $a     = $this->tmpSource();
         $b     = $this->tmpSource();
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($a, static function (Router $r): void {
             $r->middleware('auth');
         });
@@ -855,12 +917,12 @@ class RouterStateTest extends TestCase
         $expected = $cold->match('/a/xyz', 'GET')['override']['controller'];
 
         // The same two routes, split across two units in the same order.
-        $built = (new Router())->enableCache($cache);
+        $built = (new Router())->setCachePath($cache);
         $built->cached($first, static fn(Router $r) => $r->get('/a/{x:alpha}', 'Alpha::handler'));
         $built->cached($next, static fn(Router $r) => $r->get('/a/{y:alnum}', 'Alnum::handler'));
         $built->compileCache();
 
-        $restored = (new Router())->enableCache($cache);
+        $restored = (new Router())->setCachePath($cache);
         $restored->cached($first, static fn(Router $r) => null);
         $restored->cached($next, static fn(Router $r) => null);
 
@@ -885,17 +947,17 @@ class RouterStateTest extends TestCase
         $this->assertFileExists($cache);
     }
 
-    public function testCompileCacheNeedsADestination(): void
+    public function testCompileCacheWithoutAUnitHasNothingToCompile(): void
     {
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('enableCache()');
+        $this->expectExceptionMessage('cached()');
 
         (new Router())->compileCache();
     }
 
     public function testCompileCacheNeedsUnits(): void
     {
-        $router = (new Router())->enableCache($this->tmpPath('.php'));
+        $router = (new Router())->setCachePath($this->tmpPath('.php'));
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('cached()');
@@ -940,7 +1002,7 @@ class RouterStateTest extends TestCase
 
     public function testCacheStatusOnADisabledCache(): void
     {
-        $status = (new Router())->cacheStatus();
+        $status = (new Router())->disableCache()->cacheStatus();
 
         $this->assertFalse($status['enabled']);
         $this->assertNull($status['path']);
@@ -979,29 +1041,55 @@ class RouterStateTest extends TestCase
         $this->assertNotNull($router->match('/x', 'GET'));
     }
 
-    public function testLazyModeBuildsInMemoryButNeverWrites(): void
+    public function testTheCacheDirectoryIsCreatedWithRestrictivePermissions(): void
     {
-        $cache  = $this->tmpPath('.php');
+        if (\DIRECTORY_SEPARATOR === '\\') {
+            $this->markTestSkipped('POSIX mode bits only');
+        }
+
+        $cache  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-perms-' . bin2hex(random_bytes(6))
+            . DIRECTORY_SEPARATOR . 'routes.php';
         $source = $this->tmpSource();
 
-        $router = (new Router())->enableCacheLazy($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
+        $this->assertSame(1, $router->compileCache());
 
-        $this->assertNotNull($router->match('/x', 'GET'));
-        $this->assertFileDoesNotExist($cache, 'lazy mode must not write from a request');
+        $dir = dirname($cache);
+        $this->tmpFiles[] = $cache;
+
+        $this->assertSame(0, fileperms($dir) & 0o022, 'the directory must not be group/world writable');
+        $this->assertSame(0, fileperms($cache) & 0o077, 'the table must not be group/world readable');
+
+        @unlink($cache);
+        @rmdir($dir);
     }
 
-    public function testCompileCacheStillWritesInLazyMode(): void
+    public function testATableInAGroupWritableDirectoryIsNotLoaded(): void
     {
-        $cache  = $this->tmpPath('.php');
+        if (\DIRECTORY_SEPARATOR === '\\') {
+            $this->markTestSkipped('POSIX mode bits only');
+        }
+
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-unsafe-' . bin2hex(random_bytes(6));
+        mkdir($dir, 0777, true);
+
+        $cache  = $dir . DIRECTORY_SEPARATOR . 'routes.php';
         $source = $this->tmpSource();
 
-        $router = (new Router())->enableCacheLazy($cache);
-        $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
+        // A table that would be served if the directory check did not exist.
+        $planted = (new Router())->setCachePath($cache);
+        $planted->cached($source, static fn(Router $r) => $r->get('/planted', 'A::b'));
+        $this->assertSame(1, $planted->compileCache());
 
-        // The deploy step asked for the file explicitly, so it gets it.
-        $this->assertSame(1, $router->compileCache());
-        $this->assertFileExists($cache);
+        $router = (new Router())->setCachePath($cache);
+        $router->cached($source, static fn(Router $r) => $r->get('/built', 'A::b'));
+
+        $this->assertNotNull($router->match('/built', 'GET'), 'the units rebuild instead');
+        $this->assertNull($router->match('/planted', 'GET'), 'the file must not be executed');
+
+        @unlink($cache);
+        @rmdir($dir);
     }
 
     public function testAWarningIsRaisedWhenAsked(): void
@@ -1015,7 +1103,7 @@ class RouterStateTest extends TestCase
         file_put_contents($blocker, '');
         $cache = $blocker . DIRECTORY_SEPARATOR . 'routes.php';
 
-        $router = (new Router())->enableCache($cache);
+        $router = (new Router())->setCachePath($cache);
         $router->warnOnWriteFailure(true);
         $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
 
@@ -1042,7 +1130,7 @@ class RouterStateTest extends TestCase
         $blocker = $this->tmpPath();
         file_put_contents($blocker, '');
 
-        $router = (new Router())->enableCache($blocker . DIRECTORY_SEPARATOR . 'routes.php');
+        $router = (new Router())->setCachePath($blocker . DIRECTORY_SEPARATOR . 'routes.php');
         $router->cached($source, static fn(Router $r) => $r->get('/x', 'A::b'));
 
         $warned = false;

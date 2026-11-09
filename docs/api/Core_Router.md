@@ -536,20 +536,26 @@ visible where it matters.
 
 ---
 
-### enableCache() · <small>[🗎](../../src/Core/Router.php#L1426)</small>
+### setCachePath() · <small>[🗎](../../src/Core/Router.php#L1429)</small>
 
-`public function enableCache(string $path): static`
+`public function setCachePath(string|null $path): static`
 
-Turn the route cache on and say where it lives.
+Turn the route cache on and say where the compiled table lives.
 
-Must be called before any route is registered: a cache needs every route to
-be attributable to a file, and a route registered beforehand has no file.
+Optional: the first `self::cached()` call turns the cache on by itself.
+This method only chooses a location, and is how an application opts out of the
+derived temp path and into, say, `BASE_DIR . '/temp/routes.php'`.
+
+Passing null returns to the derived default. It does *not* disable the cache:
+"no path" and "no cache" are different states, and a null that meant "off"
+would make `setCachePath(getenv('X') ?: null)` silently drop caching.
+Use `self::disableCache()` for that.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$path` | string | - | Absolute path of the compiled table. Its directory is<br>created on the first write. |
+| `$path` | string\|null | - | Absolute path of the compiled table, or null for the<br>derived default. The directory is created on write. |
 
 **Return value**
 
@@ -558,22 +564,19 @@ be attributable to a file, and a route registered beforehand has no file.
 
 ---
 
-### enableCacheLazy() · <small>[🗎](../../src/Core/Router.php#L1439)</small>
+### disableCache() · <small>[🗎](../../src/Core/Router.php#L1466)</small>
 
-`public function enableCacheLazy(string $path): static`
+`public function disableCache(): static`
 
-Enable the cache but never write from a request path.
+Stop using the compiled table.
 
-The table is still read and restored; only the build-on-miss write is skipped.
-Useful when the code directory is read-only and warming is a deploy-step job
-(`azera routes:cache`), and it removes the one behaviour a request path can
-otherwise trigger -- creating and replacing a file.
+Declared units that have not run yet are run eagerly, so nothing registered is
+lost: the table ends up exactly as it would have without a cache. A table that
+was already read is kept in memory and the compiled file is simply ignored for
+the rest of the process.
 
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$path` | string | - |  |
+This is what a benchmark needs to measure the cold arm, because a cached() unit
+is unconditional in the application's bootstrap -- there is nothing else to flip.
 
 **Return value**
 
@@ -582,7 +585,47 @@ otherwise trigger -- creating and replacing a file.
 
 ---
 
-### setRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1484)</small>
+### cachePath() · <small>[🗎](../../src/Core/Router.php#L1515)</small>
+
+`public function cachePath(): string|null`
+
+Where the compiled table actually lives.
+
+Without an explicit `self::setCachePath()`, the location is derived from
+the declared sources: `sys_get_temp_dir()/azera_routes/routes-<hash>.php`. The
+hash covers the absolute source paths, so two applications on one host never
+collide, and adding or removing a route *file* produces a new name rather than
+thrashing one shared file. `posix_geteuid()` is part of the name because the
+directory is created 0700, so two users cannot read each other's table and must
+not block each other out of the same file.
+
+A path derived from the *sources* is why this cannot be resolved when
+setCachePath() runs: at that point no unit has been declared yet.
+
+**Return value**
+
+- Type: `string`|`null`
+
+
+---
+
+### resolvedCachePath() · <small>[🗎](../../src/Core/Router.php#L1551)</small>
+
+`public function resolvedCachePath(): string|null`
+
+The path the table would be written to, or null when no unit is declared.
+
+Kept separate from `self::cachePath()` so diagnostics never resolve and
+cache a name that the application has not actually opted into.
+
+**Return value**
+
+- Type: `string`|`null`
+
+
+---
+
+### setRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1573)</small>
 
 `public function setRevalidateFreq(int $seconds): static`
 
@@ -613,7 +656,7 @@ happen and must see the current filesystem.
 
 ---
 
-### getRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1496)</small>
+### getRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L1585)</small>
 
 `public function getRevalidateFreq(): int`
 
@@ -626,20 +669,7 @@ How many seconds a positive freshness verdict is reused for.
 
 ---
 
-### cachePath() · <small>[🗎](../../src/Core/Router.php#L1504)</small>
-
-`public function cachePath(): string|null`
-
-Where the compiled table lives, or null when caching is off.
-
-**Return value**
-
-- Type: `string`|`null`
-
-
----
-
-### cached() · <small>[🗎](../../src/Core/Router.php#L1552)</small>
+### cached() · <small>[🗎](../../src/Core/Router.php#L1638)</small>
 
 `public function cached(array|string $files, callable $build): static`
 
@@ -677,10 +707,15 @@ Rules, enforced rather than documented:
   state on the router, so deferring the body would silently register the routes
   at the top level. Refused.
 
-  NO ROUTES OUTSIDE A UNIT. Enforced in `self::add()`, which is the only
-  place a route enters the table.
+  NO ROUTES OUTSIDE A UNIT. Enforced at flush time
+  (`self::assertNoRoutesOutsideUnits()`) for routes registered before the
+  block, and immediately in `self::add()` for routes registered after the
+  table has been read, because those can no longer be part of it.
 
-With no cache enabled there is nothing to decide, so the block simply runs.
+Declaring a unit is what turns the cache on: the file list has no second
+meaning, so requiring a separate enable call would only be a way to write the
+whole feature and forget to switch it on. `self::disableCache()` is the
+explicit opt-out.
 
 **Parameters**
 
@@ -696,7 +731,7 @@ With no cache enabled there is nothing to decide, so the block simply runs.
 
 ---
 
-### cachedSources() · <small>[🗎](../../src/Core/Router.php#L1622)</small>
+### cachedSources() · <small>[🗎](../../src/Core/Router.php#L1720)</small>
 
 `public function cachedSources(): array`
 
@@ -709,7 +744,7 @@ The declared source files of every unit, deduplicated, in declaration order.
 
 ---
 
-### warnOnWriteFailure() · <small>[🗎](../../src/Core/Router.php#L1859)</small>
+### warnOnWriteFailure() · <small>[🗎](../../src/Core/Router.php#L2075)</small>
 
 `public function warnOnWriteFailure(bool $on = true): static`
 
@@ -731,7 +766,7 @@ legitimate configuration, and the only cost is rebuilding per request.
 
 ---
 
-### compileCache() · <small>[🗎](../../src/Core/Router.php#L1973)</small>
+### compileCache() · <small>[🗎](../../src/Core/Router.php#L2200)</small>
 
 `public function compileCache(): int`
 
@@ -750,7 +785,7 @@ that reads the router.
 
 ---
 
-### clearCache() · <small>[🗎](../../src/Core/Router.php#L1999)</small>
+### clearCache() · <small>[🗎](../../src/Core/Router.php#L2228)</small>
 
 `public function clearCache(): bool`
 
@@ -764,7 +799,7 @@ Delete the compiled table.
 
 ---
 
-### cacheStatus() · <small>[🗎](../../src/Core/Router.php#L2023)</small>
+### cacheStatus() · <small>[🗎](../../src/Core/Router.php#L2252)</small>
 
 `public function cacheStatus(): array`
 

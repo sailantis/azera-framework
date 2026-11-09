@@ -81,9 +81,9 @@ class Router
             // appear only in production. Register types before the units instead.
             throw new LogicException(
                 'type() cannot be called inside a cached() block: validators are code and '
-                . 'are not stored in the compiled table, so a cache hit would never run this '
-                . 'registration and the type would be unknown at dispatch time. Register it '
-                . 'before the cached() units.',
+                    . 'are not stored in the compiled table, so a cache hit would never run this '
+                    . 'registration and the type would be unknown at dispatch time. Register it '
+                    . 'before the cached() units.',
             );
         }
         if ($this->flushed) {
@@ -149,19 +149,19 @@ class Router
         string|array|null $handler = null
     ): static {
 
-        if ($this->cachePath !== null && $this->flushing === 0) {
-            // Every route must belong to a cached() unit once a cache is enabled.
-            // A route registered outside one cannot be attributed to a file, so the
-            // compiled table could never tell when it went stale -- and restoring
-            // over it would silently drop it. Both orders are caught here, so the
-            // check does not depend on a later cached() call ever happening.
+        if ($this->flushed && $this->caching && $this->units !== [] && $this->flushing === 0) {
+            // The table was already read -- built from the units, or restored from the
+            // compiled file -- so a route added now exists only in this process and
+            // vanishes on the next request. That is the one inconsistency a cache must
+            // not introduce. Routes registered *before* the first cached() call are
+            // caught by assertNoRoutesOutsideUnits() at flush time instead, which costs
+            // nothing per add().
             throw new LogicException(sprintf(
-                'Route "%s %s" was registered outside a cached() block, in %s. With a route '
-                . 'cache enabled every route must be declared inside cached(), otherwise the '
-                . 'compiled table has no source list to detect staleness against.',
+                'Route "%s %s" was registered after the route table had already been read. '
+                    . 'Declare every route inside a cached() block, which runs before the first '
+                    . 'match().',
                 \is_array($method) ? implode('|', $method) : (string) $method,
                 $pattern,
-                $this->callingFile(),
             ));
         }
 
@@ -176,8 +176,8 @@ class Router
                 if (!\is_string($value)) {
                     throw new InvalidArgumentException(sprintf(
                         'Route handler key "%s" must be a string, %s given. A route is a '
-                        . 'description of which controller and action to call, never the '
-                        . 'callable itself.',
+                            . 'description of which controller and action to call, never the '
+                            . 'callable itself.',
                         (string) $key,
                         get_debug_type($value),
                     ));
@@ -533,8 +533,8 @@ class Router
                 // to write a route cache without inspecting every value.
                 throw new InvalidArgumentException(sprintf(
                     'Middleware group values must be strings, %s given. '
-                    . 'Routes and route middleware are data; use a class name or a '
-                    . 'registered middleware group name, never an instance or closure.',
+                        . 'Routes and route middleware are data; use a class name or a '
+                        . 'registered middleware group name, never an instance or closure.',
                     get_debug_type($value),
                 ));
             }
@@ -1379,9 +1379,6 @@ class Router
      */
     private const CACHE_VERSION = 1;
 
-    /** Where the compiled table lives, or null when caching is off. */
-    private ?string $cachePath = null;
-
     /**
      * The declared units, in the order cached() was called.
      *
@@ -1415,64 +1412,145 @@ class Router
     private ?bool $freshVerdict = null;
 
     /**
-     * Turn the route cache on and say where it lives.
+     * Turn the route cache on and say where the compiled table lives.
      *
-     * Must be called before any route is registered: a cache needs every route to
-     * be attributable to a file, and a route registered beforehand has no file.
+     * Optional: the first {@see self::cached()} call turns the cache on by itself.
+     * This method only chooses a location, and is how an application opts out of the
+     * derived temp path and into, say, `BASE_DIR . '/temp/routes.php'`.
      *
-     * @param string $path Absolute path of the compiled table. Its directory is
-     *                     created on the first write.
+     * Passing null returns to the derived default. It does *not* disable the cache:
+     * "no path" and "no cache" are different states, and a null that meant "off"
+     * would make `setCachePath(getenv('X') ?: null)` silently drop caching.
+     * Use {@see self::disableCache()} for that.
+     *
+     * @param string|null $path Absolute path of the compiled table, or null for the
+     *                          derived default. The directory is created on write.
      */
-    public function enableCache(string $path): static
+    public function setCachePath(?string $path): static
     {
-        return $this->configureCache($path, false);
-    }
-
-    /**
-     * Enable the cache but never write from a request path.
-     *
-     * The table is still read and restored; only the build-on-miss write is skipped.
-     * Useful when the code directory is read-only and warming is a deploy-step job
-     * (`azera routes:cache`), and it removes the one behaviour a request path can
-     * otherwise trigger -- creating and replacing a file.
-     */
-    public function enableCacheLazy(string $path): static
-    {
-        return $this->configureCache($path, true);
-    }
-
-    /** True when a miss builds in memory but does not write. */
-    private bool $lazy = false;
-
-    private function configureCache(string $path, bool $lazy): static
-    {
-        if ($this->cachePath !== null) {
-            // Re-entrant bootstrapping (a worker that calls boot() again for the same
-            // database) re-runs this line. Same path is a no-op rather than an error;
-            // a different path would mean two caches for one table, which cannot work.
-            if ($this->cachePath === $path) {
-                return $this;
-            }
-
-            throw new LogicException(sprintf(
-                'The route cache is already enabled for "%s", cannot switch to "%s".',
-                $this->cachePath,
-                $path,
-            ));
+        if ($path !== null && $path === '') {
+            throw new InvalidArgumentException(
+                'setCachePath() expects a file path or null for the default location.',
+            );
         }
-        if ($this->static !== [] || $this->groups !== [] || $this->units !== []) {
+
+        // A path is part of the table's identity: switching it after the table was
+        // read would leave one table and two files. Re-declaring the same path is a
+        // no-op because worker bootstraps run this line again.
+        if ($this->flushed && $path !== $this->cachePath) {
             throw new LogicException(sprintf(
-                'enableCache() must be called before any route is registered, but a route '
-                . 'was already added%s. A cache needs every route to declare its source '
-                . 'file, which routes registered before this call never did.',
-                $this->units !== [] ? ' and cached() units are already pending' : '',
+                'setCachePath() must be called before the route table is read, but it was '
+                    . 'already read from %s.',
+                $this->cachePath ?? 'the derived temp path',
             ));
         }
 
         $this->cachePath = $path;
-        $this->lazy      = $lazy;
+        $this->checkedAt = 0.0;
+        $this->freshVerdict = null;
 
         return $this;
+    }
+
+    /**
+     * Stop using the compiled table.
+     *
+     * Declared units that have not run yet are run eagerly, so nothing registered is
+     * lost: the table ends up exactly as it would have without a cache. A table that
+     * was already read is kept in memory and the compiled file is simply ignored for
+     * the rest of the process.
+     *
+     * This is what a benchmark needs to measure the cold arm, because a cached() unit
+     * is unconditional in the application's bootstrap -- there is nothing else to flip.
+     */
+    public function disableCache(): static
+    {
+        $this->caching = false;
+
+        if (!$this->flushed) {
+            $this->flushed = true;
+
+            // The pending units run in place, without emptying the table first: with the
+            // cache off, a route registered before a unit is simply a route, which is
+            // the behaviour a caller opting out is asking for.
+            foreach ($this->units as $unit) {
+                $snapshot = $this->snapshotGroupStacks();
+                $this->flushing++;
+                try {
+                    ($unit['build'])($this);
+                } finally {
+                    $this->flushing--;
+                    $this->restoreGroupStacks($snapshot);
+                }
+            }
+            $this->units = [];
+        }
+
+        return $this;
+    }
+
+    /** Whether the compiled table is used at all. */
+    private bool $caching = true;
+
+    /** The location chosen by setCachePath(), or null for the derived default. */
+    private ?string $cachePath = null;
+
+    /** The path once resolved, so the derived name is not recomputed per read. */
+    private ?string $resolvedCachePath = null;
+
+    /**
+     * Where the compiled table actually lives.
+     *
+     * Without an explicit {@see self::setCachePath()}, the location is derived from
+     * the declared sources: `sys_get_temp_dir()/azera_routes/routes-<hash>.php`. The
+     * hash covers the absolute source paths, so two applications on one host never
+     * collide, and adding or removing a route *file* produces a new name rather than
+     * thrashing one shared file. `posix_geteuid()` is part of the name because the
+     * directory is created 0700, so two users cannot read each other's table and must
+     * not block each other out of the same file.
+     *
+     * A path derived from the *sources* is why this cannot be resolved when
+     * setCachePath() runs: at that point no unit has been declared yet.
+     */
+    public function cachePath(): ?string
+    {
+        if (!$this->caching) {
+            return null;
+        }
+
+        if ($this->cachePath !== null) {
+            return $this->cachePath;
+        }
+
+        if ($this->resolvedCachePath !== null) {
+            return $this->resolvedCachePath;
+        }
+
+        $sources = $this->cachedSources();
+        if ($sources === []) {
+            return null;
+        }
+
+        $identity = implode("\0", $sources);
+        if (\function_exists('posix_geteuid')) {
+            $identity .= "\0" . posix_geteuid();
+        }
+
+        return $this->resolvedCachePath =
+            sys_get_temp_dir()
+                . DIRECTORY_SEPARATOR . 'azera_routes'
+                . DIRECTORY_SEPARATOR . 'routes-' . substr(sha1($identity), 0, 16) . '.php';
+    }
+
+    /**
+     * The path the table would be written to, or null when no unit is declared.
+     *
+     * Kept separate from {@see self::cachePath()} so diagnostics never resolve and
+     * cache a name that the application has not actually opted into.
+     */
+    public function resolvedCachePath(): ?string
+    {
+        return $this->cachePath();
     }
 
     /**
@@ -1510,14 +1588,6 @@ class Router
     }
 
     /**
-     * Where the compiled table lives, or null when caching is off.
-     */
-    public function cachePath(): ?string
-    {
-        return $this->cachePath;
-    }
-
-    /**
      * Declare a block of routes and the files it comes from.
      *
      *     $router->cached(__FILE__, function (Router $r): void {
@@ -1552,19 +1622,24 @@ class Router
      *   state on the router, so deferring the body would silently register the routes
      *   at the top level. Refused.
      *
-     *   NO ROUTES OUTSIDE A UNIT. Enforced in {@see self::add()}, which is the only
-     *   place a route enters the table.
+     *   NO ROUTES OUTSIDE A UNIT. Enforced at flush time
+     *   ({@see self::assertNoRoutesOutsideUnits()}) for routes registered before the
+     *   block, and immediately in {@see self::add()} for routes registered after the
+     *   table has been read, because those can no longer be part of it.
      *
-     * With no cache enabled there is nothing to decide, so the block simply runs.
+     * Declaring a unit is what turns the cache on: the file list has no second
+     * meaning, so requiring a separate enable call would only be a way to write the
+     * whole feature and forget to switch it on. {@see self::disableCache()} is the
+     * explicit opt-out.
      *
      * @param string|list<string> $files  Declared source files, conventionally `__FILE__`.
      * @param callable            $build  Receives this router.
      */
     public function cached(string|array $files, callable $build): static
     {
-        if ($this->cachePath === null) {
-            // No cache configured: nothing to defer, so registration stays eager and
-            // an application that never opts in keeps its current behaviour exactly.
+        if (!$this->caching) {
+            // No cache: nothing to defer, so registration stays eager and an
+            // application that opted out keeps its behaviour exactly.
             $this->flushing++;
             try {
                 $build($this);
@@ -1578,7 +1653,7 @@ class Router
         if ($this->flushing > 0) {
             throw new LogicException(
                 'cached() cannot be nested inside another cached() block. Declare one unit '
-                . 'per file at the top level instead.',
+                    . 'per file at the top level instead.',
             );
         }
 
@@ -1595,6 +1670,7 @@ class Router
             $this->resetTable();
             $this->units        = [];
             $this->flushed      = false;
+            $this->unitsStarted = false;
             $this->forceRebuild = true;
             $this->ownWriteAt   = 0;
             $this->checkedAt    = 0.0;
@@ -1609,8 +1685,8 @@ class Router
         if ($depth > 0) {
             throw new LogicException(sprintf(
                 'cached() must be called at the top level, but a route group is open (%s). '
-                . 'A deferred block would register its routes outside the group, because the '
-                . 'stack it belongs to no longer exists when the block finally runs.',
+                    . 'A deferred block would register its routes outside the group, because the '
+                    . 'stack it belongs to no longer exists when the block finally runs.',
                 implode(', ', array_filter([
                     $this->prefixGroupStack !== [] ? 'prefix' : null,
                     $this->middlewareGroupStack !== [] ? 'middleware' : null,
@@ -1670,13 +1746,14 @@ class Router
             return;
         }
 
-        if ($this->cachePath === null || $this->revalidateFreq <= 0) {
+        if (!$this->caching || $this->revalidateFreq <= 0) {
             return;
         }
 
         // A verdict reached recently is still trusted.
-        if ($this->freshVerdict === true
-            && (microtime(true) - $this->checkedAt) < $this->revalidateFreq
+        if (
+            $this->freshVerdict === true
+                && (microtime(true) - $this->checkedAt) < $this->revalidateFreq
         ) {
             return;
         }
@@ -1687,8 +1764,9 @@ class Router
         // nothing. Once another process replaces it -- a deploy hook, a sibling worker
         // -- ownership is lost and the new table is evaluated normally.
         if ($this->ownWriteAt !== 0) {
-            clearstatcache(true, (string) $this->cachePath);
-            if (@filemtime((string) $this->cachePath) === $this->ownWriteAt) {
+            $ownPath = (string) $this->cachePath();
+            clearstatcache(true, $ownPath);
+            if (@filemtime($ownPath) === $this->ownWriteAt) {
                 $this->checkedAt = microtime(true);
 
                 return;
@@ -1701,9 +1779,7 @@ class Router
             // The files changed under a live table: rebuild it from the units rather
             // than serving routes that no longer match the code.
             $this->buildFromUnits();
-            if (!$this->lazy) {
-                $this->tryWriteCache();
-            }
+            $this->tryWriteCache();
             return;
         }
 
@@ -1723,10 +1799,14 @@ class Router
             return;
         }
 
-        $force           = $this->forceRebuild;
+        // The only point where a route registered outside a unit can still be observed:
+        // every later rebuild empties the table and then runs nothing but units.
+        $this->assertNoRoutesOutsideUnits();
+
+        $force = $this->forceRebuild;
         $this->forceRebuild = false;
 
-        if ($this->cachePath !== null && !$force) {
+        if ($this->caching && !$force) {
             $state = $this->readIfFresh();
             if ($state !== null) {
                 $this->restoreState($state);
@@ -1736,14 +1816,72 @@ class Router
 
         $this->buildFromUnits();
 
-        if ($this->cachePath !== null && !$this->lazy) {
+        if ($this->caching) {
             $this->tryWriteCache();
         }
     }
 
+    /**
+     * Refuse a table that mixes unit routes with routes registered outside a unit.
+     *
+     * Runs once, at the first flush, and costs nothing per `add()` -- which is why the
+     * check is here rather than in the hot path. It catches the order the check in
+     * `add()` cannot: `$router->add(...)` followed by `$router->cached(...)`. Those
+     * routes would be wiped by {@see self::buildFromUnits()}, so a working cold boot
+     * would lose routes the moment the cache switched on -- silently, because the
+     * table is rebuilt from the units and the extra routes are simply not in it.
+     *
+     * Only the first flush can observe this: every later rebuild starts by emptying
+     * the table and then runs nothing but units.
+     */
+    private function assertNoRoutesOutsideUnits(): void
+    {
+        if ($this->unitsStarted) {
+            // A later rebuild emptied the table and then ran nothing but units, so
+            // anything in it now came from a unit.
+            return;
+        }
+        $this->unitsStarted = true;
+
+        $outside = array_keys($this->static);
+        foreach ($this->groups as $method => $buckets) {
+            foreach ($buckets as $list) {
+                if ($list !== []) {
+                    $outside[] = (string) $method;
+                    break 2;
+                }
+            }
+        }
+
+        if ($outside === []) {
+            return;
+        }
+
+        throw new LogicException(sprintf(
+            'A route was registered before the first cached() block (method "%s"), so it can '
+                . 'never be part of the compiled table: the table is rebuilt from the cached() '
+                . 'blocks alone, and that route would disappear on the next request. Declare '
+                . 'every route inside a cached() block, or call disableCache() to opt out.',
+            $outside[0],
+        ));
+    }
+
+    /** Set once the first build has run, so the outside-a-unit check runs once. */
+    private bool $unitsStarted = false;
+
     /** Set when the declarations changed after a flush, so the file must not be trusted. */
     private bool $forceRebuild = false;
 
+    /**
+     * Run every unit in declaration order, replacing whatever the table held.
+     *
+     * The group stacks are snapshotted around each unit. A unit that ends with a stack
+     * still open -- `$r->prefix('/admin')` with no callback -- would otherwise prefix
+     * every route in the units that follow it, which is state leaking between two
+     * declarations that never saw each other. Restoring the snapshot makes each unit
+     * start from the same empty state, which is also what a cold build does when the
+     * units are separate files.
+     */
     /**
      * Run every unit in declaration order, replacing whatever the table held.
      *
@@ -1783,8 +1921,18 @@ class Router
         $this->checkedAt    = microtime(true);
         $this->freshVerdict = null;
 
-        $path = $this->cachePath;
+        $path = $this->cachePath();
         if ($path === null || !is_file($path)) {
+            return null;
+        }
+
+        // The file was written under a 0700 directory. If that is no longer true --
+        // someone chmod'ed it, or the path was pointed at a shared directory -- this
+        // process must not execute whatever happens to be there. A cache is optional,
+        // so the safe answer is "rebuild in memory".
+        try {
+            $this->assertSafeCacheDir(dirname($path));
+        } catch (RuntimeException) {
             return null;
         }
 
@@ -1873,7 +2021,7 @@ class Router
             $this->writeCache();
         } catch (RuntimeException $e) {
             $this->checkedAt    = microtime(true);
-            $this->freshVerdict = null;   // nothing to trust; re-check next read
+            $this->freshVerdict = null; // nothing to trust; re-check next read
             if ($this->warnOnWriteFailure) {
                 trigger_error(
                     'Route cache not written: ' . $e->getMessage()
@@ -1886,6 +2034,37 @@ class Router
 
     /** Whether a failed write should raise a warning. Off by default. */
     private bool $warnOnWriteFailure = false;
+
+    /**
+     * Refuse a cache directory that other users can write to.
+     *
+     * The compiled table is `require`d, so a world- or group-writable directory lets
+     * another user plant code at a path this process will execute. This is the same
+     * rule {@see \Azera\Aop\ProxyFactory::assertSafeCacheDir()} applies to AOP proxies.
+     *
+     * Windows has no POSIX mode bits to inspect (ACLs are not readable portably here),
+     * so the check is skipped there rather than guessed at.
+     */
+    private function assertSafeCacheDir(string $dir): void
+    {
+        if (\DIRECTORY_SEPARATOR === '\\') {
+            return;
+        }
+
+        $perms = @fileperms($dir);
+        if ($perms === false) {
+            throw new RuntimeException("Cannot stat route cache directory: {$dir}");
+        }
+
+        if (($perms & 0o022) !== 0) {
+            throw new RuntimeException(sprintf(
+                'Route cache directory is group/world writable (mode %04o), refusing to load '
+                    . 'executable code from it: %s',
+                $perms & 0o7777,
+                $dir,
+            ));
+        }
+    }
 
     /**
      * Report a failed background write instead of failing silently.
@@ -1905,15 +2084,22 @@ class Router
      */
     private function writeCache(): void
     {
-        $path = $this->cachePath;
+        $path = $this->cachePath();
         if ($path === null) {
             return;
         }
 
         $dir = dirname($path);
-        if (!is_dir($dir) && !@mkdir($dir, 0777, true) && !is_dir($dir)) {
+        if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
             throw new RuntimeException("Cannot create route cache directory: {$dir}");
         }
+
+        // The table is executable code that this process will `require`, so a directory
+        // other users can write to is a remote code execution vector: they could drop a
+        // file at the path we are about to load. The framework already refuses this for
+        // AOP proxies; a cache directory is the same category. Refusing here means the
+        // caller degrades to rebuilding in memory, not that the request fails.
+        $this->assertSafeCacheDir($dir);
 
         $compiled = time();
 
@@ -1946,6 +2132,10 @@ class Router
         if (@file_put_contents($tmp, $code, \LOCK_EX) === false) {
             throw new RuntimeException("Cannot write route cache: {$tmp}");
         }
+        // 0600: the table is data about the application's routing, not a secret, but
+        // there is no reason for another user on the host to read it, and it is the
+        // same posture the AOP proxy cache takes.
+        @chmod($tmp, 0600);
         if (!@rename($tmp, $path)) {
             @unlink($tmp);
             throw new RuntimeException("Cannot move {$tmp} to {$path}");
@@ -1963,9 +2153,9 @@ class Router
         // pay a full compile for no benefit and swap in an identical table. The file
         // is left for other processes, which do cache it. Measured: a cold process
         // requires an 86 KB table in ~1.9 ms once, then 1 us.
-        $this->freshVerdict   = true;
-        $this->ownWriteAt     = filemtime($path) ?: time();
-        $this->checkedAt      = microtime(true);
+        $this->freshVerdict = true;
+        $this->ownWriteAt   = filemtime($path) ?: time();
+        $this->checkedAt    = microtime(true);
     }
 
     /**
@@ -2009,19 +2199,21 @@ class Router
      */
     public function compileCache(): int
     {
-        if ($this->cachePath === null) {
-            throw new LogicException(
-                'compileCache() needs a destination: call enableCache() first.',
-            );
-        }
         if ($this->units === []) {
             throw new LogicException(
                 'compileCache() found no cached() units. Routes must be declared inside '
-                . 'cached($files, function (Router $r) { ... }) for a table to be compiled.',
+                    . 'cached($files, function (Router $r) { ... }) for a table to be compiled.',
+            );
+        }
+        if ($this->cachePath() === null) {
+            throw new LogicException(
+                'compileCache() needs a destination: declare a cached() unit, or call '
+                    . 'setCachePath().',
             );
         }
 
         $this->flushed = true;
+        $this->assertNoRoutesOutsideUnits();
         $this->buildFromUnits();
         $this->writeCache();
 
@@ -2035,7 +2227,7 @@ class Router
      */
     public function clearCache(): bool
     {
-        $path = $this->cachePath;
+        $path = $this->cachePath();
         if ($path === null || !is_file($path)) {
             return false;
         }
@@ -2059,10 +2251,10 @@ class Router
      */
     public function cacheStatus(): array
     {
-        $path = $this->cachePath;
+        $path = $this->cachePath();
 
         $status = [
-            'enabled'  => $path !== null,
+            'enabled'  => $this->caching,
             'path'     => $path,
             'exists'   => false,
             'fresh'    => false,
@@ -2071,13 +2263,13 @@ class Router
             'compiled' => null,
         ];
 
-        if ($path === null) {
+        if (!$this->caching) {
             return $status;
         }
 
         $status['files'] = $this->cachedSources();
 
-        if (!is_file($path)) {
+        if ($path === null || !is_file($path)) {
             return $status;
         }
 
@@ -2120,25 +2312,6 @@ class Router
         }
 
         return $n;
-    }
-
-    /**
-     * The application file that called into the router, for error messages.
-     *
-     * A backtrace is affordable here because this only runs on the throw path. It is
-     * used for diagnostics only -- never to decide staleness, which is what
-     * `cached($files, ...)` exists to declare explicitly.
-     */
-    private function callingFile(): string
-    {
-        foreach (debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS, 4) as $frame) {
-            $file = $frame['file'] ?? null;
-            if ($file !== null && $file !== __FILE__) {
-                return $file;
-            }
-        }
-
-        return 'an unknown file';
     }
 
 }

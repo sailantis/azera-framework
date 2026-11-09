@@ -48,31 +48,19 @@ class RoutesTask extends Task
     {
         $router = AppContext::instance()->router();
 
-        if ($router->cachePath() === null) {
-            $this->error('The route cache is not enabled.');
-            $this->muted('');
-            $this->muted('  Enable it in your bootstrap, before any route is registered:');
-            $this->muted('');
-            $this->muted("    \$router->enableCache(BASE_DIR . '/temp/routes.php');");
-            $this->muted('');
-            $this->muted('  and declare every route inside a cached() block:');
-            $this->muted('');
-            $this->muted('    $router->cached(__FILE__, function (Router $r): void {');
-            $this->muted("        \$r->get('/', 'IndexController::indexAction');");
-            $this->muted('        // ... the rest');
-            $this->muted('    });');
-            exit(1);
-        }
-
         if ($router->cachedSources() === []) {
             $this->error('No cached() units are declared, so there is nothing to compile.');
             $this->muted('');
-            $this->muted('  Routes must be declared inside cached(), which is also what tells the');
-            $this->muted('  cache which files to watch for staleness:');
+            $this->muted('  Routes must be declared inside cached(), which is what turns the');
+            $this->muted('  cache on and tells it which files to watch for staleness:');
             $this->muted('');
             $this->muted('    $router->cached(__FILE__, function (Router $r): void {');
             $this->muted("        \$r->get('/', 'IndexController::indexAction');");
             $this->muted('    });');
+            $this->muted('');
+            $this->muted('  The compiled table goes to a derived temp path unless you choose one:');
+            $this->muted('');
+            $this->muted("    \$router->setCachePath(BASE_DIR . '/temp/routes.php');");
             exit(1);
         }
 
@@ -114,7 +102,7 @@ class RoutesTask extends Task
         $router = AppContext::instance()->router();
 
         if ($router->cachePath() === null) {
-            $this->muted('The route cache is not enabled; there is nothing to clear.');
+            $this->muted('No cached() unit is declared, so no route table is written.');
             return;
         }
 
@@ -155,7 +143,10 @@ class RoutesTask extends Task
 
         if (!$status['exists']) {
             $this->writeln("  {$label}  "
-                . $this->style('not written yet - the next request will build it', 'gray'));
+                . $this->style(sprintf(
+                    'not written yet (%s) - the next request will build it',
+                    $status['path'] ?? 'no path',
+                ), 'gray'));
             if ($strict) {
                 exit(1);
             }

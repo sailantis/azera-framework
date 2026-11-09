@@ -8,26 +8,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Route cache.** Declaring routes inside `cached($files, $closure)` compiles the route
+  table to a PHP file and `require`s it instead of rebuilding it on every cold request.
+  On the homepage's real 120-route table that is 1131 µs down to 159 µs, and under
+  nginx + php-fpm `/echo` at c=96 goes from 23,814 to 49,174 rps.
 
-- **Route cache.** `Router::enableCache($path)` + `cached($files, $closure)` compile the
-  route table to a PHP file and `require` it instead of rebuilding it on every cold
-  request. On the homepage's real 120-route table that is 1131 µs down to 159 µs, and
-  under nginx + php-fpm `/echo` at c=96 goes from 23,814 to 49,174 rps.
-
-  Nothing needs to be called in addition: the first request that reads the router
-  decides between restoring the file and building the table, and writes the file when it
-  had to build. `azera routes:cache|clear|status|list` remain available for deploys, CI
-  and inspection.
+  Nothing needs to be called in addition: `cached()` is what turns the cache on, and the
+  first request that reads the router decides between restoring the file and building the
+  table, and writes the file when it had to build.
+  `azera routes:cache|clear|status|list` remain available for deploys, CI and inspection.
 
   `cached()` records its closure instead of running it, so the freshness decision happens
   before registration. The declared files are watched by mtime; a source added *or*
   removed also invalidates, as does a source edited in the same second the table was
   compiled. `setRevalidateFreq($seconds)` bounds staleness in a long-lived worker
-  (Volucer, RoadRunner) the way `opcache.revalidate_freq` does, and
-  `enableCacheLazy()` reads without ever writing from a request.
+  (Volucer, RoadRunner) the way `opcache.revalidate_freq` does.
 
-- `Router::cachedSources()`, `cachePath()`, `cacheStatus()`, `compileCache()`,
-  `clearCache()`, `setRevalidateFreq()`, `getRevalidateFreq()`, `warnOnWriteFailure()`.
+- `Router::setCachePath()`, `disableCache()`, `cachedSources()`, `cachePath()`,
+  `cacheStatus()`, `compileCache()`, `clearCache()`, `setRevalidateFreq()`,
+  `getRevalidateFreq()`, `warnOnWriteFailure()`.
+
+  Without `setCachePath()` the table goes to
+  `sys_get_temp_dir()/azera_routes/routes-<hash>.php`, hashed over the declared sources
+  and the effective uid so two apps or two users on one host never share a file. The
+  directory is created `0700`, the table is written `0600`, and a group- or
+  world-writable directory is refused -- the file is `require`d, so loading from one
+  would be executing code another user can plant.
 
 ### Changed
 
@@ -38,11 +44,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   names), and they were the only thing that could make `exportState()` unsafe to
   `var_export`.
 - `cached()` accepts `string|array $files` and registers a unit rather than executing it.
-  With no cache enabled it still runs eagerly, so an application that never calls
-  `enableCache()` behaves exactly as before.
+- A route registered outside a `cached()` block is refused: at the first read when it was
+  registered *before* the first block (it would silently disappear on the next rebuild),
+  and immediately when it is registered *after* the table has been read. Previously only
+  the `add()`-after-`cached()` order was caught, and the reverse order was undetected.
 
 ### Removed
 
+- `Router::enableCache()`, `enableCacheLazy()`. Declaring a unit enables the cache, so
+  there is no separate switch to forget; `disableCache()` is the opt-out and
+  `setCachePath(null)` returns to the derived temp path. With them, lazy mode (read but
+  never write from a request) is gone: the default path is always writable, a failed
+  write was already non-fatal, and `warnOnWriteFailure()` already covers observability.
 - `Router::recordSources()`, `recordedSources()`, `markCompiled()`, `restoreIfCached()`,
   `forget()`. Recording is gone: `cached()` now *declares* its sources instead of the
   router inferring them, which is what makes several route files safe.
