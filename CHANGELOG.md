@@ -7,79 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-09
+
+Installed by `composer require` from this tag. A **minor** release with no breaking changes. Condensed v0.4.0 comments and changelog entries.
+
 ## [0.4.0] - 2026-11-09
 
-Installed by `composer require` from this tag. A **minor** release. It is a breaking one:
-routes and route middleware must now be strings, which is a new error for code that passed
-objects. It also carries the fix that lets the framework load on PHP 8.5 at all — v0.3.1
-fatals there, so upgrade if your target is 8.5.
+Installed by `composer require` from this tag. A **minor, breaking** release: route handlers
+and middleware now require strings. It also fixes a PHP 8.5 fatal in v0.3.1.
 
 ### Added
+
 - **Route cache.** Declaring routes inside `cached($files, $closure)` compiles the route
-  table to a PHP file and `require`s it instead of rebuilding it on every cold request.
-  On the homepage's real 120-route table that is 191 µs down to 5.7 µs, and under
-  nginx + php-fpm `/echo` at c=96 goes from 23,814 to 49,174 rps.
+  table to PHP. It enables caching automatically; the first router read loads a fresh
+  table or rebuilds and writes a stale or missing one. The 120-route homepage build drops
+  from 191 µs to 5.7 µs; nginx + php-fpm `/echo` throughput at c=96 rises from 23,814 to
+  49,174 rps.
 
-  Nothing needs to be called in addition: `cached()` is what turns the cache on, and the
-  first request that reads the router decides between restoring the file and building the
-  table, and writes the file when it had to build.
-  `azera routes:cache|clear|status|list` remain available for deploys, CI and inspection.
-
-  `cached()` records its closure instead of running it, so the freshness decision happens
-  before registration. The declared files are watched by mtime; a source added *or*
-  removed also invalidates, as does a source edited in the same second the table was
-  compiled. `setRevalidateFreq($seconds)` bounds staleness in a long-lived worker
-  (Volucer, RoadRunner) the way `opcache.revalidate_freq` does.
+  Declared source files are checked for edits, additions, and removals, including edits
+  within the same second. `setRevalidateFreq()` bounds staleness in long-lived workers.
+  `azera routes:cache|clear|status|list` supports deploys, CI, and inspection.
 
 - `Router::setCachePath()`, `disableCache()`, `cachedSources()`, `cachePath()`,
   `cacheStatus()`, `compileCache()`, `clearCache()`, `setRevalidateFreq()`,
   `getRevalidateFreq()`, `warnOnWriteFailure()`.
 
-  Without `setCachePath()` the table goes to
-  `sys_get_temp_dir()/azera_routes/routes-<hash>.php`, hashed over the declared sources
-  and the effective uid so two apps or two users on one host never share a file. The
-  directory is created `0700`, the table is written `0600`, and a group- or
-  world-writable directory is refused -- the file is `require`d, so loading from one
-  would be executing code another user can plant.
+  By default, the table path hashes declared sources and effective UID under
+  `sys_get_temp_dir()/azera_routes/`. The directory is `0700`, files are `0600`, and
+  group/world-writable directories are refused because tables are loaded with `require`.
 
 ### Changed
 
-- **Routes and route middleware are data, enforced unconditionally.** A handler array
-  value that is not a string, and a middleware array value that is not a string, now
-  throw `InvalidArgumentException` whether or not a route cache is enabled. They could
-  never mean anything at dispatch time (the dispatcher reads them as class and method
-  names), and they were the only thing that could make `exportState()` unsafe to
-  `var_export`.
-- `cached()` accepts `string|array $files` and registers a unit rather than executing it.
-- A route registered outside a `cached()` block is refused: at the first read when it was
-  registered *before* the first block (it would silently disappear on the next rebuild),
-  and immediately when it is registered *after* the table has been read. Previously only
-  the `add()`-after-`cached()` order was caught, and the reverse order was undetected.
+- **Route handlers and middleware must be strings.** Other values throw
+  `InvalidArgumentException` even without caching; dispatch treats them as names, and
+  the route table must remain serializable.
+- `cached()` accepts `string|array $files` and defers route registration.
+- Routes outside cached blocks are rejected, both before the first block and after the
+  table is read, so no route is silently omitted from a rebuild.
 
 ### Removed
 
-- `Router::enableCache()`, `enableCacheLazy()`. Declaring a unit enables the cache, so
-  there is no separate switch to forget; `disableCache()` is the opt-out and
-  `setCachePath(null)` returns to the derived temp path. With them, lazy mode (read but
-  never write from a request) is gone: the default path is always writable, a failed
-  write was already non-fatal, and `warnOnWriteFailure()` already covers observability.
+- `Router::enableCache()` and `enableCacheLazy()`. Declaring a unit enables caching;
+  `disableCache()` opts out, while `setCachePath(null)` selects the default path. Lazy
+  read-only mode was removed because writes are non-fatal and failures can be reported
+  with `warnOnWriteFailure()`.
 - `Router::recordSources()`, `recordedSources()`, `markCompiled()`, `restoreIfCached()`,
-  `forget()`. Recording is gone: `cached()` now *declares* its sources instead of the
-  router inferring them, which is what makes several route files safe.
-- `RoutesTask::verifyAction()`. A stale table rebuilds itself on the next read, so
-  comparison against a rebuilt table no longer has a failure mode to report;
-  `routes:status --strict` is the check worth putting in CI.
+  `forget()`. `cached()` declares source files explicitly instead of recording them.
+- `RoutesTask::verifyAction()`. Stale tables rebuild on read; use
+  `routes:status --strict` in CI instead.
 
 ### Fixed
 
-- **The framework loads on PHP 8.5.** Two 8.5 changes broke it outright:
-  `#[\Attribute]` on an abstract class is now a fatal error, which
-  `Azera\Aop\Advice` carried (the flag belongs on the concrete subclasses, where it
-  always also was); and `ReflectionProperty::setAccessible()` is deprecated, which was
-  called in 25 places including the console help renderer. Both are fixed, the suite
-  reports no deprecations on 8.5, and the CI matrix now tests 8.2 through 8.5.
-
-  This is why v0.3.1 cannot be used on the PHP 8.5 targets the benchmark runs on.
+- **PHP 8.5 compatibility.** Removed `#[\Attribute]` from abstract `Azera\Aop\Advice`
+  (concrete subclasses retain it) and removed 25 deprecated
+  `ReflectionProperty::setAccessible()` calls, including in console help. The suite has
+  no PHP 8.5 deprecations; CI now tests PHP 8.2–8.5. v0.3.1 fatals on PHP 8.5.
 
 ## [0.3.1] - 2026-11-08
 
@@ -107,7 +89,7 @@ variable and an action taking an injected service fails on every request with
 ## [0.3.0] - 2026-11-07
 
 Installed by `composer require` from this tag. Carries three BREAKING changes and ten security
-fixes — read *Security* and *Changed* below before upgrading.
+fixes — read _Security_ and _Changed_ below before upgrading.
 
 This is the first release since 0.1.0. There was no 0.2.0: the number is skipped, not lost. It
 requires `sailantis/clarity-engine` `^0.4` (or `dev-main`), and before this the bare `dev-main`

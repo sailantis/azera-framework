@@ -158,8 +158,7 @@ class Router
             // nothing per add().
             throw new LogicException(sprintf(
                 'Route "%s %s" was registered after the route table had already been read. '
-                    . 'Declare every route inside a cached() block, which runs before the first '
-                    . 'match().',
+                    . 'Declare every route inside a cached() block, which runs before the first match().',
                 \is_array($method) ? implode('|', $method) : (string) $method,
                 $pattern,
             ));
@@ -175,9 +174,7 @@ class Router
             foreach ($handler as $key => $value) {
                 if (!\is_string($value)) {
                     throw new InvalidArgumentException(sprintf(
-                        'Route handler key "%s" must be a string, %s given. A route is a '
-                            . 'description of which controller and action to call, never the '
-                            . 'callable itself.',
+                        'Route handler key "%s" must be a string, %s given. A route is a description of which controller and action to call, never the callable itself.',
                         (string) $key,
                         get_debug_type($value),
                     ));
