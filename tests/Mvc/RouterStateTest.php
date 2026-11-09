@@ -184,8 +184,8 @@ class RouterStateTest extends TestCase
 
     public function testARebuildKeepsCustomValidators(): void
     {
-        $cache  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-rebuild-' . bin2hex(random_bytes(6)) . '.php';
-        $source = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-rebuild-src-' . bin2hex(random_bytes(6)) . '.php';
+        $cache  = $this->tmpPath('.php');
+        $source = $this->tmpSourcePath('.php');
         file_put_contents($source, "<?php\n");
         touch($source, time() - 60);
 
@@ -239,12 +239,43 @@ class RouterStateTest extends TestCase
     //  cached() units and deferral
     // -------------------------------------------------------------------------
 
-    /** A temp directory that cleans itself up. */
+    /**
+     * A temp directory that cleans itself up.
+     *
+     * Cache files live in a private subdirectory of the system temp dir, not in the
+     * temp dir itself: the router refuses to `require` executable code from a
+     * group/world-writable directory, and `/tmp` is 1777. Windows skips that check
+     * (no POSIX mode bits), which is why putting tables straight in `sys_get_temp_dir()`
+     * passes locally and fails on CI.
+     */
+    private ?string $tmpDir = null;
+
+    /** Files created outside the private directory (sources, deliberately unsafe paths). */
     private array $tmpFiles = [];
 
+    private function tmpDir(): string
+    {
+        if ($this->tmpDir === null) {
+            $this->tmpDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-routes-test-' . bin2hex(random_bytes(6));
+            mkdir($this->tmpDir, 0700, true);
+        }
+
+        return $this->tmpDir;
+    }
+
+    /** A path inside the private temp directory. */
     private function tmpPath(string $suffix = ''): string
     {
-        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-routes-' . bin2hex(random_bytes(6)) . $suffix;
+        $path = $this->tmpDir() . DIRECTORY_SEPARATOR . 'routes-' . bin2hex(random_bytes(6)) . $suffix;
+        $this->tmpFiles[] = $path;
+
+        return $path;
+    }
+
+    /** A source file, which the router only ever stats -- never requires. */
+    private function tmpSourcePath(string $suffix = ''): string
+    {
+        $path = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-src-' . bin2hex(random_bytes(6)) . $suffix;
         $this->tmpFiles[] = $path;
 
         return $path;
@@ -252,7 +283,7 @@ class RouterStateTest extends TestCase
 
     private function tmpSource(string $contents = "<?php\n", ?int $mtime = null): string
     {
-        $path = $this->tmpPath('.php');
+        $path = $this->tmpSourcePath('.php');
         file_put_contents($path, $contents);
         touch($path, $mtime ?? time() - 60);
         clearstatcache(true, $path);
@@ -268,6 +299,15 @@ class RouterStateTest extends TestCase
             }
         }
         $this->tmpFiles = [];
+
+        if ($this->tmpDir !== null) {
+            // Tables, temp files and the directory itself.
+            foreach (glob($this->tmpDir . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+                @unlink($file);
+            }
+            @rmdir($this->tmpDir);
+            $this->tmpDir = null;
+        }
 
         // A derived default path leaves a file in the system temp directory, whose
         // name the test cannot predict from here. Sweep the ones this test process
@@ -1082,7 +1122,7 @@ class RouterStateTest extends TestCase
 
     public function testAnUnwritableDirectoryDoesNotFailTheRequest(): void
     {
-        $cache  = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-no-such-dir-'
+        $cache  = $this->tmpDir() . DIRECTORY_SEPARATOR . 'no-such-dir-'
             . bin2hex(random_bytes(6)) . DIRECTORY_SEPARATOR . 'deep' . DIRECTORY_SEPARATOR . 'routes.php';
         $source = $this->tmpSource();
 
@@ -1124,15 +1164,19 @@ class RouterStateTest extends TestCase
         }
 
         $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera-unsafe-' . bin2hex(random_bytes(6));
-        mkdir($dir, 0777, true);
+        mkdir($dir, 0775, true);
 
         $cache  = $dir . DIRECTORY_SEPARATOR . 'routes.php';
         $source = $this->tmpSource();
 
-        // A table that would be served if the directory check did not exist.
+        // Plant the table by hand: `compileCache()` correctly refuses to *write* into a
+        // group-writable directory, so the only way to model an attacker's file is to
+        // put it there directly.
         $planted = (new Router())->setCachePath($cache);
         $planted->cached($source, static fn(Router $r) => $r->get('/planted', 'A::b'));
-        $this->assertSame(1, $planted->compileCache());
+        $this->writeState($cache, $planted->exportState() + [
+            '__cache' => $this->envelope([$source => (int) filemtime($source)], time() + 30),
+        ]);
 
         $router = (new Router())->setCachePath($cache);
         $router->cached($source, static fn(Router $r) => $r->get('/built', 'A::b'));
