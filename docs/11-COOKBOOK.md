@@ -420,7 +420,7 @@ Validate server-side with a middleware:
 ```php
 public function process(AppContext $context, callable $next): ?Response
 {
-    $method = $context->request()->getMethod();
+    $method = $context->request()->method();
     if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true) && !csrf_verify()) {
         return \Azera\Http\Response::status(419); // token mismatch
     }

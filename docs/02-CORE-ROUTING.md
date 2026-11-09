@@ -9,7 +9,6 @@
 
 ```php
 use Azera\AppContext;
-use Azera\Core\Dispatcher;
 use Azera\Core\Router;
 
 $ctx = AppContext::instance();
@@ -19,7 +18,7 @@ $router->add('GET', '/', 'IndexController::indexAction');
 $router->add('GET', '/users/{id:int}', 'UserController::viewAction');
 
 // Configure dispatcher
-$dispatcher = new Dispatcher();
+$dispatcher = $ctx->dispatcher();
 $dispatcher->setBaseNamespace('\\App\\Controllers');
 
 $route = $router->match('/users/42', 'GET');
@@ -227,7 +226,7 @@ Inline groups can be combined, and callback-scoped groups automatically restore 
 The Dispatcher handles controller resolution and default values:
 
 ```php
-$dispatcher = new Dispatcher();
+$dispatcher = AppContext::instance()->dispatcher();
 $dispatcher->setBaseNamespace('\\App\\Controllers'); // Default: '\\App\\Controllers'
 $dispatcher->setDefaultController('IndexController'); // Default: 'IndexController'
 $dispatcher->setDefaultAction('indexAction');         // Default: 'indexAction'

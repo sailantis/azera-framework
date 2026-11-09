@@ -4,8 +4,8 @@
 
 Represents a single file uploaded with an HTTP multipart request.
 
-Created from the $_FILES superglobal by [`Request::getFile()`](Http_Request.md#getfile) /
-[`Request::getFiles()`](Http_Request.md#getfiles). Call `isValid()` before processing
+Created from the $_FILES superglobal by [`Request::file()`](Http_Request.md#file) /
+[`Request::files()`](Http_Request.md#files). Call `isValid()` before processing
 and `moveTo()` to persist the file.
 
 ## Public methods

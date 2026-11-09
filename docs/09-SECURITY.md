@@ -122,7 +122,7 @@ class CsrfMiddleware implements MiddlewareInterface
 {
     public function process(AppContext $context, callable $next): ?Response
     {
-        if ($context->request()->getMethod() === 'POST') {
+        if ($context->request()->method() === 'POST') {
             csrf_verify();
         }
         return $next($context);

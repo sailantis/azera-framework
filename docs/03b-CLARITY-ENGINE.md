@@ -1077,7 +1077,6 @@ use Azera\AppContext;
 use Azera\Db\Database;
 use Azera\Http\Response;
 use Azera\Http\SessionMiddleware;
-use Azera\Core\Dispatcher;
 use Azera\Core\Router;
 
 $ctx = AppContext::instance();
@@ -1100,13 +1099,13 @@ $ctx->view()->addFilter('currency', fn($v) => '€ ' . number_format($v, 2));
 $router = $ctx->router();
 $router->add('GET', '/', 'IndexController::indexAction');
 
-$dispatcher = new Dispatcher();
+$dispatcher = $ctx->dispatcher();
 $dispatcher->setBaseNamespace('\\App\\Controllers');
 $dispatcher->addMiddleware(new SessionMiddleware());
 
 $route = $router->match(
-    $ctx->request()->getPath(),
-    $ctx->request()->getMethod()
+    $ctx->request()->path(),
+    $ctx->request()->method()
 );
 
 if ($route === null) {

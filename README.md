@@ -36,7 +36,7 @@ A lightweight, fast PHP framework for building modern Web applications and CLI t
 - **Active Record Models** - Expressive model API with state tracking and typed property support
 - **Prepared Statements** - SQL injection protection by default
 - **Read/Write Splitting** - Built-in support for master/replica database setups
-- **Connection Pooling** - Automatic reconnection and connection management
+- **Connection Management** - Role-based connections, prepared-statement reuse, and configurable automatic reconnection
 - **Schema Introspection** - Introspect database schema for dynamic models and migrations
 
 ### HTTP Utilities
@@ -106,11 +106,10 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Azera\AppContext;
 use Azera\Db\Database;
 use Azera\Http\Response;
-use Azera\Core\Dispatcher;
 use Azera\Core\Router;
 
 // AppContext holds shared services: database connections, the request,
-// the view engine — accessed by models, queries, and controllers alike.
+// the view engine, and the dispatcher.
 $ctx = AppContext::instance();
 
 // Lazy database registration: the connection is created on first use.
@@ -123,17 +122,17 @@ $router = $ctx->router();
 $router->add('GET', '/hello/{name}', 'IndexController::helloAction');
 
 // Match and dispatch
-$path = $ctx->request()->getPath();
-$method = $ctx->request()->getMethod();
+$path = $ctx->request()->path();
+$method = $ctx->request()->method();
 $route = $router->match($path, $method);
 
 if ($route === null) {
-    Response::status(404)->send();
-    exit;
+    $response = Response::status(404);
+} else {
+    $response = $ctx->dispatcher()->dispatch($route);
 }
 
-$dispatcher = new Dispatcher();
-$dispatcher->dispatch($route)->send();
+$response->send();
 ```
 
 Controller example:
@@ -181,8 +180,8 @@ $newUser = User::create([
 
 $newUser->delete();
 
-$user->count(['status' => 'active']);
-$user->exists(['email' => 'john@example.com']);
+User::count(['status' => 'active']);
+User::exists(['email' => 'john@example.com']);
 
 // Query with conditions
 $users = User::query()
@@ -258,7 +257,7 @@ $results = Order::query('o')
     ->select([
         'u.username',
         Sql::raw('COUNT(*)')->as('order_count'),
-        Sql::func('SUM', 'o.total')->as('total_spent'),
+        Sql::func('SUM', [Sql::column('o.total')])->as('total_spent'),
         $latestOrder,
     ]);
 ```
@@ -325,7 +324,7 @@ use Azera\Cli\Console;
 $console = new Console();
 // App\Tasks is included automatically; add other namespaces if needed:
 // $console->addNamespace('App\\Admin\\Tasks');
-$console->process($argv[1] ?? null, $argv[2] ?? null, array_slice($argv, 3));
+$console->process(array_slice($argv, 1));
 ```
 
 **Create a task** — extend `Task`, add `*Action` methods:
@@ -368,20 +367,20 @@ php console.php help database      # detail page for one task
 
 **Using Built-in Tasks**
 
-Azera includes a built-in `model-sync` task that synchronizes PHP models with the database schema:
+Azera includes a built-in `model` task that synchronizes PHP models with the database schema:
 
 ```bash
 # Preview differences between your models and the database
-php console.php model-sync all
+php console.php model sync-all
 
 # Apply changes (writes to files)
-php console.php model-sync all src/Models --apply --generate-accessors
+php console.php model sync-all src/Models --apply --generate-accessors
 
 # Scaffold a new model class
-php console.php model-sync make Order
+php console.php model new Order
 ```
 
-`model-sync all` and `model-sync make` auto-resolve the target directory from PSR-4 entries in `composer.json`. See [CLI Tasks](docs/08-CLI-TASKS.md) for all options.
+`model sync-all` and `model new` auto-resolve the target directory from PSR-4 entries in `composer.json`. See [CLI Tasks](docs/08-CLI-TASKS.md) for all options.
 
 ## Project Structure
 
@@ -444,7 +443,7 @@ Registered callables are zero-argument lazy factories: executed on first lookup,
 ### Middleware Pipeline
 
 ```php
-$dispatcher = new Dispatcher();
+$dispatcher = \Azera\AppContext::instance()->dispatcher();
 $dispatcher->addMiddleware(new AuthMiddleware());
 $dispatcher->addMiddleware(new SessionMiddleware());
 $response = $dispatcher->dispatch($route);

@@ -5,8 +5,8 @@ namespace Azera\Http;
 /**
  * Represents a single file uploaded with an HTTP multipart request.
  *
- * Created from the $_FILES superglobal by {@see Request::getFile()} /
- * {@see Request::getFiles()}. Call {@see isValid()} before processing
+ * Created from the $_FILES superglobal by {@see Request::file()} /
+ * {@see Request::files()}. Call {@see isValid()} before processing
  * and {@see moveTo()} to persist the file.
  */
 class UploadedFile

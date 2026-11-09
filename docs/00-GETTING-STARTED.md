@@ -42,8 +42,6 @@ use Azera\AppContext;
 use Azera\Db\Database;
 use Azera\Http\Response;
 use Azera\Http\SessionMiddleware;
-use Azera\Core\Dispatcher;
-
 // Initialize application context
 $ctx = AppContext::instance();
 
@@ -59,16 +57,16 @@ $router = $ctx->router();
 $router->add('GET', '/', 'IndexController::indexAction');
 $router->add('GET', '/users/{id:int}', 'UserController::viewAction')->setName('user.view');
 
-// Configure dispatcher with namespace and defaults (no constructor args – uses AppContext internally)
-$dispatcher = new Dispatcher();
+// Configure the context-managed dispatcher
+$dispatcher = $ctx->dispatcher();
 $dispatcher->setBaseNamespace('\\App\\Controllers');
 $dispatcher->setDefaultController('IndexController');
 $dispatcher->setDefaultAction('indexAction');
 $dispatcher->addMiddleware(new SessionMiddleware()); // starts PHP session; makes $ctx->session() available
 
 // Get the current request URI and method
-$path   = $ctx->request()->getPath();
-$method = $ctx->request()->getMethod();
+$path   = $ctx->request()->path();
+$method = $ctx->request()->method();
 
 // Match the route and dispatch
 $route = $router->match($path, $method);
