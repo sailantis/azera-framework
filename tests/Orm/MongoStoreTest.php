@@ -208,7 +208,6 @@ final class MongoStoreTest extends TestCase
         $store->findByPk(ArticleDocument::class, ['_id' => 'y']);
 
         $p = new \ReflectionProperty(MongoStore::class, 'collections');
-        $p->setAccessible(true);
         $this->assertCount(1, $p->getValue($store)); // resolved once
     }
 }

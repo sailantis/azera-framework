@@ -167,21 +167,18 @@ class DispatcherTest extends TestCase
     private function responseBody(Response $r): string
     {
         $rp = new \ReflectionProperty($r, 'body');
-        $rp->setAccessible(true);
         return $rp->getValue($r);
     }
 
     private function responseStatus(Response $r): int
     {
         $rp = new \ReflectionProperty($r, 'status');
-        $rp->setAccessible(true);
         return $rp->getValue($r);
     }
 
     private function responseHeaders(Response $r): array
     {
         $rp = new \ReflectionProperty($r, 'headers');
-        $rp->setAccessible(true);
         return $rp->getValue($r);
     }
 

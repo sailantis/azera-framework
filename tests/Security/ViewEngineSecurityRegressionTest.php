@@ -64,7 +64,6 @@ class ViewEngineSecurityRegressionTest extends TestCase
     private function resolve(NativeEngine $engine, string $view): string
     {
         $ref = new \ReflectionMethod(ViewEngine::class, 'resolveView');
-        $ref->setAccessible(true);
         return $ref->invoke($engine, $view);
     }
 

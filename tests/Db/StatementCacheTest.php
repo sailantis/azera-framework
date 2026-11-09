@@ -85,7 +85,6 @@ final class StatementCacheTest extends TestCase
     private static function statementOf(ResultSet $rs): PDOStatement
     {
         $property = (new ReflectionClass($rs))->getProperty('statement');
-        $property->setAccessible(true);
 
         return $property->getValue($rs);
     }

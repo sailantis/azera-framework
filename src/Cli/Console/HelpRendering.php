@@ -242,7 +242,6 @@ trait HelpRendering
                 $taskRef = new ReflectionClass($class);
                 if ($taskRef->hasProperty('showGlobalHelp')) {
                     $prop = $taskRef->getProperty('showGlobalHelp');
-                    $prop->setAccessible(true);
                     // Read default value from class definition (not from an instance)
                     $showGlobal = (bool) ($prop->hasDefaultValue() ? $prop->getDefaultValue() : true);
                 }

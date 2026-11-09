@@ -336,7 +336,6 @@ class SqlNodeTest extends TestCase
         // Use reflection to check the flag
         $reflection = new \ReflectionClass($col);
         $property = $reflection->getProperty('mustResolve');
-        $property->setAccessible(true);
 
         $this->assertTrue($property->getValue($col));
     }
@@ -347,7 +346,6 @@ class SqlNodeTest extends TestCase
 
         $reflection = new \ReflectionClass($col);
         $property = $reflection->getProperty('mustResolve');
-        $property->setAccessible(true);
 
         $this->assertFalse($property->getValue($col));
     }

@@ -157,13 +157,11 @@ class CipherProviderTest extends TestCase
         $writer = $jar->cookie('sid')->encrypted()->key(self::KEY)->cipher(SodiumCipher::ID);
         $writer->set('user-42');
         $ref = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $ref->setAccessible(true);
         $issued = $ref->invoke($writer, 'user-42');
 
         // Read back under AES-GCM: the payload still names its own provider.
         $reader = $jar->cookie('sid')->encrypted()->key(self::KEY)->cipher(OpenSslCipher::ID);
         $dec = new \ReflectionMethod(Cookie::class, 'decrypt');
-        $dec->setAccessible(true);
 
         $this->assertSame('user-42', $dec->invoke($reader, $issued));
     }
@@ -178,7 +176,6 @@ class CipherProviderTest extends TestCase
         $prov = new SodiumCipher();
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $enc->setAccessible(true);
 
         $source = Cookie::make('role')->encrypted()->key(self::KEY);
         $source->set('admin');
@@ -186,7 +183,6 @@ class CipherProviderTest extends TestCase
 
         $victim = Cookie::make('theme')->encrypted()->key(self::KEY);
         $dec = new \ReflectionMethod(Cookie::class, 'decrypt');
-        $dec->setAccessible(true);
 
         $this->assertNull($dec->invoke($victim, $payload));
     }
@@ -197,7 +193,6 @@ class CipherProviderTest extends TestCase
         $cookie = Cookie::make('sid')->encrypted()->key(self::KEY)->cipherProvider($stub);
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $enc->setAccessible(true);
         $payload = $enc->invoke($cookie, 'value');
 
         $this->assertSame('custom-kms.v1', CipherPayload::providerIdOf($payload));
@@ -272,7 +267,6 @@ class CipherProviderTest extends TestCase
             $cookie = $jar->cookie('x')->encrypted()->key(self::KEY)->cipher($pin);
 
             $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
-            $enc->setAccessible(true);
             $payload = $enc->invoke($cookie, 'v');
 
             $this->assertSame($expected, CipherPayload::providerIdOf($payload));
@@ -284,7 +278,6 @@ class CipherProviderTest extends TestCase
         $cookie = Cookie::make('x')->encrypted()->key(self::KEY)->cipher(null);
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $enc->setAccessible(true);
         $payload = $enc->invoke($cookie, 'v');
 
         $this->assertSame(
@@ -302,7 +295,6 @@ class CipherProviderTest extends TestCase
         $cookie = Cookie::make('x')->encrypted()->key(self::KEY)->cipher('does-not-exist.v1');
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $enc->setAccessible(true);
 
         $this->expectException(Exception::class);
         $enc->invoke($cookie, 'v');

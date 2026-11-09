@@ -69,7 +69,6 @@ class CookieSecurityRegressionTest extends TestCase
 
         // Emulate the browser sending back the Set-Cookie value.
         $ref = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $ref->setAccessible(true);
         $_COOKIE['auth'] = $ref->invoke($cookie, 'admin');
 
         $reader = new Cookies();
@@ -117,7 +116,6 @@ class CookieSecurityRegressionTest extends TestCase
         $forger = Cookie::make('sid')->encrypted()->key($forgedKey);
         $forger->set('attacker');
         $ref = new \ReflectionMethod(Cookie::class, 'encrypt');
-        $ref->setAccessible(true);
         $_COOKIE['sid'] = $ref->invoke($forger, 'attacker');
 
         // The victim uses a proper key; the forged cookie must not verify.

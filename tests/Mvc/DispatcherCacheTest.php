@@ -286,7 +286,6 @@ class DispatcherCacheTest extends TestCase
         $this->assertSame('id=1', $dispatcher->dispatch($this->route(['id' => '1'], [], 'echoAction'))->getBody());
 
         $cache = new \ReflectionProperty(Dispatcher::class, 'resolvedRoutes');
-        $cache->setAccessible(true);
 
         $this->assertCount(2, $cache->getValue($dispatcher));
     }

@@ -49,7 +49,6 @@ class AopProxyCacheRegressionTest extends TestCase
     private function resetLoadedProxies(): void
     {
         $ref = new \ReflectionProperty(ProxyFactory::class, 'loadedProxies');
-        $ref->setAccessible(true);
         $ref->setValue(null, []);
     }
 

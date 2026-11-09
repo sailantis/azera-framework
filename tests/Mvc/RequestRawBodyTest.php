@@ -45,7 +45,6 @@ final class RequestRawBodyTest extends TestCase
         $request = (new Request([], [], [], []))->setRawBody('');
 
         $property = new \ReflectionProperty(Request::class, 'rawBody');
-        $property->setAccessible(true);
 
         $this->assertSame('', $property->getValue($request));
         $this->assertSame('', $request->body());
