@@ -66,17 +66,17 @@ A lightweight, fast PHP framework for building modern Web applications and CLI t
 
 ## Benchmarks
 
-Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5 on an identical full-stack workload — routing → controller → ORM query (SQLite) → template render → response — running on a real server. Two summaries are published beside the docs, one per deployment model:
+Azera is measured against Laravel, Symfony, Spiral, CodeIgniter 4 and CakePHP 5 on an identical full-stack workload — routing → controller → ORM query (SQLite) → template render → response — running on a real server. Two summaries are published beside the docs, one per deployment model.
 
 **As nginx + PHP-FPM** — the framework boots again for every request, as PHP usually runs in production:
 
 ![Total response times, PHP-FPM](docs/images/benchmarks/summary-fpm/speedup.svg)
 
-**As a resident worker (RoadRunner)** — the framework boots once and serves every request:
+**As a resident worker (Volucer)** — the framework boots once and serves every request:
 
-![Total response times, RoadRunner](docs/images/benchmarks/summary-roadrunner/speedup.svg)
+![Total response times, Volucer](docs/images/benchmarks/summary-volucer/speedup.svg)
 
-Each chart sums one pass over all 21 benchmarked endpoints. The full per-endpoint tables, the per-feature races and the memory charts are in the [PHP-FPM](docs/19-BENCHMARKS-SUMMARY-FPM.md) and [RoadRunner](docs/19-BENCHMARKS-SUMMARY-ROADRUNNER.md) summaries, and the [complete report](https://sailantis.github.io/azera-competition/benchmarks/) covers all six frameworks.
+Each chart sums one pass over all 21 benchmarked endpoints. The per-endpoint tables, the per-feature races and the memory charts are in the [PHP-FPM](docs/19-BENCHMARKS-SUMMARY-FPM.md) and [Volucer](docs/19-BENCHMARKS-SUMMARY-VOLUCER.md) summaries, and the [complete report](https://sailantis.github.io/azera-competition/benchmarks/) covers all six frameworks.
 
 ## Requirements
 
@@ -97,7 +97,7 @@ composer require sailantis/azera-framework
 
 ## Quick Start
 
-### Web Application (MVC)
+### Web Application
 
 ```php
 <?php
@@ -313,7 +313,18 @@ $results = Query::raw()
 
 Build command-line tools and scripts. `Console` auto-discovers tasks from PSR-4 namespaces, parses options, and renders color-highlighted help pages.
 
-**console.php** — minimal entry point:
+Composer exposes the framework's `bin/azera` executable to consuming projects. From the project root, run it through Composer:
+
+```bash
+composer exec azera -- help
+composer exec azera -- model list
+```
+
+Composer installs a platform-specific proxy in `vendor/bin` (`vendor\bin\azera.bat` on Windows).
+
+You do not need to create a `console.php` to run tasks; the Composer-installed `azera` command can run them directly. A custom `console.php` is optional if you want your own project entry point.
+
+**Optional `console.php`** — minimal custom entry point:
 
 ```php
 <?php

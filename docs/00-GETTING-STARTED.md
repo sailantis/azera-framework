@@ -26,7 +26,6 @@ your-project/
 ├── public/
 │   ├── index.php
 ├── views/
-├── console.php
 └── composer.json
 ```
 
@@ -194,32 +193,20 @@ $dispatcher->addMiddleware(new MyAuthMiddleware());   // custom
 
 You can also restrict middleware to specific controllers or actions using the `$middlewares` and `$actionMiddlewares` properties on a controller class. See [Controllers & Views](03-CONTROLLERS-VIEWS.md) for details.
 
-## CLI Bootstrap
+## CLI Tasks
 
-Create [console.php](../console.php):
-
-```php
-<?php
-require_once __DIR__ . '/vendor/autoload.php';
-
-use Azera\Cli\Console;
-
-$console = new Console();
-$console->process($argv[1] ?? null, $argv[2] ?? null, array_slice($argv, 3));
-```
-
-`Console` discovers classes ending in `Task` and registers lowercase task
-names (`HelloTask` → `hello`). The built-in `Azera\Cli\Tasks` namespace and
-`App\Tasks` are included automatically.
-
-Run:
+The framework provides an `azera` command through Composer. From your project root, run:
 
 ```bash
-php console.php hello world Azera    # positional args
-php console.php hello world --shout   # boolean flag
-php console.php help                  # overview of all tasks
-php console.php help hello            # detailed help for one task
+composer exec azera -- help
+composer exec azera -- help model
 ```
+
+Custom task classes in the `App\Tasks` namespace are auto-discovered when that
+namespace is mapped in `composer.json`. Invoke a task with
+`composer exec azera -- <task> <action> [arguments...]`. See the
+[CLI Tasks guide](08-CLI-TASKS.md) for details. If you prefer, you can also
+create your own `console.php` in the project root as a custom entry point.
 
 ## About composer.json
 
@@ -232,7 +219,7 @@ A minimal `composer.json` for your app might look like:
 ```json
 {
   "require": {
-    "sailantis/azera-framework": "^0.1"
+    "sailantis/azera-framework": "^0.4"
   },
   "autoload": {
     "psr-4": {

@@ -8,7 +8,15 @@ Azera provides `Azera\Cli\Console` (dispatcher + help system) and `Azera\Cli\Tas
 
 ## Entry Point
 
-Create `console.php` once at the project root:
+The Composer-installed `azera` command runs tasks directly; you do not need
+to create a project-local `console.php`:
+
+```bash
+composer exec azera -- help
+```
+
+If you prefer a custom project entry point, you can create your own
+`console.php` at the project root:
 
 ```php
 <?php
@@ -17,12 +25,18 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Azera\Cli\Console;
 
 $console = new Console();
+// Resolve task namespaces from this project's composer.json.
+$console->setComposerRoot(__DIR__);
 // App\Tasks is included automatically; add other namespaces as needed:
 // $console->addNamespace('App\\Admin\\Tasks');
-$console->process($argv[1] ?? null, $argv[2] ?? null, array_slice($argv, 3));
+$console->process(array_slice($argv, 1));
 ```
 
-Call signature on the command line:
+The commands in this guide use the optional `console.php`. When using the
+Composer-installed command instead, replace `php console.php` with
+`composer exec azera --`.
+
+Command signature:
 
 ```
 php console.php <task> [<action>] [<arg1> <arg2> …] [--option] [--key=value]
@@ -56,7 +70,7 @@ $console->clearTasks();
 
 // Then register your namespaces and process as usual
 // $console->addNamespace('App\\Cli\\Tasks');
-$console->process($argv[1] ?? null, $argv[2] ?? null, array_slice($argv, 3));
+$console->process(array_slice($argv, 1));
 ```
 
 ### Naming Rules

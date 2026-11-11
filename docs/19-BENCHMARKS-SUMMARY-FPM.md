@@ -1,27 +1,22 @@
 # Framework Competition — PHP-FPM Summary
 
-This summary covers nginx + PHP-FPM. Requests were measured over HTTP
-loopback, so the results include server overhead; the server floor below
-shows that cost.
+The headline numbers from the measured nginx + PHP-FPM deployment: the cost of one pass over every endpoint, the plain routing request, the two data-access races, and what one request costs in memory. End-to-end HTTP over loopback, so the constant webserver overhead is included (see floor-http/floor-php in the dataset). The worker-recycling setting of the pool is stated with the server floor below, because it changes what each row contains.
 
-**Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · OPcache: yes · 1000 iterations per run over 10 runs, lower is better.
+**Environment** — PHP 8.5.11 · Linux 6.8.0-139-generic · OPcache: yes · JIT: off (buffer 64M) · 1000 iterations per run over 10 runs, lower is better.
 
-**Frameworks** — Azera dev-main (v0.1.0) · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0.
+**Frameworks** — Azera v0.4.1-4-g377d0f6+dirty · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0.
 
-_Measured 2026-09-29T12:55:05+00:00_
+_Measured 2026-11-10T15:23:26+00:00_
 
 ## Total response times
 
-Each total is the sum of a framework's median times across all endpoints, not
-a single request time. The chart compares totals with the baseline; PHP-FPM
-endpoint medians include framework boot.
+Total time to serve one pass over every benchmarked endpoint — each framework's sum of its endpoint medians, not a single response time — drawn relative to the baseline, so a row states how many times the baseline's own total it needed. Each endpoint's median is boot-inclusive occupancy for this view's deployment model, so the total is the worker time one pass over every endpoint costs. The chart orders the frameworks by that total and prints each one's multiplier beside its row.
 
 ![Total response times](images/benchmarks/summary-fpm/speedup.svg)
 
 ## Feature benchmarks
 
-Each chart compares a real request for one feature against a live database.
-The heading names the endpoint and workload.
+One race per framework feature, each run as a real request against a real database. Each feature states the request it measures under its own heading. Every figure — the winner of each race and the margin over the runner-up — is in that feature's own chart below, which anchors each endpoint at its fastest framework.
 
 ### Routing
  `GET /` — dispatches a plain request through the router and returns a rendered template — no database access.
@@ -40,66 +35,51 @@ The heading names the endpoint and workload.
 
 ## Per-request memory
 
-Memory is measured inside one PHP-FPM worker that stays alive for the run
-(`pm = static`, `max_children = 1`, `max_requests = 0`). Each request records a
-sample as its entry script exits, and the harness reads it from the worker.
+How much memory a single request needs, for every framework, measured inside the FPM worker that served it. The numbers come from the FPM worker process itself: because the entry script is torn down when the request ends, it appends one sample as it exits, and the harness reads that back. The pool is `pm = static` with `max_children = 1` and `max_requests = 0`, so this is ONE worker that stays alive for the whole block — which is why it has retained memory worth reporting at all.
 
-The high-water mark resets when the framework is ready and is sampled when the
-response finishes. Each endpoint was probed once, so the range reflects workload
-differences rather than repeated measurements.
+A request's high-water mark is taken from the framework-ready boundary of the entry script to the moment the response is finished, with the mark reset at that boundary — so it counts exactly what serving the request cost, and never bleeds into the next one. Each endpoint was probed once, so the range shows how much the endpoints themselves differ — a property of the workload rather than of the measurement.
 
-All frameworks share one MB axis. The **left cap**, **dot**, and **right cap**
-show the lightest, median, and heaviest endpoint. Each mark is a measurement;
-the labels give its value. The faint bar runs from zero to the median. The
-multiplier compares each median with the lightest one.
+All six frameworks are drawn on one shared MB axis. The **left cap** is the lightest probed endpoint, the **dot** is the median endpoint, and the **right cap** is the heaviest. Every mark is a measured endpoint rather than an interpolation, so each can be named — the three numbers printed beside each bar are those same three readings. The faint bar behind each mark runs from zero to the median, so a row's length is read against the axis rather than estimated from the caps. The multiplier beside a row divides its median by the lightest median on the page; the reference row carries none.
 
-Rows are ordered by median memory, showing typical usage. A wide range signals
-that a heavy route may affect pool sizing.
+Rows are ordered by the **median** request — a framework's typical cost — so one heavy route cannot reorder the table on its own. A row that stays flat and a row that reaches far right therefore say different things: the first is cheap on every route, the second is cheap on a typical request until one heavy route sets the worst case a pool has to be sized for.
 
 ![Per-request memory](images/benchmarks/summary-fpm/resident-memory.svg)
 
 ## Latency by endpoint
 
-Trimmed mean per request in milliseconds; lower is better and **bold** marks
-the fastest result. PHP-FPM timings include framework boot and HTTP server
-overhead. All frameworks use the same seeded database and page size; the
-workload column shows what varies.
+Trimmed mean in milliseconds, lower is better. **Bold** = fastest for that endpoint. Every number is END-TO-END per-request occupancy for the view's deployment model: the framework boot of that model is part of the cell, not parked in a separate chart. These are REAL deployments measured over HTTP: every row carries the constant server cost, which is why the values cluster — the floor note below states what stands under them. The workload column states what each request reads or writes. Every framework runs the same seeded database and the same page size, so the payload is identical no matter which framework served it; the workload column is the part of the suite that varies.
 
-**Server floor** — the pool does not recycle workers (`pm.max_requests=0`).
-`floor-php` measures a minimal PHP request; `floor-http` measures a static
-file through nginx. Together they show the server overhead in each result.
-Subtracting that overhead estimates framework boot, which PHP-FPM pays on
-every request.
+**Server floor** — measured nginx + PHP-FPM with `pm.max_requests=0`: the pool never recycles its worker, so no process is spawned per request — what remains is the FastCGI handshake plus a minimal script. A hello-world endpoint that boots nothing but PHP (`floor-php`) and a static file through nginx (`floor-http`) measure exactly that cost — the floor every row below stands on. Subtracting that floor leaves the framework's own per-request boot, which FPM still pays for every request even though its worker survives.
 
 | Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP |
 |---|---|---:|---:|---:|---:|---:|---:|
-| `GET /` | no DB — routing + template only | **0.807** | 4.50 | 2.06 | 7.87 | 1.99 | 1.50 |
-| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **1.57** | 5.74 | 3.73 | 8.93 | 2.70 | 2.86 |
-| `GET /items/1` | 1 item by id | **1.44** | 5.40 | 3.00 | 8.72 | 2.60 | 2.66 |
-| `POST /items` | 1 row upserted (sentinel #999999) | **1.65** | 5.46 | 3.92 | 8.94 | 2.70 | 2.80 |
-| `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **1.38** | 5.31 | 2.63 | 8.37 | 2.68 | 2.27 |
-| `GET /items-qb/1` | 1 item by id | **1.34** | 5.12 | 2.56 | 8.37 | 2.57 | 2.19 |
-| `POST /items-qb` | 1 row upserted (sentinel #999997) | **1.44** | 5.18 | 3.39 | 8.53 | 2.81 | 2.30 |
-| `GET /api/items` | 20 of 1000 items as JSON | **1.36** | 6.09 | 3.00 | 7.91 | 2.55 | 2.55 |
-| `GET /api/items/1` | 1 item by id as JSON | **1.39** | 5.88 | 2.75 | 7.78 | 2.52 | 2.51 |
-| `POST /api/items` | 1 row upserted (sentinel #999998) | **1.47** | 5.31 | 3.62 | 7.87 | 2.63 | 2.65 |
-| `GET /features/aop` | no DB — interceptor pipeline | **2.52** | 6.03 | 3.20 | 9.48 | — | — |
-| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **1.64** | 5.35 | 2.96 | 8.66 | 2.50 | 2.39 |
-| `GET /features/log` | no DB — buffered log handlers | **1.22** | 4.51 | 1.97 | 7.97 | — | — |
-| `GET /features/retry` | no DB — retry policy | **1.23** | 4.51 | 1.95 | 8.01 | — | — |
-| `GET /features/pipeline` | no DB — middleware pipeline | **0.796** | 4.52 | 1.94 | 8.03 | — | — |
-| `GET /features/db-events` | 1 event row INSERTed per request | **1.74** | 5.38 | 3.12 | 8.84 | 2.72 | 2.60 |
-| `GET /features/events` | no DB — in-process listeners | **1.72** | 5.12 | 2.39 | 8.64 | 2.68 | 1.93 |
-| `GET /features/validation` | no DB — validator run | **0.797** | 5.55 | 2.28 | 8.11 | 2.27 | 1.80 |
-| `GET /features/config` | no DB — config lookup | **0.757** | 4.52 | 1.94 | 7.96 | 1.93 | 1.36 |
-| `GET /features/request-scoped` | no DB — scoped service resolve | **0.774** | 4.53 | 1.93 | 8.00 | 1.91 | 1.38 |
-| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.777** | 4.71 | 1.98 | 8.12 | 1.93 | 1.51 |
+| `GET /` | no DB — routing + template only | **0.639** | 3.85 | 2.01 | 7.62 | 1.91 | 1.43 |
+| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **1.37** | 5.03 | 3.65 | 8.63 | 2.64 | 2.77 |
+| `GET /items/1` | 1 item by id | **1.27** | 4.69 | 2.97 | 8.49 | 2.53 | 2.57 |
+| `POST /items` | 1 row upserted (sentinel #999999) | **1.42** | 4.70 | 3.96 | 8.62 | 2.64 | 2.72 |
+| `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **1.19** | 4.51 | 2.59 | 8.15 | 2.57 | 2.20 |
+| `GET /items-qb/1` | 1 item by id | **1.14** | 4.36 | 2.54 | 8.12 | 2.50 | 2.13 |
+| `POST /items-qb` | 1 row upserted (sentinel #999997) | **1.25** | 4.48 | 3.46 | 8.21 | 2.73 | 2.26 |
+| `GET /api/items` | 20 of 1000 items as JSON | **1.14** | 4.85 | 2.96 | 7.64 | 2.46 | 2.46 |
+| `GET /api/items/1` | 1 item by id as JSON | **1.19** | 4.63 | 2.70 | 7.55 | 2.42 | 2.43 |
+| `POST /api/items` | 1 row upserted (sentinel #999998) | **1.23** | 4.51 | 3.71 | 7.67 | 2.56 | 2.59 |
+| `GET /features/aop` | no DB — interceptor pipeline | **2.39** | 5.21 | 3.26 | 9.27 | — | — |
+| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **1.44** | 4.56 | 2.91 | 8.38 | 2.40 | 2.34 |
+| `GET /features/log` | no DB — buffered log handlers | **1.02** | 3.76 | 1.91 | 7.75 | — | — |
+| `GET /features/retry` | no DB — retry policy | **1.02** | 3.80 | 1.91 | 7.79 | — | — |
+| `GET /features/pipeline` | no DB — middleware pipeline | **0.591** | 3.77 | 1.90 | 7.82 | — | — |
+| `GET /features/db-events` | 1 event row INSERTed per request | **1.53** | 4.55 | 3.06 | 8.66 | 2.66 | 2.54 |
+| `GET /features/events` | no DB — in-process listeners | **1.49** | 4.28 | 2.34 | 8.50 | 2.57 | 1.88 |
+| `GET /features/validation` | no DB — validator run | **0.593** | 4.75 | 2.22 | 7.95 | 2.20 | 1.75 |
+| `GET /features/config` | no DB — config lookup | **0.546** | 3.75 | 1.90 | 7.73 | 1.86 | 1.30 |
+| `GET /features/request-scoped` | no DB — scoped service resolve | **0.546** | 3.73 | 1.90 | 7.74 | 1.85 | 1.32 |
+| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.549** | 3.88 | 1.91 | 7.99 | 1.86 | 1.45 |
 
 **Full comparison** — this page is a summary. The complete report, with every feature chart and the endpoint table for all six frameworks, is published at:
 
 - The complete report (all six frameworks, every feature chart) — <https://sailantis.github.io/azera-competition/benchmarks/>
 - This model, measured end to end — <https://sailantis.github.io/azera-competition/benchmarks/view-real-fpm.html>
-- The RoadRunner summary — <https://sailantis.github.io/azera-competition/benchmarks/view-summary-roadrunner.html>
+- The same work as a resident worker (Volucer) — <https://sailantis.github.io/azera-competition/benchmarks/view-summary-volucer.html>
 
 ---
 
