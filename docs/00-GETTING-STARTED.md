@@ -15,11 +15,24 @@
 composer require sailantis/azera-framework
 ```
 
+For a complete starter project with a `BootstrapProvider`, routing, views, and a
+console, create one with Composer:
+
+```bash
+composer create-project sailantis/azera-app my-app
+cd my-app
+composer serve
+```
+
+The [Azera App skeleton](https://github.com/sailantis/azera-app) is also
+cloneable directly if you prefer to manage the repository yourself.
+
 ## Recommended Structure
 
 ```text
 your-project/
 ├── app/
+│   ├── Bootstrap.php
 │   ├── Controllers/
 │   ├── Models/
 │   ├── Tasks/
@@ -29,56 +42,73 @@ your-project/
 └── composer.json
 ```
 
-## Minimal Web Bootstrap
+## Bootstrap Provider
 
-Create [public/index.php](../public/index.php):
+Implement `Azera\Boot\BootstrapProvider` in an autoloadable application class.
+Its `boot()` method configures the application context, including routes,
+middleware, and services. The Azera CLI discovers the provider from the
+project's Composer autoload mappings.
+
+Create [app/Bootstrap.php](../app/Bootstrap.php):
+
+```php
+<?php
+
+namespace App;
+
+use Azera\AppContext;
+use Azera\Boot\BootstrapProvider;
+use Azera\Db\Database;
+use Azera\Http\SessionMiddleware;
+
+class Bootstrap implements BootstrapProvider
+{
+    public function boot(): void
+    {
+        $ctx = AppContext::instance();
+
+        $ctx->view()->setViewPath(\dirname(__DIR__) . '/views');
+        $ctx->dbManager()->set(
+            'default',
+            fn() => new Database('mysql:host=localhost;dbname=myapp', 'user', 'pass'),
+        );
+
+        $dispatcher = $ctx->dispatcher();
+        $dispatcher->setBaseNamespace('\\App\\Controllers');
+        $dispatcher->setDefaultController('IndexController');
+        $dispatcher->setDefaultAction('indexAction');
+        $dispatcher->addMiddleware(new SessionMiddleware());
+
+        $router = $ctx->router();
+        $router->add('GET', '/', 'IndexController::indexAction');
+        $router->add('GET', '/users/{id:int}', 'UserController::viewAction')
+            ->setName('user.view');
+    }
+}
+```
+
+Call the provider from [public/index.php](../public/index.php), then match and
+dispatch the request:
 
 ```php
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Azera\AppContext;
-use Azera\Db\Database;
-use Azera\Http\Response;
-use Azera\Http\SessionMiddleware;
-// Initialize application context
-$ctx = AppContext::instance();
+(new \App\Bootstrap())->boot();
 
-// Register database connection(s)
-$ctx->dbManager()->set('default', new Database('mysql:host=localhost;dbname=myapp', 'user', 'pass'));
+$ctx = \Azera\AppContext::instance();
+$request = $ctx->request();
+$route = $ctx->router()->match($request->path(), $request->method());
 
-// Configure view engine
-$ctx->view()->setViewPath(__DIR__ . '/../views');
-$ctx->view()->setLayout('layouts/main');   // default wrapping layout for all views
+$response = $route === null
+    ? \Azera\Http\Response::text("404 Not Found\n", 404)
+    : $ctx->dispatcher()->dispatch($route);
 
-// Set up routing
-$router = $ctx->router();
-$router->add('GET', '/', 'IndexController::indexAction');
-$router->add('GET', '/users/{id:int}', 'UserController::viewAction')->setName('user.view');
-
-// Configure the context-managed dispatcher
-$dispatcher = $ctx->dispatcher();
-$dispatcher->setBaseNamespace('\\App\\Controllers');
-$dispatcher->setDefaultController('IndexController');
-$dispatcher->setDefaultAction('indexAction');
-$dispatcher->addMiddleware(new SessionMiddleware()); // starts PHP session; makes $ctx->session() available
-
-// Get the current request URI and method
-$path   = $ctx->request()->path();
-$method = $ctx->request()->method();
-
-// Match the route and dispatch
-$route = $router->match($path, $method);
-if ($route === null) {
-    // No route matched, return 404 response
-    $response = Response::status(404);
-} else {
-    // Dispatcher will invoke the controller action and store route info in AppContext
-    $response = $dispatcher->dispatch($route);
-}
-// Send the response to the client
 $response->send();
 ```
+
+The CLI can discover the provider when its class is included in Composer's
+autoload mappings. See [About composer.json](#about-composerjson) below.
 
 ## Minimal Controller
 
@@ -99,53 +129,50 @@ class IndexController extends Controller
 }
 ```
 
-To render a view, return an array of variables — the framework passes them to the matching template automatically:
-
-```php
-public function indexAction(): array
-{
-    return ['title' => 'Welcome', 'version' => '1.0'];
-}
-```
-
-You can also render explicitly using the view engine:
+Returning an array from a controller action produces a JSON response; it does
+not select a view. To render a template, pass its logical name and variables
+to the view engine:
 
 ```php
 public function indexAction(): string
 {
-    return $this->view()->render('home/index', ['title' => 'Welcome']);
+    return $this->view()->render('index/index', ['title' => 'Welcome']);
 }
 ```
 
 ## Minimal View
 
-Templates live under the view path configured in the bootstrap. By default, Azera resolves them as `{controller}/{action}` relative to that path.
+Clarity is Azera's default view engine. Templates live under the view path
+configured in the bootstrap and use the `.clarity.html` extension. The route's
+controller and action do not determine the template name: `render('index/index')`
+resolves to `views/index/index.clarity.html`. Clarity automatically escapes
+values printed with `{{ ... }}`.
 
-Create [views/home/index.php](../views/home/index.php):
+Create [views/index/index.clarity.html](../views/index/index.clarity.html):
 
-```php
-<h1><?= htmlspecialchars($title) ?></h1>
-<p>Application is running.</p>
+```twig
+{% extends "layouts/main" %}
+{% block title %}{{ title ?? 'Welcome' }}{% endblock %}
+{% block body %}
+    <h1>{{ title ?? 'Welcome' }}</h1>
+    <p>Application is running.</p>
+{% endblock %}
 ```
 
-If you configured a layout (`$ctx->view()->setLayout('layouts/main')`), create the layout file and output the rendered view body via `$content`:
+Use Clarity template inheritance for page layouts. Create the parent template
+[views/layouts/main.clarity.html](../views/layouts/main.clarity.html) with the
+blocks child templates can override:
 
-Create [views/layouts/main.php](../views/layouts/main.php):
-
-```php
+```twig
 <!DOCTYPE html>
 <html>
-<head><title><?= htmlspecialchars($title ?? 'App') ?></title></head>
+<head>
+    <title>{% block title %}App{% endblock %}</title>
+</head>
 <body>
-<?= $content ?>
+    {% block body %}{% endblock %}
 </body>
 </html>
-```
-
-To render without the layout (e.g. for partials or JSON responses), use `renderPartial()`:
-
-```php
-return $this->view()->renderPartial('partials/flash', ['message' => 'Saved!']);
 ```
 
 ## Minimal Model
@@ -182,6 +209,50 @@ $newUser = User::create([
 $exists = User::exists(['email' => 'alice@example.com']);
 ```
 
+For the `/users/{id:int}` route, create
+[app/Controllers/UserController.php](../app/Controllers/UserController.php):
+
+```php
+<?php
+namespace App\Controllers;
+
+use App\Models\User;
+use Azera\Core\Controller;
+use Azera\Http\Response;
+
+class UserController extends Controller
+{
+    public function viewAction(int $id): string|Response
+    {
+        $user = User::find($id);
+        if ($user === null) {
+            return Response::text("User not found\n", 404);
+        }
+
+        return $this->view()->render('users/view', ['user' => $user]);
+    }
+}
+```
+
+The `{id:int}` route parameter is passed to the matching `int $id` action
+argument. Configure the database connection for your environment before
+querying models.
+
+Create [views/users/view.clarity.html](../views/users/view.clarity.html):
+
+```twig
+{% extends "layouts/main" %}
+{% block title %}{{ user.username }}{% endblock %}
+{% block body %}
+    <h1>{{ user.username }}</h1>
+    <p>User ID: {{ user.id }}</p>
+    <p>Email: {{ user.email }}</p>
+{% endblock %}
+```
+
+See the [Clarity Engine guide](03b-CLARITY-ENGINE.md) for template inheritance
+and other features.
+
 ## Middleware
 
 Middleware runs before (and after) every controller action. Register global middleware on the dispatcher:
@@ -191,7 +262,11 @@ $dispatcher->addMiddleware(new SessionMiddleware());  // built-in: starts PHP se
 $dispatcher->addMiddleware(new MyAuthMiddleware());   // custom
 ```
 
-You can also restrict middleware to specific controllers or actions using the `$middlewares` and `$actionMiddlewares` properties on a controller class. See [Controllers & Views](03-CONTROLLERS-VIEWS.md) for details.
+To apply middleware only to selected routes, use the router's
+`middleware()` groups; see [Middleware Groups in MVC Routing](02-CORE-ROUTING.md#prefix-namespace-controller-and-middleware-groups).
+You can also restrict middleware to specific controllers or actions using the
+`$middlewares` and `$actionMiddlewares` properties on a controller class. See
+[Controllers & Views](03-CONTROLLERS-VIEWS.md) for details.
 
 ## CLI Tasks
 

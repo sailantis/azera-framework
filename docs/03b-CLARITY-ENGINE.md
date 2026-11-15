@@ -1017,35 +1017,33 @@ The chart and the table below are generated from the run's own JSON, so the
 figures cannot drift from the data they came from:
 
 <!-- view-engine:begin -->
-
 Clarity is measured against other PHP template engines rendering the same page, on the same machine and PHP build. The chart and the table below are generated from the run's own JSON.
 
 ![Template engine benchmark](images/benchmarks/view-engine/render-time.svg)
 
 Rows are ordered by median, fastest first. A difference of a few percent is a tie — it is within a single engine's own run-to-run spread.
 
-| Engine   | First render (ms) | Mean (ms) | Median (ms) | Min (ms) | p95 (ms) | Retained (MB) | Peak (MB) |
-| -------- | ----------------: | --------: | ----------: | -------: | -------: | ------------: | --------: |
-| Clarity  |            16.276 |     0.436 |       0.421 |    0.397 |    0.507 |          1.03 |      1.61 |
-| Stempler |            23.179 |     0.443 |       0.427 |    0.398 |    0.518 |          1.29 |      1.71 |
-| Native   |             0.686 |     0.464 |       0.449 |    0.423 |    0.537 |          0.79 |      1.61 |
-| Plates   |             2.684 |     0.551 |       0.531 |    0.493 |    0.644 |          0.86 |      1.61 |
-| Latte    |            46.966 |     0.720 |       0.692 |    0.661 |    0.840 |          1.44 |      7.12 |
-| Blade    |            31.396 |     0.750 |       0.724 |    0.687 |    0.873 |          1.57 |      2.05 |
-| Twig     |            35.577 |     1.288 |       1.249 |    1.195 |    1.506 |          1.48 |      1.79 |
+| Engine | First render (ms) | Mean (ms) | Median (ms) | Min (ms) | p95 (ms) | Retained (MB) | Peak (MB) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Native | 1.465 | 0.403 | 0.394 | 0.374 | 0.454 | 1.61 | 2.15 |
+| Clarity | 24.361 | 0.414 | 0.404 | 0.383 | 0.468 | 2.29 | 2.60 |
+| Plates | 3.809 | 0.431 | 0.421 | 0.400 | 0.487 | 1.68 | 2.56 |
+| Stempler | 60.995 | 0.432 | 0.422 | 0.400 | 0.485 | 2.42 | 2.84 |
+| Latte | 86.525 | 0.624 | 0.603 | 0.577 | 0.714 | 2.88 | 8.56 |
+| Blade | 40.053 | 0.667 | 0.643 | 0.609 | 0.774 | 3.01 | 3.49 |
+| Twig | 59.394 | 1.055 | 1.027 | 0.985 | 1.179 | 2.93 | 3.62 |
 
-**Environment** — PHP 8.3.33 · Linux 6.8.0-139-generic · SAPI cli · OPcache (`opcache.enable_cli`): yes
+**Environment** — PHP 8.5.11 · Linux 6.8.0-139-generic · SAPI cli · OPcache (`opcache.enable_cli`): yes · JIT: tracing (buffer 64M) · Clarity template revalidate: 60 s
 
 **Budget** — 10,000 renders × 30 runs, 200 items per render
 
 **Method** — Steady-state timings: the render loop for each (engine, page) cell runs in its own fresh process against a warm cache: one untimed warm-up render, then runs x iterations-per-run timed renders. No order: each (engine, page) cell is measured in its own process, so measurement order cannot affect a cell. The first render was measured as one render in a fresh process with a cold template cache: engine class loading, template compile, cache write and one render.
 
-**Engines** — Clarity dev-main (cbe1b05+dirty) · NativeEngine (Azera) dev-main (5a0c30e+dirty) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2 · Latte 3.1.6
+**Engines** — Clarity dev-main (v0.4.2) · NativeEngine (Azera) dev-main (v0.4.1-5-gf9b2de0) · Plates 3.6.0 · Blade 12.69.2 · Twig 3.27.0 · Stempler 3.17.2 · Latte 3.1.6
 
-_Measured 2026-09-30T23:30:00+00:00_
+_Measured 2026-11-12T15:15:49+00:00_
 
 Full report — every chart, including the first render and per-run memory: <https://sailantis.github.io/azera-competition/benchmarks/view-engine.html>
-
 <!-- view-engine:end -->
 
 The harness lives in `azera-competition` (not in this repository): run
