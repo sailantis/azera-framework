@@ -218,10 +218,11 @@ User::create($data);
 `Paginator` wraps any `Query`, handles `LIMIT`/`OFFSET`, and runs an automatic total-count query.
 
 ```php
+$page = max(1, (int)$ctx->request()->get('page', 1));
 $paginator = User::query()
     ->where('status', 'active')
     ->orderBy('name')
-    ->paginate(page: (int)($_GET['page'] ?? 1), pageSize: 20);
+    ->paginate(page: $page, pageSize: 20);
 
 $users = $paginator->entities();  // identity-mapped User instances
 
