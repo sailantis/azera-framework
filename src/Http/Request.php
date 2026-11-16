@@ -111,6 +111,7 @@ class Request
      * @param ?string $name
      * @param mixed $default
      * @return mixed
+     * @see get() for the same functionality
      */
     public function query(?string $name = null, mixed $default = null): mixed
     {
@@ -121,10 +122,11 @@ class Request
     }
 
     /**
-     * Get a GET parameter from the request
+     * Get a query parameter from the request
      * @param ?string $name
      * @param mixed $default
      * @return mixed
+     * @see query() for the same functionality
      */
     public function get(?string $name = null, mixed $default = null): mixed
     {
