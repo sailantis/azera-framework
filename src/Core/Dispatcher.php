@@ -4,6 +4,7 @@ namespace Azera\Core;
 
 use Azera\AppContext;
 use Azera\Core\ResolvedRoute;
+use Azera\Http\Cookies;
 use Azera\Http\Response;
 use InvalidArgumentException;
 use Azera\Core\Exceptions\ActionNotFoundException;
@@ -184,10 +185,12 @@ class Dispatcher
         // Auto-OPTIONS: short-circuit before any controller resolution
         if (!empty($routeInfo['__auto_options'])) {
             $methods = implode(', ', $routeInfo['__allowed_methods']);
-            return Response::status(204)
-                ->setHeader('Allow', $methods)
-                ->setHeader('Access-Control-Allow-Methods', $methods)
-                ->setHeader('Access-Control-Allow-Headers', '*');
+            return $this->finalize(
+                Response::status(204)
+                    ->addHeader('Allow', $methods)
+                    ->addHeader('Access-Control-Allow-Methods: ' . $methods)
+                    ->addHeader('Access-Control-Allow-Headers: *')
+            );
         }
 
         $groups   = $routeInfo['groups'] ?? [];
@@ -273,7 +276,21 @@ class Dispatcher
 
         $response = $pipeline();
 
-        return $response ?? Response::status(204);
+        return $this->finalize(
+            $response ?? Response::status(204)
+        );
+    }
+
+    /**
+     * Apply cookies to the response before it is returned.
+     */
+    private function finalize(Response $response): Response
+    {
+        $cookies = $this->context->getOrNull(Cookies::class);
+        if ($cookies !== null) {
+            $cookies->applyTo($response);
+        }
+        return $response;
     }
 
     protected function resolveActionArguments(

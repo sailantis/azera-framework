@@ -44,7 +44,7 @@ class AppContext
             AppContext::class               => fn() => $this,
             CacheInterface::class           => fn() => new NullCache(),
             Config::class                   => fn() => new Config(),
-            Cookies::class                  => fn() => new Cookies(),
+            Cookies::class                  => fn() => new Cookies($this->request()),
             DatabaseManager::class          => fn() => new DatabaseManager(),
             Dispatcher::class               => fn() => new Dispatcher(),
             EventDispatcherInterface::class => fn() => new NullEventDispatcher(),

@@ -32,12 +32,15 @@ $allPost = $request->post();
 
 // Raw $_SERVER value
 $ua = $request->server('HTTP_USER_AGENT', '');
+
+// Cookies the client sent ($_COOKIE, or the worker's request)
+$theme  = $request->cookie('theme', 'light');
+$all    = $request->cookies();
 ```
 
 ### Checking Parameter Existence
 
-Use the `has*` helpers to distinguish a missing field from values such as
-`null` or `0`:
+Use the `has*` helpers to distinguish a missing field from values such as `null` or `0`:
 
 ```php
 $request->hasInput('token');     // isset in $_GET + $_POST

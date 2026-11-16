@@ -15,6 +15,7 @@ class Request
     private array $get;
     private array $post;
     private array $files;
+    private array $cookies;
     private ?string $rawBody = null;
     private bool $trustProxyHeaders;
     private array $request;
@@ -27,13 +28,15 @@ class Request
         ?array $get = null,
         ?array $post = null,
         ?array $files = null,
-        bool $trustProxyHeaders = false
+        bool $trustProxyHeaders = false,
+        ?array $cookies = null
     ) {
         $this->server            = $server ?? $_SERVER;
         $this->get               = $get ?? $_GET;
         $this->post              = $post ?? $_POST;
         $this->files             = $files ?? $_FILES;
         $this->trustProxyHeaders = $trustProxyHeaders;
+        $this->cookies           = $cookies ?? $_COOKIE;
         // GET < POST (explicit order, independent of php.ini)
         $this->request = [...$this->get, ...$this->post];
     }
@@ -148,6 +151,29 @@ class Request
             return $this->post;
         }
         return $this->post[$name] ?? $default;
+    }
+
+    /**
+     * Get the cookies the client sent.
+     *
+     * @return array<string, mixed>
+     */
+    public function cookies(): array
+    {
+        return $this->cookies;
+    }
+
+    /**
+     * Get a cookie value from the request
+     *
+     * @param string $name
+     * @param mixed $default
+     * @return mixed
+     * @see cookies() for the whole set
+     */
+    public function cookie(string $name, mixed $default = null): mixed
+    {
+        return $this->cookies[$name] ?? $default;
     }
 
     /**

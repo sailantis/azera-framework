@@ -177,11 +177,11 @@ class CipherProviderTest extends TestCase
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
 
-        $source = Cookie::make('role')->encrypted()->key(self::KEY);
+        $source = Cookie::create('role')->encrypted()->key(self::KEY);
         $source->set('admin');
         $payload = $enc->invoke($source, 'admin');
 
-        $victim = Cookie::make('theme')->encrypted()->key(self::KEY);
+        $victim = Cookie::create('theme')->encrypted()->key(self::KEY);
         $dec = new \ReflectionMethod(Cookie::class, 'decrypt');
 
         $this->assertNull($dec->invoke($victim, $payload));
@@ -190,7 +190,7 @@ class CipherProviderTest extends TestCase
     public function testCookieAcceptsCustomProvider(): void
     {
         $stub   = new StubCipher('custom-kms.v1');
-        $cookie = Cookie::make('sid')->encrypted()->key(self::KEY)->cipherProvider($stub);
+        $cookie = Cookie::create('sid')->encrypted()->key(self::KEY)->cipherProvider($stub);
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
         $payload = $enc->invoke($cookie, 'value');
@@ -204,7 +204,7 @@ class CipherProviderTest extends TestCase
         $stub     = new StubCipher('shared.v1');
         $registry = new CipherRegistry([$stub]);
 
-        $cookie = Cookie::make('sid')->encrypted()->key(self::KEY)->ciphers($registry);
+        $cookie = Cookie::create('sid')->encrypted()->key(self::KEY)->ciphers($registry);
         $cookie->set('x');
 
         $this->assertSame(['shared.v1'], $cookie->registry()->ids());
@@ -275,7 +275,7 @@ class CipherProviderTest extends TestCase
 
     public function testNullCipherUsesPreferredProvider(): void
     {
-        $cookie = Cookie::make('x')->encrypted()->key(self::KEY)->cipher(null);
+        $cookie = Cookie::create('x')->encrypted()->key(self::KEY)->cipher(null);
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
         $payload = $enc->invoke($cookie, 'v');
@@ -292,7 +292,7 @@ class CipherProviderTest extends TestCase
      */
     public function testPinningUnknownProviderThrows(): void
     {
-        $cookie = Cookie::make('x')->encrypted()->key(self::KEY)->cipher('does-not-exist.v1');
+        $cookie = Cookie::create('x')->encrypted()->key(self::KEY)->cipher('does-not-exist.v1');
 
         $enc = new \ReflectionMethod(Cookie::class, 'encrypt');
 

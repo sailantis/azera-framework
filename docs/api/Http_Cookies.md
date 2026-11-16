@@ -4,24 +4,38 @@
 
 Cookie jar that manages a collection of [`Cookie`](Http_Cookie.md) instances for the current request.
 
-Acts as a central registry for reading incoming cookies and building/sending
-outgoing Set-Cookie headers.
-
 ## Public methods
 
-### get() · <small>[🗎](../../src/Http/Cookies.php#L31)</small>
+### __construct() · <small>[🗎](../../src/Http/Cookies.php#L16)</small>
+
+`public function __construct(Azera\Http\Request|null $request = null): mixed`
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$request` | [Request](Http_Request.md)\|null | `null` | The request whose cookies this jar reads. |
+
+**Return value**
+
+- Type: `mixed`
+
+
+---
+
+### get() · <small>[🗎](../../src/Http/Cookies.php#L35)</small>
 
 `public function get(string $name, mixed $default = null): mixed`
 
-Read a cookie value from the incoming request.
+Read a cookie value from this jar or the incoming request.
 
-If the cookie was set in this request via `set()`, its in-memory value is
-returned; otherwise the value is read from $_COOKIE.
+A cookie obtained through `cookie()` uses its configured value and
+encryption settings. Otherwise, the request value is returned unchanged.
+Configure encrypted cookies before calling this method; the jar cannot infer
+which cookie names require encryption:
 
-For encrypted cookies the value is only ever returned when it decrypts
-and authenticates successfully. The raw cookie is never returned as a
-fallback: doing so would let an attacker supply a plaintext cookie and
-have it accepted verbatim, defeating the integrity check entirely.
+    $cookies->cookie('auth')->encrypted()->key($key);
+    $value = $cookies->get('auth');
 
 **Parameters**
 
@@ -37,14 +51,15 @@ have it accepted verbatim, defeating the integrity check entirely.
 
 ---
 
-### cookie() · <small>[🗎](../../src/Http/Cookies.php#L49)</small>
+### cookie() · <small>[🗎](../../src/Http/Cookies.php#L54)</small>
 
 `public function cookie(string $name): Azera\Http\Cookie`
 
 Get (or lazily create) a [`Cookie`](Http_Cookie.md) instance for the given name.
 
-Use this when you need to configure encryption, path, etc. before reading
-or sending the cookie.
+Use this when you need to configure encryption, path, etc. before reading or
+sending the cookie. The cookie is loaded with the incoming value, so
+[`Cookie::value()`](Http_Cookie.md#value) decrypts it as usual.
 
 **Parameters**
 
@@ -59,13 +74,13 @@ or sending the cookie.
 
 ---
 
-### set() · <small>[🗎](../../src/Http/Cookies.php#L69)</small>
+### set() · <small>[🗎](../../src/Http/Cookies.php#L73)</small>
 
 `public function set(string $name, mixed $value, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): Azera\Http\Cookie`
 
 Create and register a new [`Cookie`](Http_Cookie.md) with the given parameters.
 
-The cookie is not sent until `sendAll()` (or [`Cookie::send()`](Http_Cookie.md#send)) is called.
+The cookie is not sent until `applyTo()` drains the jar.
 
 **Parameters**
 
@@ -87,11 +102,14 @@ The cookie is not sent until `sendAll()` (or [`Cookie::send()`](Http_Cookie.md#s
 
 ---
 
-### delete() · <small>[🗎](../../src/Http/Cookies.php#L88)</small>
+### delete() · <small>[🗎](../../src/Http/Cookies.php#L96)</small>
 
 `public function delete(string $name): void`
 
-Delete a cookie by emitting a Set-Cookie header with an expiration in the past.
+Delete a cookie by making the response carry a past-expiry `Set-Cookie`.
+
+Works for a cookie that was never registered, and does not depend on
+`setcookie()` — a worker is not a SAPI, so `setcookie()` does nothing there.
 
 **Parameters**
 
@@ -106,15 +124,47 @@ Delete a cookie by emitting a Set-Cookie header with an expiration in the past.
 
 ---
 
-### sendAll() · <small>[🗎](../../src/Http/Cookies.php#L100)</small>
+### clear() · <small>[🗎](../../src/Http/Cookies.php#L112)</small>
 
-`public function sendAll(): void`
+`public function clear(): void`
 
-Send all registered cookies by emitting their Set-Cookie headers.
+Drop every queued cookie so this response carries none.
+
+The counterpart to the automatic drain: writing a cookie and then deciding the
+response should not carry it (a 304, an error path) needs an off switch.
+
+Reading is unaffected — the incoming values live on the [`Request`](Http_Request.md), not in
+this jar — so `clear()` only stops *emission*.
 
 **Return value**
 
 - Type: `void`
+
+
+---
+
+### applyTo() · <small>[🗎](../../src/Http/Cookies.php#L131)</small>
+
+`public function applyTo(Azera\Http\Response $response): Azera\Http\Response`
+
+Write the cookies that changed in this request onto the response.
+
+Only dirty cookies are emitted: a cookie the application merely read must not
+come back as a `Set-Cookie`. The dirty flag is cleared afterwards, so calling
+this twice in one request cannot duplicate a header.
+
+Returns the same instance so a caller can chain it, and so
+`Dispatcher::finalize()` can simply `return` the result.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$response` | [Response](Http_Response.md) | - |  |
+
+**Return value**
+
+- Type: [Response](Http_Response.md)
 
 
 

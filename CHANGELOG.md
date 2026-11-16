@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Incoming cookies are read from `Request`, not `$_COOKIE`.** `Cookies`, `Cookie`,
+  and `CsrfMiddleware` now use the request as their source, so workers that disable
+  CGI globals with `Worker::withoutCgiGlobals()` can still read client cookies.
+  Previously, these components read `$_COOKIE` directly and returned the caller's
+  default when it was unavailable.
+- **Worker responses now include `Set-Cookie` headers.** `Cookie::send()` and
+  `Cookies::sendAll()` used `setcookie()`, which returns `true` but writes no response
+  header under worker SAPIs; outgoing cookies were silently dropped. `Dispatcher`
+  now adds cookies from the jar to responses. Response headers use one ordered list,
+  preserving repeated lines such as multiple `Set-Cookie` values.
+
+### Added
+
+- `Request::cookies()`, `Request::cookie()`.
+- `Cookie::create()` (replacing `make()`), `toHeader()`, `isDirty()`,
+  `setRaw()`.
+- `Cookies::applyTo()`, `Cookies::clear()`.
+- `Response::addHeader()`, `Response::addHeaders()`, `Response::addCookie()`,
+  `Response::replaceHeader()`, `Response::replaceHeaders()`.
+
+### Changed
+
+- **BREAKING:** `Cookie::make()` was renamed to `Cookie::create()`, following the
+  framework's factory convention (`Model::create()`). `make()` is removed with no
+  alias.
+- **BREAKING:** `Response::getHeaders()` now returns complete header lines
+  (`'Content-Type: application/json'`); repeated headers appear as separate
+  entries. `Response::getHeader($name)` returns the trimmed value of the first
+  matching line (or `null`), matching `Request::header()` and PSR-7.
+- **BREAKING:** `Response::setHeader()`/`setHeaders()` were replaced by
+  `replaceHeader()`/`replaceHeaders()`, which accept a complete line and match its
+  field name. `addHeader()`/`addHeaders()` append complete lines, so repeated headers
+  such as `Set-Cookie` are preserved. The constructor and the `json()`, `html()`,
+  `text()`, and `redirect()` factories use the same format.
+- **BREAKING:** `Cookie::send()` and `Cookies::sendAll()` were removed. They called
+  `setcookie()`, which has no effect under workers and would duplicate the header
+  emitted by `Response::send()` under `php-fpm`. Responses are now the only cookie
+  emission path. `Cookie::delete()` returns `static` and queues a past-expiry header.
+- Only **written or modified** cookies are emitted; reading a cookie does not queue it.
+  Because a `Cookie` request header contains no attributes, re-emitting a read cookie
+  with the jar's defaults could change its expiry, path, or security settings.
+- Changing an attribute such as `expires()` or `secure()` on a cookie read from the
+  request emits its existing value with the updated attributes. `Cookie::toHeader()`
+  gets the value through `value()`, which decrypts the raw incoming value unless
+  `set()` has replaced it.
+- `Cookies` now requires a request to read incoming cookies; `AppContext` supplies it.
+  A jar constructed with `new Cookies()` has no incoming cookies to read.
+
 ## [0.4.2] - 2026-11-09
 
 Installed by `composer require` from this tag. A **minor** release with no breaking changes. Updated product images and documentation.

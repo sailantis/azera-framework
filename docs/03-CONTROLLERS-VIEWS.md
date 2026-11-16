@@ -64,7 +64,7 @@ All helpers delegate to `AppContext` and are available anywhere inside the contr
 | `$this->request()` | `Azera\Http\Request`           |
 | `$this->view()`    | `Azera\Core\ViewEngine`        |
 | `$this->session()` | `Azera\Http\Session` or `null` |
-| `$this->cookies()` | `Azera\Http\Cookies`           |
+| `$this->cookies()` | `Azera\Http\Cookies` — set cookies; emitted on the response |
 
 ---
 
@@ -135,7 +135,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
     {
         $response = $next($context); // run the action (and earlier middleware)
         if ($response instanceof Response) {
-            $response->setHeader('X-Frame-Options', 'DENY');
+            $response->replaceHeader('X-Frame-Options: DENY');
         }
         return $response;
     }

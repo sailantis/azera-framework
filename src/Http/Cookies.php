@@ -4,9 +4,6 @@ namespace Azera\Http;
 
 /**
  * Cookie jar that manages a collection of {@see Cookie} instances for the current request.
- *
- * Acts as a central registry for reading incoming cookies and building/sending
- * outgoing Set-Cookie headers.
  */
 class Cookies
 {
@@ -14,15 +11,22 @@ class Cookies
     protected array $cookies = [];
 
     /**
-     * Read a cookie value from the incoming request.
+     * @param Request|null $request The request whose cookies this jar reads.
+     */
+    public function __construct(
+        protected ?Request $request = null
+    ) {}
+
+    /**
+     * Read a cookie value from this jar or the incoming request.
      *
-     * If the cookie was set in this request via {@see set()}, its in-memory value is
-     * returned; otherwise the value is read from $_COOKIE.
+     * A cookie obtained through {@see cookie()} uses its configured value and
+     * encryption settings. Otherwise, the request value is returned unchanged.
+     * Configure encrypted cookies before calling this method; the jar cannot infer
+     * which cookie names require encryption:
      *
-     * For encrypted cookies the value is only ever returned when it decrypts
-     * and authenticates successfully. The raw cookie is never returned as a
-     * fallback: doing so would let an attacker supply a plaintext cookie and
-     * have it accepted verbatim, defeating the integrity check entirely.
+     *     $cookies->cookie('auth')->encrypted()->key($key);
+     *     $value = $cookies->get('auth');
      *
      * @param string $name    Cookie name.
      * @param mixed  $default Default value when the cookie is absent.
@@ -34,28 +38,28 @@ class Cookies
             return $this->cookies[$name]->value($default);
         }
 
-        return $_COOKIE[$name] ?? $default;
+        return $this->request?->cookie($name, $default) ?? $default;
     }
 
     /**
      * Get (or lazily create) a {@see Cookie} instance for the given name.
      *
-     * Use this when you need to configure encryption, path, etc. before reading
-     * or sending the cookie.
+     * Use this when you need to configure encryption, path, etc. before reading or
+     * sending the cookie. The cookie is loaded with the incoming value, so
+     * {@see Cookie::value()} decrypts it as usual.
      *
      * @param string $name Cookie name.
      * @return Cookie
      */
     public function cookie(string $name): Cookie
     {
-        return $this->cookies[$name]
-            ??= new Cookie($name);
+        return $this->cookies[$name] ??= $this->newCookie($name);
     }
 
     /**
      * Create and register a new {@see Cookie} with the given parameters.
      *
-     * The cookie is not sent until {@see sendAll()} (or {@see Cookie::send()}) is called.
+     * The cookie is not sent until {@see applyTo()} drains the jar.
      *
      * @param string $name     Cookie name.
      * @param mixed  $value    Cookie value.
@@ -75,32 +79,83 @@ class Cookies
         bool $secure = false,
         bool $httpOnly = true
     ): Cookie {
-        $cookie = new Cookie($name, $value, $expires, $path, $domain, $secure, $httpOnly);
-        $this->cookies[$name] = $cookie;
-        return $cookie;
+        $cookie = $this->newCookie($name, $expires, $path, $domain, $secure, $httpOnly);
+        $cookie->set($value);
+
+        return $this->cookies[$name] = $cookie;
     }
 
     /**
-     * Delete a cookie by emitting a Set-Cookie header with an expiration in the past.
+     * Delete a cookie by making the response carry a past-expiry `Set-Cookie`.
+     *
+     * Works for a cookie that was never registered, and does not depend on
+     * `setcookie()` — a worker is not a SAPI, so `setcookie()` does nothing there.
      *
      * @param string $name Cookie name.
      */
     public function delete(string $name): void
     {
-        if (isset($this->cookies[$name])) {
-            $this->cookies[$name]->delete();
-        } else {
-            (new Cookie($name))->delete();
-        }
+        $cookie = $this->cookies[$name] ?? $this->newCookie($name);
+
+        $this->cookies[$name] = $cookie->delete();
     }
 
     /**
-     * Send all registered cookies by emitting their Set-Cookie headers.
+     * Drop every queued cookie so this response carries none.
+     *
+     * The counterpart to the automatic drain: writing a cookie and then deciding the
+     * response should not carry it (a 304, an error path) needs an off switch.
+     *
+     * Reading is unaffected — the incoming values live on the {@see Request}, not in
+     * this jar — so `clear()` only stops *emission*.
      */
-    public function sendAll(): void
+    public function clear(): void
     {
         foreach ($this->cookies as $cookie) {
-            $cookie->send();
+            $cookie->markClean();
         }
+
+        $this->cookies = [];
+    }
+
+    /**
+     * Write the cookies that changed in this request onto the response.
+     *
+     * Only dirty cookies are emitted: a cookie the application merely read must not
+     * come back as a `Set-Cookie`. The dirty flag is cleared afterwards, so calling
+     * this twice in one request cannot duplicate a header.
+     *
+     * Returns the same instance so a caller can chain it, and so
+     * `Dispatcher::finalize()` can simply `return` the result.
+     */
+    public function applyTo(Response $response): Response
+    {
+        foreach ($this->cookies as $cookie) {
+            if ($cookie->isDirty()) {
+                $response->addCookie($cookie);
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * Build a cookie already loaded with the value the client sent.
+     *
+     * The incoming value is attached with {@see Cookie::setRaw()} so the cookie
+     * starts clean: it is readable but not pending.
+     */
+    private function newCookie(
+        string $name,
+        int $expires = 0,
+        string $path = '/',
+        string $domain = '',
+        bool $secure = false,
+        bool $httpOnly = true
+    ): Cookie {
+        $rawValue = $this->request?->cookie($name);
+
+        return (new Cookie($name, null, $expires, $path, $domain, $secure, $httpOnly))
+            ->setRaw(is_string($rawValue) ? $rawValue : null);
     }
 }

@@ -133,12 +133,12 @@ class RoutingStateController extends Controller
             'vars'       => $route->vars ?? null,
             // The resolved route carries the route's identity only; the invocation
             // argument list is rebuilt per request and is not part of it.
-            'params'     => $route->params ?? null,
+            'params' => $route->params ?? null,
             // What the dispatcher INVOKED this action with. `func_get_args()`
             // includes the variadic tail and omits only trailing defaults the
             // dispatcher did not pass, which is exactly the observable wanted here:
             // route variables reaching the action.
-            'received'   => \func_get_args(),
+            'received' => \func_get_args(),
         ];
     }
 }
@@ -176,10 +176,9 @@ class DispatcherTest extends TestCase
         return $rp->getValue($r);
     }
 
-    private function responseHeaders(Response $r): array
+    private function responseHeader(Response $r, string $name): ?string
     {
-        $rp = new \ReflectionProperty($r, 'headers');
-        return $rp->getValue($r);
+        return $r->getHeader($name);
     }
 
     public function testReturnTypeConversions(): void
@@ -190,17 +189,17 @@ class DispatcherTest extends TestCase
         $res = $disp->dispatch($this->routeWithOverride(DTResponseController::class, 'act'));
         $this->assertInstanceOf(Response::class, $res);
         $this->assertEquals('response', $this->responseBody($res));
-        $this->assertEquals('text/plain; charset=utf-8', $this->responseHeaders($res)['Content-Type']);
+        $this->assertEquals('text/plain; charset=utf-8', $this->responseHeader($res, 'Content-Type'));
 
         // string -> text
         $res = $disp->dispatch($this->routeWithOverride(DTStringController::class, 'act'));
         $this->assertInstanceOf(Response::class, $res);
         $this->assertEquals('hello', $this->responseBody($res));
-        $this->assertEquals('text/html; charset=utf-8', $this->responseHeaders($res)['Content-Type']);
+        $this->assertEquals('text/html; charset=utf-8', $this->responseHeader($res, 'Content-Type'));
 
         // array -> json
         $res = $disp->dispatch($this->routeWithOverride(DTArrayController::class, 'act'));
-        $this->assertEquals('application/json', $this->responseHeaders($res)['Content-Type']);
+        $this->assertEquals('application/json', $this->responseHeader($res, 'Content-Type'));
         $this->assertEquals(json_encode(['a' => 1], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $this->responseBody($res));
 
         // int -> status
@@ -308,7 +307,7 @@ class DispatcherTest extends TestCase
             'groups' => [],
         ]);
 
-        $this->assertEquals('application/json', $this->responseHeaders($res)['Content-Type']);
+        $this->assertEquals('application/json', $this->responseHeader($res, 'Content-Type'));
         $payload = json_decode($this->responseBody($res), true);
         $this->assertEquals('\\Azera\\Tests\\Mvc\\RoutingStateController', $payload['controller']);
         $this->assertEquals('fromOverride', $payload['action']);
@@ -335,7 +334,7 @@ class DispatcherTest extends TestCase
             ],
         ]);
 
-        $this->assertEquals('application/json', $this->responseHeaders($res)['Content-Type']);
+        $this->assertEquals('application/json', $this->responseHeader($res, 'Content-Type'));
         $payload = json_decode($this->responseBody($res), true);
         $this->assertEquals([], $payload['groups']);
         $this->assertEquals(42, $payload['vars']['id']);
@@ -377,7 +376,7 @@ class DispatcherTest extends TestCase
             ],
         ]);
 
-        $this->assertEquals('application/json', $this->responseHeaders($res)['Content-Type']);
+        $this->assertEquals('application/json', $this->responseHeader($res, 'Content-Type'));
         $payload = json_decode($this->responseBody($res), true);
 
         $stored = $context->route();

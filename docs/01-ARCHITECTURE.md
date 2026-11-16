@@ -25,7 +25,7 @@ Built-in lazy service accessors:
 | `request()`   | `Azera\Http\Request`                                                              |
 | `view()`      | `Azera\Core\ViewEngine`                                                           |
 | `session()`   | `Azera\Http\Session\|null`                                                        |
-| `cookies()`   | `Azera\Http\Cookies`                                                              |
+| `cookies()`   | `Azera\Http\Cookies` — reads via `request()->cookies()`, emits what was written |
 | `dbManager()` | `Azera\Db\DatabaseManager`                                                        |
 | `route()`     | `Azera\Core\ResolvedRoute\|null` – populated by Dispatcher                        |
 | `logger()`    | `Psr\Log\LoggerInterface` – `NullLogger` by default                               |

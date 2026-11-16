@@ -165,14 +165,14 @@ Cookies default to `httpOnly = true` (inaccessible to JavaScript). Enable `secur
 ```php
 use Azera\Http\Cookie;
 
-$cookie = Cookie::make('auth')
+// Write: the jar queues it and the response carries it (see below).
+$cookie = Cookie::create('auth')
     ->set($token)
     ->encrypted()               // authenticated encryption via libsodium/OpenSSL
     ->key($secretKey)           // REQUIRED: explicit, random key (no default exists)
     ->expires(time() + 3_600)
     ->secure(true)              // HTTPS only – enable in production
-    ->httpOnly(true)            // not accessible from JavaScript (default)
-    ->send();
+    ->httpOnly(true);           // not accessible from JavaScript (default)
 
 // Reading (decryption is transparent)
 $value = $ctx->cookies()->get('auth');
@@ -181,33 +181,60 @@ $value = $ctx->cookies()->get('auth');
 $ctx->cookies()->delete('auth');
 ```
 
-| Method                                  | Description                                 |
-| --------------------------------------- | ------------------------------------------- |
-| `set(mixed $value): static`             | Set the cookie value                        |
-| `value(mixed $default = null): mixed`   | Read the current value (decrypts if needed) |
-| `encrypted(bool $state = true): static` | Enable/disable authenticated encryption     |
-| `key(?string $key): static`             | Encryption key (**required** — no default)  |
-| `cipher(?string $cipher): static`       | Pin a provider id (`null` = automatic)      |
-| `cipherProvider(CipherProviderInterface $p): static` | Use a custom provider          |
-| `ciphers(CipherRegistry $registry): static` | Share a registry across cookies       |
-| `registry(bool $fresh = false): CipherRegistry` | The cookie's registry           |
-| `expires(int $timestamp): static`       | Expiry Unix timestamp (0 = session)         |
-| `path(string $path): static`            | Cookie path (default `/`)                   |
-| `domain(string $domain): static`        | Cookie domain                               |
-| `secure(bool $state): static`           | HTTPS-only flag                             |
-| `httpOnly(bool $state): static`         | `HttpOnly` flag (default `true`)            |
-| `send(): static`                        | Queue the `Set-Cookie` header               |
-| `delete(): void`                        | Delete by sending a past-expiry header      |
+### How `Set-Cookie` reaches the response
+
+The response is the only source of `Set-Cookie` headers. `Dispatcher` drains the cookie jar into each response it returns. Only cookies that were **written or modified** are included.
+
+Changing an attribute re-sends the existing value with the updated attributes, which allows a cookie to be renewed:
+
+```php
+// Queue a cookie for the response; no explicit response handling is needed.
+$ctx->cookies()->set('theme', 'dark');
+
+// Extend a persistent login's expiry without changing its value.
+$ctx->cookies()->cookie('remember')->expires(time() + 30 * 86400);
+
+// Skip cookie emission for one response (for example, a 304 or error); reads still work.
+$ctx->cookies()->clear();
+```
+
+Encrypted cookies use a fresh nonce on every emission, so the ciphertext differs each time while the plaintext stays the same.
+
+Applications can manage cookies directly on the response instead of using the jar:
+
+```php
+$response->addCookie(Cookie::create('theme')->set('dark')); // or:
+$response->addHeader('Set-Cookie: ' . Cookie::create('theme')->set('dark')->toHeader());
+```
+
+| Method                                               | Description                                 |
+| ---------------------------------------------------- | ------------------------------------------- |
+| `set(mixed $value): static`                          | Set the cookie value                        |
+| `value(mixed $default = null): mixed`                | Read the current value (decrypts if needed) |
+| `toHeader(): string`                                 | The `Set-Cookie` line for this cookie       |
+| `isDirty(): bool`                                    | Whether it was written since the last emit  |
+| `encrypted(bool $state = true): static`              | Enable/disable authenticated encryption     |
+| `key(?string $key): static`                          | Encryption key (**required** — no default)  |
+| `cipher(?string $cipher): static`                    | Pin a provider id (`null` = automatic)      |
+| `cipherProvider(CipherProviderInterface $p): static` | Use a custom provider                       |
+| `ciphers(CipherRegistry $registry): static`          | Share a registry across cookies             |
+| `registry(bool $fresh = false): CipherRegistry`      | The cookie's registry                       |
+| `expires(int $timestamp): static`                    | Expiry Unix timestamp (0 = session)         |
+| `path(string $path): static`                         | Cookie path (default `/`)                   |
+| `domain(string $domain): static`                     | Cookie domain                               |
+| `secure(bool $state): static`                        | HTTPS-only flag                             |
+| `httpOnly(bool $state): static`                      | `HttpOnly` flag (default `true`)            |
+| `delete(): static`                                   | Queue a past-expiry header for the response |
 
 ## Encryption Internals
 
 Encryption is delegated to a {@see \Azera\Security\Crypt\CipherRegistry} owned by
 the cookie. Two providers ship with the framework:
 
-| Provider | Id | Algorithm | Extension |
-| -------- | -- | --------- | --------- |
-| `SodiumCipher` | `sodium-chacha20poly1305.v1` | ChaCha20-Poly1305 (IETF) | libsodium |
-| `OpenSslCipher` | `openssl-aes256gcm.v1` | AES-256-GCM | OpenSSL |
+| Provider        | Id                           | Algorithm                | Extension |
+| --------------- | ---------------------------- | ------------------------ | --------- |
+| `SodiumCipher`  | `sodium-chacha20poly1305.v1` | ChaCha20-Poly1305 (IETF) | libsodium |
+| `OpenSslCipher` | `openssl-aes256gcm.v1`       | AES-256-GCM              | OpenSSL   |
 
 Both are AEAD, and by default the registry prefers ChaCha20-Poly1305 and falls
 back to AES-256-GCM. A value that fails to decrypt or authenticate — tampered,
@@ -228,7 +255,7 @@ happens to support. This matters because ChaCha20-Poly1305 and AES-256-GCM both
 use a 12-byte nonce, which makes their ciphertexts structurally
 indistinguishable. Without an embedded identifier, a cookie written on a node
 with libsodium would fail to decrypt on a node without it — and would fail
-*silently*, logging users out with no diagnosable cause.
+_silently_, logging users out with no diagnosable cause.
 
 With the identifier, a mixed fleet works: any node that can run either
 algorithm reads cookies written by both.
@@ -245,7 +272,7 @@ $plain  = $registry->decrypt($sealed, $key);      // routed by payload id
 
 ### Choosing a provider per cookie
 
-The registry is deliberately *not* in the DI container. Different call sites
+The registry is deliberately _not_ in the DI container. Different call sites
 have different threat models and compliance requirements — a session cookie, a
 short-lived token and a long-lived archival blob do not want the same
 algorithm, custodian or rotation policy.
@@ -255,16 +282,16 @@ use Azera\Http\Cookie;
 use Azera\Security\Crypt\CipherRegistry;
 
 // 1. Let the framework choose (default)
-Cookie::make('session')->encrypted()->key($key);
+Cookie::create('session')->encrypted()->key($key);
 
 // 2. Pin an algorithm
-Cookie::make('session')->encrypted()->key($key)->cipher(SodiumCipher::ID);
+Cookie::create('session')->encrypted()->key($key)->cipher(SodiumCipher::ID);
 
 // 3. Bring your own provider (KMS/HSM-backed, or a new algorithm)
-Cookie::make('session')->encrypted()->key($key)->cipherProvider($myProvider);
+Cookie::create('session')->encrypted()->key($key)->cipherProvider($myProvider);
 
 // 4. Share one registry across several cookies
-Cookie::make('a')->encrypted()->key($key)->ciphers($registry);
+Cookie::create('a')->encrypted()->key($key)->ciphers($registry);
 ```
 
 A custom provider implements
@@ -282,7 +309,7 @@ provider id:
 $cookie->cipher(OpenSslCipher::ID);
 ```
 
-To retire an algorithm, stop *encrypting* with it while keeping its provider
+To retire an algorithm, stop _encrypting_ with it while keeping its provider
 registered until every outstanding cookie has expired.
 
 Store non-cookie secrets (database columns, tokens) with libsodium or `password_hash` — Azera's encryption helpers are scoped to cookie values.
@@ -295,7 +322,8 @@ Generate a cryptographically random key once, store it outside source control, a
 // generate once, store e.g. in .env outside the web root
 $key = base64_encode(random_bytes(32));
 
-Cookie::make('session')->encrypted()->key($key)->send();
+// Hand it to the response; there is no `send()` and no `setcookie()`.
+$response->addCookie(Cookie::create('session')->encrypted()->key($key));
 ```
 
 ```php

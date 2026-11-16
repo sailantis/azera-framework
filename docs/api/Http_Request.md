@@ -9,9 +9,9 @@ It also handles method overrides, proxy headers, content negotiation, and file u
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Http/Request.php#L25)</small>
+### __construct() · <small>[🗎](../../src/Http/Request.php#L26)</small>
 
-`public function __construct(array|null $server = null, array|null $get = null, array|null $post = null, array|null $files = null, bool $trustProxyHeaders = false): mixed`
+`public function __construct(array|null $server = null, array|null $get = null, array|null $post = null, array|null $files = null, bool $trustProxyHeaders = false, array|null $cookies = null): mixed`
 
 **Parameters**
 
@@ -22,6 +22,7 @@ It also handles method overrides, proxy headers, content negotiation, and file u
 | `$post` | array\|null | `null` |  |
 | `$files` | array\|null | `null` |  |
 | `$trustProxyHeaders` | bool | `false` |  |
+| `$cookies` | array\|null | `null` |  |
 
 **Return value**
 
@@ -30,7 +31,7 @@ It also handles method overrides, proxy headers, content negotiation, and file u
 
 ---
 
-### body() · <small>[🗎](../../src/Http/Request.php#L46)</small>
+### body() · <small>[🗎](../../src/Http/Request.php#L49)</small>
 
 `public function body(): string`
 
@@ -44,7 +45,7 @@ Caches the body since php://input can only be read once
 
 ---
 
-### setRawBody() · <small>[🗎](../../src/Http/Request.php#L68)</small>
+### setRawBody() · <small>[🗎](../../src/Http/Request.php#L71)</small>
 
 `public function setRawBody(string $body): static`
 
@@ -74,7 +75,7 @@ GET in a worker is exactly the case that must not touch `php://input`.
 
 ---
 
-### jsonBody() · <small>[🗎](../../src/Http/Request.php#L81)</small>
+### jsonBody() · <small>[🗎](../../src/Http/Request.php#L84)</small>
 
 `public function jsonBody(bool $assoc = true): mixed`
 
@@ -98,7 +99,7 @@ Get and parse JSON request body
 
 ---
 
-### input() · <small>[🗎](../../src/Http/Request.php#L101)</small>
+### input() · <small>[🗎](../../src/Http/Request.php#L104)</small>
 
 `public function input(string|null $name = null, mixed $default = null): mixed`
 
@@ -118,7 +119,7 @@ Get an input parameter from the request (POST takes precedence over GET)
 
 ---
 
-### query() · <small>[🗎](../../src/Http/Request.php#L115)</small>
+### query() · <small>[🗎](../../src/Http/Request.php#L119)</small>
 
 `public function query(string|null $name = null, mixed $default = null): mixed`
 
@@ -138,11 +139,11 @@ Get a query parameter from the request
 
 ---
 
-### get() · <small>[🗎](../../src/Http/Request.php#L129)</small>
+### get() · <small>[🗎](../../src/Http/Request.php#L134)</small>
 
 `public function get(string|null $name = null, mixed $default = null): mixed`
 
-Get a GET parameter from the request
+Get a query parameter from the request
 
 **Parameters**
 
@@ -158,7 +159,7 @@ Get a GET parameter from the request
 
 ---
 
-### post() · <small>[🗎](../../src/Http/Request.php#L143)</small>
+### post() · <small>[🗎](../../src/Http/Request.php#L148)</small>
 
 `public function post(string|null $name = null, mixed $default = null): mixed`
 
@@ -178,7 +179,40 @@ Get a POST parameter from the request
 
 ---
 
-### server() · <small>[🗎](../../src/Http/Request.php#L165)</small>
+### cookies() · <small>[🗎](../../src/Http/Request.php#L161)</small>
+
+`public function cookies(): array`
+
+Get the cookies the client sent.
+
+**Return value**
+
+- Type: `array`
+
+
+---
+
+### cookie() · <small>[🗎](../../src/Http/Request.php#L174)</small>
+
+`public function cookie(string $name, mixed $default = null): mixed`
+
+Get a cookie value from the request
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$name` | string | - |  |
+| `$default` | mixed | `null` |  |
+
+**Return value**
+
+- Type: `mixed`
+
+
+---
+
+### server() · <small>[🗎](../../src/Http/Request.php#L193)</small>
 
 `public function server(string|null $name = null, mixed $default = null): mixed`
 
@@ -198,7 +232,7 @@ Get a server variable from the request
 
 ---
 
-### header() · <small>[🗎](../../src/Http/Request.php#L174)</small>
+### header() · <small>[🗎](../../src/Http/Request.php#L202)</small>
 
 `public function header(string $name, mixed $default = null): mixed`
 
@@ -218,7 +252,7 @@ Get a request header value (case-insensitive).
 
 ---
 
-### hasInput() · <small>[🗎](../../src/Http/Request.php#L196)</small>
+### hasInput() · <small>[🗎](../../src/Http/Request.php#L224)</small>
 
 `public function hasInput(string $name): bool`
 
@@ -235,7 +269,7 @@ Get a request header value (case-insensitive).
 
 ---
 
-### hasQuery() · <small>[🗎](../../src/Http/Request.php#L201)</small>
+### hasQuery() · <small>[🗎](../../src/Http/Request.php#L229)</small>
 
 `public function hasQuery(string $name): bool`
 
@@ -252,7 +286,7 @@ Get a request header value (case-insensitive).
 
 ---
 
-### hasPost() · <small>[🗎](../../src/Http/Request.php#L206)</small>
+### hasPost() · <small>[🗎](../../src/Http/Request.php#L234)</small>
 
 `public function hasPost(string $name): bool`
 
@@ -269,7 +303,7 @@ Get a request header value (case-insensitive).
 
 ---
 
-### method() · <small>[🗎](../../src/Http/Request.php#L215)</small>
+### method() · <small>[🗎](../../src/Http/Request.php#L243)</small>
 
 `public function method(): string`
 
@@ -282,7 +316,7 @@ Get the HTTP method of the request, accounting for method overrides in POST requ
 
 ---
 
-### isPost() · <small>[🗎](../../src/Http/Request.php#L237)</small>
+### isPost() · <small>[🗎](../../src/Http/Request.php#L265)</small>
 
 `public function isPost(): bool`
 
@@ -295,7 +329,7 @@ Checks whether the request method is POST
 
 ---
 
-### scheme() · <small>[🗎](../../src/Http/Request.php#L246)</small>
+### scheme() · <small>[🗎](../../src/Http/Request.php#L274)</small>
 
 `public function scheme(): string`
 
@@ -308,7 +342,7 @@ Get the request scheme (http or https)
 
 ---
 
-### isSecure() · <small>[🗎](../../src/Http/Request.php#L262)</small>
+### isSecure() · <small>[🗎](../../src/Http/Request.php#L290)</small>
 
 `public function isSecure(): bool`
 
@@ -321,7 +355,7 @@ Checks whether request has been made using HTTPS
 
 ---
 
-### host() · <small>[🗎](../../src/Http/Request.php#L271)</small>
+### host() · <small>[🗎](../../src/Http/Request.php#L299)</small>
 
 `public function host(): string`
 
@@ -334,7 +368,7 @@ Get the host name of the request, accounting for proxy headers and Host header
 
 ---
 
-### port() · <small>[🗎](../../src/Http/Request.php#L289)</small>
+### port() · <small>[🗎](../../src/Http/Request.php#L317)</small>
 
 `public function port(): int`
 
@@ -347,7 +381,7 @@ Get the port number of the request, accounting for proxy headers and Host header
 
 ---
 
-### uri() · <small>[🗎](../../src/Http/Request.php#L312)</small>
+### uri() · <small>[🗎](../../src/Http/Request.php#L340)</small>
 
 `public function uri(): string`
 
@@ -360,7 +394,7 @@ Get the full URI of the request
 
 ---
 
-### path() · <small>[🗎](../../src/Http/Request.php#L321)</small>
+### path() · <small>[🗎](../../src/Http/Request.php#L349)</small>
 
 `public function path(): string`
 
@@ -373,7 +407,7 @@ Get the path component of the request URI (without query string)
 
 ---
 
-### clientIp() · <small>[🗎](../../src/Http/Request.php#L332)</small>
+### clientIp() · <small>[🗎](../../src/Http/Request.php#L360)</small>
 
 `public function clientIp(bool $trustForwarded = false): string|false`
 
@@ -392,7 +426,7 @@ Get the client IP address, accounting for proxy headers if trusted
 
 ---
 
-### acceptableContent() · <small>[🗎](../../src/Http/Request.php#L415)</small>
+### acceptableContent() · <small>[🗎](../../src/Http/Request.php#L443)</small>
 
 `public function acceptableContent(bool $sort = false): array`
 
@@ -412,7 +446,7 @@ Get the list of acceptable content types from the Accept header, with quality fa
 
 ---
 
-### bestAccept() · <small>[🗎](../../src/Http/Request.php#L424)</small>
+### bestAccept() · <small>[🗎](../../src/Http/Request.php#L452)</small>
 
 `public function bestAccept(): string`
 
@@ -425,7 +459,7 @@ Get the best acceptable content type from the Accept header
 
 ---
 
-### languages() · <small>[🗎](../../src/Http/Request.php#L434)</small>
+### languages() · <small>[🗎](../../src/Http/Request.php#L462)</small>
 
 `public function languages(bool $sort = false): array`
 
@@ -445,7 +479,7 @@ Get the list of acceptable languages from the Accept-Language header, with quali
 
 ---
 
-### bestLanguage() · <small>[🗎](../../src/Http/Request.php#L443)</small>
+### bestLanguage() · <small>[🗎](../../src/Http/Request.php#L471)</small>
 
 `public function bestLanguage(): string`
 
@@ -458,7 +492,7 @@ Get the best acceptable language from the Accept-Language header
 
 ---
 
-### encodings() · <small>[🗎](../../src/Http/Request.php#L453)</small>
+### encodings() · <small>[🗎](../../src/Http/Request.php#L481)</small>
 
 `public function encodings(bool $sort = false): array`
 
@@ -478,7 +512,7 @@ Get the list of acceptable encodings from the Accept-Encoding header, with quali
 
 ---
 
-### bestEncoding() · <small>[🗎](../../src/Http/Request.php#L462)</small>
+### bestEncoding() · <small>[🗎](../../src/Http/Request.php#L490)</small>
 
 `public function bestEncoding(): string`
 
@@ -491,7 +525,7 @@ Get the best acceptable encoding from the Accept-Encoding header
 
 ---
 
-### charsets() · <small>[🗎](../../src/Http/Request.php#L472)</small>
+### charsets() · <small>[🗎](../../src/Http/Request.php#L500)</small>
 
 `public function charsets(bool $sort = false): array`
 
@@ -511,7 +545,7 @@ Get the list of acceptable charsets from the Accept-Charset header, with quality
 
 ---
 
-### bestCharset() · <small>[🗎](../../src/Http/Request.php#L481)</small>
+### bestCharset() · <small>[🗎](../../src/Http/Request.php#L509)</small>
 
 `public function bestCharset(): string`
 
@@ -524,7 +558,7 @@ Get the best acceptable charset from the Accept-Charset header
 
 ---
 
-### isJson() · <small>[🗎](../../src/Http/Request.php#L527)</small>
+### isJson() · <small>[🗎](../../src/Http/Request.php#L555)</small>
 
 `public function isJson(): bool`
 
@@ -537,7 +571,7 @@ Checks whether the request expects a JSON response based on Content-Type or Acce
 
 ---
 
-### isAjax() · <small>[🗎](../../src/Http/Request.php#L544)</small>
+### isAjax() · <small>[🗎](../../src/Http/Request.php#L572)</small>
 
 `public function isAjax(): bool`
 
@@ -550,7 +584,7 @@ Checks whether the request is an AJAX request based on X-Requested-With header o
 
 ---
 
-### basicAuth() · <small>[🗎](../../src/Http/Request.php#L556)</small>
+### basicAuth() · <small>[🗎](../../src/Http/Request.php#L584)</small>
 
 `public function basicAuth(): array|null`
 
@@ -564,7 +598,7 @@ Get Basic Auth credentials from the request, accounting for different server con
 
 ---
 
-### authorization() · <small>[🗎](../../src/Http/Request.php#L590)</small>
+### authorization() · <small>[🗎](../../src/Http/Request.php#L618)</small>
 
 `public function authorization(): array|null`
 
@@ -578,7 +612,7 @@ Get any HTTP auth scheme from the request
 
 ---
 
-### userAgent() · <small>[🗎](../../src/Http/Request.php#L615)</small>
+### userAgent() · <small>[🗎](../../src/Http/Request.php#L643)</small>
 
 `public function userAgent(): string`
 
@@ -591,7 +625,7 @@ Get the User-Agent string from the request headers
 
 ---
 
-### contentType() · <small>[🗎](../../src/Http/Request.php#L624)</small>
+### contentType() · <small>[🗎](../../src/Http/Request.php#L652)</small>
 
 `public function contentType(): string`
 
@@ -604,7 +638,7 @@ Get the Content-Type header from the request
 
 ---
 
-### file() · <small>[🗎](../../src/Http/Request.php#L677)</small>
+### file() · <small>[🗎](../../src/Http/Request.php#L705)</small>
 
 `public function file(string $key): Azera\Http\UploadedFile|null`
 
@@ -623,7 +657,7 @@ Get the first uploaded file for a given field name, or null if not present
 
 ---
 
-### files() · <small>[🗎](../../src/Http/Request.php#L695)</small>
+### files() · <small>[🗎](../../src/Http/Request.php#L723)</small>
 
 `public function files(string $key): array`
 

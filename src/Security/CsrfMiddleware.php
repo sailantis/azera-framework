@@ -71,7 +71,7 @@ class CsrfMiddleware implements MiddlewareInterface
             return $next($context);
         }
 
-        $submitted = $this->extractToken($request, $session);
+        $submitted = $this->extractToken($request);
 
         if ($submitted === null || !hash_equals($token, $submitted)) {
             return $this->denied($method);
@@ -132,10 +132,9 @@ class CsrfMiddleware implements MiddlewareInterface
      * the POST body, the request header, and the cookie.
      *
      * @param \Azera\Http\Request $request
-     * @param Session             $session
      * @return string|null The submitted token or null when absent.
      */
-    private function extractToken($request, Session $session): ?string
+    private function extractToken($request): ?string
     {
         $post = $request->post($this->tokenName);
         if (is_string($post) && $post !== '') {
@@ -148,7 +147,7 @@ class CsrfMiddleware implements MiddlewareInterface
         }
 
         // Double-submit cookie fallback.
-        $cookie = $_COOKIE[$this->tokenName] ?? null;
+        $cookie = $request->cookies()[$this->tokenName] ?? null;
         if (is_string($cookie) && $cookie !== '') {
             return $cookie;
         }
