@@ -286,7 +286,7 @@ class Dispatcher
      */
     private function finalize(Response $response): Response
     {
-        $cookies = $this->context->getOrNull(Cookies::class);
+        $cookies = $this->context->resolved(Cookies::class);
         if ($cookies !== null) {
             $cookies->applyTo($response);
         }

@@ -632,6 +632,17 @@ class AppContext
     }
 
     /**
+     * Get the service instance if it has already been created. Does not attempt to resolve or build the service.
+     *
+     * @param string $id The identifier of the service to retrieve.
+     * @return ?object The service instance if it exists, or null otherwise.
+     */
+    public function resolved(string $id): ?object
+    {
+        return $this->serviceInstances[$id] ?? null;
+    }
+
+    /**
      * Resolve a registered service by its identifier.
      *
      * If the service is registered as a callable, it will be invoked lazily once and the
