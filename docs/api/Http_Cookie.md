@@ -164,7 +164,7 @@ Build the `Set-Cookie` header value for this cookie.
 This is the one place that knows the header format. It works without a jar
 and without a request, so an application can set the header itself:
 
-    $response->addHeader('Set-Cookie: ' . $cookie->toHeader());
+    $response->addHeader('Set-Cookie', $cookie->toHeader());
 
 Encrypts the value when enabled and URL-encodes it for transport. Rejects
 invalid cookie names or unsafe path/domain attributes.

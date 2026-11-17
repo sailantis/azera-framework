@@ -135,7 +135,7 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
     {
         $response = $next(); // run the action (and earlier middleware)
         if ($response instanceof Response) {
-            $response->addHeader('X-Frame-Options: DENY');
+            $response->addHeader('X-Frame-Options', 'DENY');
         }
         return $response;
     }

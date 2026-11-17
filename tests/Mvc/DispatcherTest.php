@@ -399,4 +399,30 @@ class DispatcherTest extends TestCase
 
         $this->assertEquals('no-session', $this->responseBody($res));
     }
+
+    /**
+     * `Allow` carries the methods, not just the field name.
+     *
+     * The header is built by `addHeader('Allow', $methods)`; when that signature
+     * was narrowed to one argument the methods were silently dropped and clients
+     * rejected the resulting bare `Allow` line.
+     */
+    public function testAutoOptionsResponseListsTheAllowedMethods(): void
+    {
+        $context = new AppContext();
+        AppContext::setInstance($context);
+        $disp = new Dispatcher();
+
+        $res = $disp->dispatch([
+            'vars'              => [],
+            'override'          => [],
+            '__auto_options'    => true,
+            '__allowed_methods' => ['GET', 'POST', 'OPTIONS'],
+        ]);
+
+        $this->assertSame(204, $res->getStatus());
+        $this->assertSame('GET, POST, OPTIONS', $res->getHeader('Allow'));
+        $this->assertSame('GET, POST, OPTIONS', $res->getHeader('Access-Control-Allow-Methods'));
+        $this->assertSame('*', $res->getHeader('Access-Control-Allow-Headers'));
+    }
 }

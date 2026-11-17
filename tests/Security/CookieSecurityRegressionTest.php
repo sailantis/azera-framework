@@ -211,7 +211,10 @@ class CookieSecurityRegressionTest extends TestCase
 
         $response = $jar->applyTo(new Response());
 
-        $this->assertSame(['Set-Cookie: theme=dark; Path=/; HttpOnly'], $response->getHeaders());
+        $this->assertSame(
+            ['Set-Cookie' => ['theme=dark; Path=/; HttpOnly']],
+            $response->getHeaders()
+        );
     }
 
     public function testSettingAfterDeleteCancelsThePendingDeletion(): void
@@ -271,7 +274,7 @@ class CookieSecurityRegressionTest extends TestCase
         $this->assertCount(1, $response->getHeaders());
     }
 
-    /** Repeated cookies and ordinary headers share one ordered header collection. */
+    /** Repeated cookies and ordinary headers share one header collection. */
     public function testTwoCookiesProduceTwoHeaderLines(): void
     {
         $jar = $this->jar();
@@ -280,62 +283,88 @@ class CookieSecurityRegressionTest extends TestCase
 
         $response = $jar->applyTo(new Response());
 
-        $this->assertCount(2, $response->getHeaders());
+        $this->assertCount(1, $response->getHeaders(), 'both cookies are one field');
+        $this->assertSame(
+            ['Set-Cookie' => ['a=1; Path=/; HttpOnly', 'b=2; Path=/; HttpOnly']],
+            $response->getHeaders()
+        );
         $this->assertSame(
             ['Set-Cookie: a=1; Path=/; HttpOnly', 'Set-Cookie: b=2; Path=/; HttpOnly'],
-            $response->getHeaders()
+            $response->getHeaderLines()
         );
     }
 
     public function testReplaceHeaderMatchesCaseInsensitivelyOnTheFieldName(): void
     {
-        $response = new Response(headers: ['Content-Type: text/plain', 'X-Trace: one']);
-        $response->addHeader('Set-Cookie: a=1');
-        $response->addHeader('Set-Cookie: b=2');
-        $response->replaceHeader('content-type: application/json');
+        $response = new Response(headers: ['Content-Type' => 'text/plain', 'X-Trace' => 'one']);
+        $response->addHeader('Set-Cookie', 'a=1');
+        $response->addHeader('Set-Cookie', 'b=2');
+        $response->replaceHeader('content-type', 'application/json');
 
         $this->assertSame(
             [
-                'content-type: application/json',
-                'X-Trace: one',
-                'Set-Cookie: a=1',
-                'Set-Cookie: b=2',
+                'Content-Type' => ['application/json'],
+                'X-Trace'      => ['one'],
+                'Set-Cookie'   => ['a=1', 'b=2'],
+            ],
+            $response->getHeaders(),
+            'the first spelling is kept; only the values are replaced'
+        );
+    }
+
+    public function testReplaceHeaderCollapsesAllValuesSharingTheFieldName(): void
+    {
+        $response = (new Response(headers: ['X-Trace' => ['one', 'two']]))
+            ->replaceHeader('X-Trace', 'four');
+
+        $this->assertSame(['X-Trace' => ['four']], $response->getHeaders());
+    }
+
+    public function testReplaceHeadersAppliesEachField(): void
+    {
+        $response = (new Response(headers: ['Content-Type' => 'text/plain']))
+            ->replaceHeaders(['X-Trace: one', 'content-type: application/json']);
+
+        $this->assertSame(
+            [
+                'Content-Type' => ['application/json'],
+                'X-Trace'      => ['one'],
             ],
             $response->getHeaders()
         );
     }
 
-    public function testReplaceHeaderCollapsesAllLinesSharingTheFieldName(): void
+    public function testAddHeadersKeepsRepeatedValues(): void
     {
-        $response = (new Response(headers: ['X-Trace: one']))
-            ->replaceHeader('X-Trace: four');
+        $response = (new Response())->addHeaders(['Set-Cookie: a=1', 'Set-Cookie: b=2']);
 
-        $this->assertSame(['X-Trace: four'], $response->getHeaders());
+        $this->assertSame(['Set-Cookie' => ['a=1', 'b=2']], $response->getHeaders());
     }
 
-    public function testReplaceHeadersAppliesEachLine(): void
+    public function testAddHeadersAcceptsANameKeyedMap(): void
     {
-        $response = (new Response(headers: ['Content-Type: text/plain']))
-            ->replaceHeaders(['X-Trace: one', 'content-type: application/json']);
+        $response = (new Response())->addHeaders(['Set-Cookie' => ['a=1', 'b=2'], 'X-Trace' => 'one']);
 
         $this->assertSame(
-            ['content-type: application/json', 'X-Trace: one'],
+            ['Set-Cookie' => ['a=1', 'b=2'], 'X-Trace' => ['one']],
             $response->getHeaders()
         );
     }
 
-    public function testAddHeadersKeepsRepeatedLines(): void
+    public function testReplaceHeadersAcceptsAListOfValuesPerField(): void
     {
-        $response = (new Response())->addHeaders(['Set-Cookie: a=1', 'Set-Cookie: b=2']);
+        $response = (new Response())
+            ->addHeader('Set-Cookie', 'old=1')
+            ->replaceHeaders(['Set-Cookie' => ['a=1', 'b=2']]);
 
-        $this->assertSame(['Set-Cookie: a=1', 'Set-Cookie: b=2'], $response->getHeaders());
+        $this->assertSame(['Set-Cookie' => ['a=1', 'b=2']], $response->getHeaders());
     }
 
     public function testConstructorStoresCompleteLinesAsGiven(): void
     {
         $response = new Response(headers: ['Content-Type: application/json']);
 
-        $this->assertSame(['Content-Type: application/json'], $response->getHeaders());
+        $this->assertSame(['Content-Type' => ['application/json']], $response->getHeaders());
     }
 
     public function testGetHeaderReturnsTheValueWithoutTheName(): void
@@ -349,7 +378,7 @@ class CookieSecurityRegressionTest extends TestCase
 
     public function testGetHeaderSplitsOnTheFirstColon(): void
     {
-        $response = new Response(headers: ['Set-Cookie: expires=Thu, 01 Jan 2026 00:00:00 GMT']);
+        $response = new Response(headers: ['Set-Cookie' => 'expires=Thu, 01 Jan 2026 00:00:00 GMT']);
 
         $this->assertSame('expires=Thu, 01 Jan 2026 00:00:00 GMT', $response->getHeader('Set-Cookie'));
     }
@@ -360,13 +389,82 @@ class CookieSecurityRegressionTest extends TestCase
 
         $this->assertSame('', $response->getHeader('X-Empty'));
         $this->assertNull($response->getHeader('X-Absent'));
+        $this->assertSame('dflt', $response->getHeader('X-Absent', 'dflt'));
     }
 
     public function testHeaderFactoryMethodsEmitCompleteLines(): void
     {
-        $this->assertSame(['Content-Type: application/json'], Response::json(['a' => 1])->getHeaders());
-        $this->assertSame(['Content-Type: text/html; charset=utf-8'], Response::html('<p>x</p>')->getHeaders());
-        $this->assertSame(['Location: /next'], Response::redirect('/next')->getHeaders());
+        $this->assertSame(['Content-Type' => ['application/json']], Response::json(['a' => 1])->getHeaders());
+        $this->assertSame(['Content-Type' => ['text/html; charset=utf-8']], Response::html('<p>x</p>')->getHeaders());
+        $this->assertSame(['Location' => ['/next']], Response::redirect('/next')->getHeaders());
+    }
+
+    /**
+     * A repeatable field keeps every value, and `getHeaderLines()` flattens it back
+     * into the wire format for the SAPI and the worker adapters.
+     */
+    public function testGetHeaderLinesExpandsRepeatedFields(): void
+    {
+        $response = (new Response())
+            ->addHeader('Set-Cookie', 'a=1')
+            ->addHeader('Set-Cookie', 'b=2')
+            ->addHeader('Content-Type', 'text/plain');
+
+        $this->assertSame(
+            ['Set-Cookie' => ['a=1', 'b=2'], 'Content-Type' => ['text/plain']],
+            $response->getHeaders()
+        );
+        $this->assertSame(['a=1', 'b=2'], $response->getHeaderValues('set-cookie'));
+        $this->assertSame([], $response->getHeaderValues('missing'));
+        $this->assertSame(
+            ['Set-Cookie: a=1', 'Set-Cookie: b=2', 'Content-Type: text/plain'],
+            $response->getHeaderLines()
+        );
+    }
+
+    /**
+     * A field name is a case-insensitive token, so a second spelling must join the
+     * first field rather than create a duplicate.
+     */
+    public function testFieldNamesAreCaseInsensitiveButKeepTheirFirstSpelling(): void
+    {
+        $response = (new Response())
+            ->addHeader('X-Trace', 'one')
+            ->addHeader('x-trace', 'two');
+
+        $this->assertSame(['X-Trace' => ['one', 'two']], $response->getHeaders());
+        $this->assertSame('one', $response->getHeader('X-TRACE'));
+    }
+
+    /**
+     * A header line without a colon, a name that is not a token, and a value with a
+     * line break are rejected where they are set. Left unchecked, the first is a
+     * bare line on the wire and the last is response splitting.
+     */
+    public function testMalformedHeadersAreRejectedWhenSet(): void
+    {
+        foreach ([
+            'no colon'        => static fn (Response $r) => $r->addHeader('Allow'),
+            'empty name'      => static fn (Response $r) => $r->addHeader('', 'value'),
+            'space in name'   => static fn (Response $r) => $r->addHeader('Bad Name', 'value'),
+            'line break'      => static fn (Response $r) => $r->addHeader('X-A', "v\r\nX-Injected: 1"),
+            'bare line break' => static fn (Response $r) => $r->addHeader("X-A: v\nX-Injected: 1"),
+        ] as $case => $apply) {
+            try {
+                $apply(new Response());
+                $this->fail("Expected {$case} to be rejected.");
+            } catch (\InvalidArgumentException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
+    /** The value keeps a colon that belongs to it, such as a URL. */
+    public function testHeaderValueMayContainColons(): void
+    {
+        $response = (new Response())->addHeader('Link', '<https://example.com:8443/x>; rel="next"');
+
+        $this->assertSame('<https://example.com:8443/x>; rel="next"', $response->getHeader('Link'));
     }
 
     /**
@@ -420,7 +518,7 @@ class CookieSecurityRegressionTest extends TestCase
         $jar->delete('theme');
 
         $response = $jar->applyTo(new Response());
-        $lines    = $response->getHeaders();
+        $lines    = $response->getHeaderLines();
 
         $this->assertCount(1, $lines);
         $this->assertStringStartsWith('Set-Cookie: theme=;', $lines[0]);
@@ -440,7 +538,7 @@ class CookieSecurityRegressionTest extends TestCase
         $jar = $this->jar(['remember' => 'tok123']);
         $jar->cookie('remember')->expires(time() + 86400);
 
-        $lines = $jar->applyTo(new Response())->getHeaders();
+        $lines = $jar->applyTo(new Response())->getHeaderLines();
 
         $this->assertCount(1, $lines);
         $this->assertStringStartsWith('Set-Cookie: remember=tok123;', $lines[0]);
@@ -459,7 +557,7 @@ class CookieSecurityRegressionTest extends TestCase
         $jar = $this->jar(['auth' => rawurldecode($m[1])]);
         $jar->cookie('auth')->encrypted()->key(self::KEY)->secure(true);
 
-        $lines = $jar->applyTo(new Response())->getHeaders();
+        $lines = $jar->applyTo(new Response())->getHeaderLines();
         $this->assertCount(1, $lines);
         $this->assertStringContainsString('Secure', $lines[0]);
 
@@ -504,7 +602,7 @@ class CookieSecurityRegressionTest extends TestCase
             ->getHeaders();
 
         $this->assertSame($viaAddHeader, $viaAddCookie);
-        $this->assertSame(['Set-Cookie: theme=dark; Path=/; HttpOnly'], $viaAddCookie);
+        $this->assertSame(['Set-Cookie' => ['theme=dark; Path=/; HttpOnly']], $viaAddCookie);
     }
 
     /**

@@ -194,8 +194,8 @@ class Dispatcher
             return $this->finalize(
                 Response::status(204)
                     ->addHeader('Allow', $methods)
-                    ->addHeader('Access-Control-Allow-Methods: ' . $methods)
-                    ->addHeader('Access-Control-Allow-Headers: *')
+                    ->addHeader('Access-Control-Allow-Methods', $methods)
+                    ->addHeader('Access-Control-Allow-Headers', '*')
             );
         }
 

@@ -204,7 +204,7 @@ Applications can manage cookies directly on the response instead of using the ja
 
 ```php
 $response->addCookie(Cookie::create('theme')->set('dark')); // or:
-$response->addHeader('Set-Cookie: ' . Cookie::create('theme')->set('dark')->toHeader());
+$response->addHeader('Set-Cookie', Cookie::create('theme')->set('dark')->toHeader());
 ```
 
 | Method                                               | Description                                 |

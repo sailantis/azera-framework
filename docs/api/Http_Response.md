@@ -10,7 +10,7 @@ or use one of the static factory methods (`json()`, `html()`,
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Http/Response.php#L20)</small>
+### __construct() · <small>[🗎](../../src/Http/Response.php#L22)</small>
 
 `public function __construct(int $status = 200, array $headers = [], string $body = ''): mixed`
 
@@ -21,7 +21,7 @@ Create a new Response.
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$status` | int | `200` | HTTP status code. |
-| `$headers` | array | `[]` | Complete header lines. |
+| `$headers` | array | `[]` | Header values by field<br>name. A string is one value; a list is a repeated field such as<br>several `Set-Cookie` lines. |
 | `$body` | string | `''` | Response body. |
 
 **Return value**
@@ -31,7 +31,7 @@ Create a new Response.
 
 ---
 
-### setStatus() · <small>[🗎](../../src/Http/Response.php#L37)</small>
+### setStatus() · <small>[🗎](../../src/Http/Response.php#L81)</small>
 
 `public function setStatus(int $code): static`
 
@@ -50,7 +50,7 @@ Set the HTTP status code.
 
 ---
 
-### getStatus() · <small>[🗎](../../src/Http/Response.php#L48)</small>
+### getStatus() · <small>[🗎](../../src/Http/Response.php#L92)</small>
 
 `public function getStatus(): int`
 
@@ -63,7 +63,7 @@ Get the HTTP status code.
 
 ---
 
-### getBody() · <small>[🗎](../../src/Http/Response.php#L56)</small>
+### getBody() · <small>[🗎](../../src/Http/Response.php#L100)</small>
 
 `public function getBody(): string`
 
@@ -76,17 +76,50 @@ Get the response body.
 
 ---
 
-### replaceHeader() · <small>[🗎](../../src/Http/Response.php#L67)</small>
+### replaceHeader() · <small>[🗎](../../src/Http/Response.php#L117)</small>
 
-`public function replaceHeader(string $line): static`
+`public function replaceHeader(string $name, string|null $value = null): static`
 
-Replace a header line with the same field name, or append if none exists.
+Replace the values of a header field, or add the field if absent.
+
+A complete line (`"Content-Type: application/json"`) may be passed instead of
+a name and value; a field name can never contain a colon, so the two forms
+cannot be confused.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$line` | string | - | Complete header line, e.g. "Content-Type: application/json". |
+| `$name` | string | - | Header field name, or a complete `Name: value` line. |
+| `$value` | string\|null | `null` | Header value; omit when passing a complete line. |
+
+**Return value**
+
+- Type: `static`
+
+**Throws**
+
+- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When the name or value is not a valid field.
+
+
+---
+
+### replaceHeaders() · <small>[🗎](../../src/Http/Response.php#L144)</small>
+
+`public function replaceHeaders(array $headers): static`
+
+Replace several header fields, each with `replaceHeader()` semantics.
+
+Accepts a list of complete lines (`['X-Trace: abc']`) and a name => value map
+(`['X-Trace' => 'abc']`) in any mix; an integer key is read as a line. A list
+of values replaces the field and keeps every one, as PSR-7's `withHeader()`
+does.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$headers` | array | - | Fields to replace. |
 
 **Return value**
 
@@ -95,30 +128,11 @@ Replace a header line with the same field name, or append if none exists.
 
 ---
 
-### replaceHeaders() · <small>[🗎](../../src/Http/Response.php#L95)</small>
+### addHeader() · <small>[🗎](../../src/Http/Response.php#L179)</small>
 
-`public function replaceHeaders(array $lines): static`
+`public function addHeader(string $name, string|null $value = null): static`
 
-Replace several header lines, each with `replaceHeader()` semantics.
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$lines` | array | - | Complete header lines. |
-
-**Return value**
-
-- Type: `static`
-
-
----
-
-### addHeader() · <small>[🗎](../../src/Http/Response.php#L113)</small>
-
-`public function addHeader(string $line): static`
-
-Append a header line without replacing existing lines of the same name.
+Append values to a header field without replacing the ones already set.
 
 This is what [`Cookies::applyTo()`](Http_Cookies.md#applyto) and `addCookie()` use, because a
 second `Set-Cookie` must not overwrite the first.
@@ -127,26 +141,31 @@ second `Set-Cookie` must not overwrite the first.
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$line` | string | - | Complete header line, e.g. "Set-Cookie: theme=dark". |
+| `$name` | string | - | Header field name, or a complete `Name: value` line. |
+| `$value` | string\|null | `null` | Header value; omit when passing a complete line. |
 
 **Return value**
 
 - Type: `static`
 
+**Throws**
+
+- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When the name or value is not a valid field.
+
 
 ---
 
-### addHeaders() · <small>[🗎](../../src/Http/Response.php#L125)</small>
+### addHeaders() · <small>[🗎](../../src/Http/Response.php#L201)</small>
 
-`public function addHeaders(array $lines): static`
+`public function addHeaders(array $headers): static`
 
-Append several header lines, each with `addHeader()` semantics.
+Append several header fields, each with `addHeader()` semantics.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$lines` | array | - | Complete header lines. |
+| `$headers` | array | - | Fields to append. |
 
 **Return value**
 
@@ -155,7 +174,46 @@ Append several header lines, each with `addHeader()` semantics.
 
 ---
 
-### addCookie() · <small>[🗎](../../src/Http/Response.php#L141)</small>
+### setHeader() · <small>[🗎](../../src/Http/Response.php#L224)</small>
+
+`public function setHeader(string $name, string $value): static`
+
+Set a header with the given name and value, replacing any existing header of the same name.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$name` | string | - | Header field name. |
+| `$value` | string | - | Header value. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### setHeaders() · <small>[🗎](../../src/Http/Response.php#L235)</small>
+
+`public function setHeaders(array $headers): static`
+
+Set multiple headers, replacing any existing headers with the same names.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$headers` | array | - | Associative array of header names and values. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### addCookie() · <small>[🗎](../../src/Http/Response.php#L250)</small>
 
 `public function addCookie(Azera\Http\Cookie $cookie): static`
 
@@ -179,14 +237,16 @@ cookies; this method always writes what it is given.
 
 ---
 
-### getHeaders() · <small>[🗎](../../src/Http/Response.php#L156)</small>
+### getHeaders() · <small>[🗎](../../src/Http/Response.php#L267)</small>
 
 `public function getHeaders(): array`
 
-Get all header lines in transmission order, including repeated names.
+Get the value of every header field, keyed by field name.
 
-Each entry is a complete `Name: value` line. Use `getHeader()` for the
-value of one header.
+Each name maps to a list of values, in the order they were added, so a
+repeated field such as `Set-Cookie` keeps every one. This is the shape
+PSR-7's `getHeaders()` uses. Use `getHeader()` for a single value and
+`getHeaderLines()` for the wire format.
 
 **Return value**
 
@@ -195,15 +255,11 @@ value of one header.
 
 ---
 
-### getHeader() · <small>[🗎](../../src/Http/Response.php#L171)</small>
+### getHeaderValues() · <small>[🗎](../../src/Http/Response.php#L278)</small>
 
-`public function getHeader(string $name): string|null`
+`public function getHeaderValues(string $name): array`
 
-Get the value of the first header line matching the given name.
-
-Returns the text after `name:`, trimmed. A header present with an empty
-value returns `''`; an absent header returns `null`. The full line is
-available from `getHeaders()`.
+Get every value of one header field, or an empty list when it is absent.
 
 **Parameters**
 
@@ -213,13 +269,51 @@ available from `getHeaders()`.
 
 **Return value**
 
-- Type: `string`|`null`
-- Description: The header value, or null when not set.
+- Type: `array`
 
 
 ---
 
-### write() · <small>[🗎](../../src/Http/Response.php#L189)</small>
+### getHeader() · <small>[🗎](../../src/Http/Response.php#L294)</small>
+
+`public function getHeader(string $name, string|null $default = null): string|null`
+
+Get the first value of the given header field.
+
+A header present with an empty value returns `''`; an absent header returns
+`$default` (`null` unless given).
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$name` | string | - | Header field name (matched case-insensitively). |
+| `$default` | string\|null | `null` | Value to return when the header is absent. |
+
+**Return value**
+
+- Type: `string`|`null`
+
+
+---
+
+### getHeaderLines() · <small>[🗎](../../src/Http/Response.php#L313)</small>
+
+`public function getHeaderLines(): array`
+
+Get all headers in wire format, e.g. `['Content-Type: application/json']`.
+
+A repeated field appears once per value. This is what `header()` and the
+worker adapters write; nothing in this class depends on it.
+
+**Return value**
+
+- Type: `array`
+
+
+---
+
+### write() · <small>[🗎](../../src/Http/Response.php#L332)</small>
 
 `public function write(string $text): static`
 
@@ -238,7 +332,7 @@ Append text to the response body.
 
 ---
 
-### send() · <small>[🗎](../../src/Http/Response.php#L198)</small>
+### send() · <small>[🗎](../../src/Http/Response.php#L341)</small>
 
 `public function send(): void`
 
@@ -251,7 +345,7 @@ Send the response: emit the status code, headers, and body.
 
 ---
 
-### json() · <small>[🗎](../../src/Http/Response.php#L216)</small>
+### json() · <small>[🗎](../../src/Http/Response.php#L398)</small>
 
 `public static function json(mixed $data, int $status = 200): static`
 
@@ -271,7 +365,7 @@ Create a JSON response.
 
 ---
 
-### text() · <small>[🗎](../../src/Http/Response.php#L232)</small>
+### text() · <small>[🗎](../../src/Http/Response.php#L414)</small>
 
 `public static function text(string $text, int $status = 200): static`
 
@@ -291,7 +385,7 @@ Create a plain-text response.
 
 ---
 
-### html() · <small>[🗎](../../src/Http/Response.php#L248)</small>
+### html() · <small>[🗎](../../src/Http/Response.php#L430)</small>
 
 `public static function html(string $html, int $status = 200): static`
 
@@ -311,7 +405,7 @@ Create an HTML response.
 
 ---
 
-### redirect() · <small>[🗎](../../src/Http/Response.php#L264)</small>
+### redirect() · <small>[🗎](../../src/Http/Response.php#L446)</small>
 
 `public static function redirect(string $url, int $status = 302): static`
 
@@ -331,7 +425,7 @@ Create a redirect response.
 
 ---
 
-### status() · <small>[🗎](../../src/Http/Response.php#L279)</small>
+### status() · <small>[🗎](../../src/Http/Response.php#L461)</small>
 
 `public static function status(int $status): static`
 

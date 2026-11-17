@@ -32,8 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Worker responses now include `Set-Cookie` headers.** `Cookie::send()` and
   `Cookies::sendAll()` used `setcookie()`, which returns `true` but writes no response
   header under worker SAPIs; outgoing cookies were silently dropped. `Dispatcher`
-  now adds cookies from the jar to responses. Response headers use one ordered list,
-  preserving repeated lines such as multiple `Set-Cookie` values.
+  now adds cookies from the jar to responses. Response headers keep one list per field
+  name, so repeated headers such as multiple `Set-Cookie` values survive.
+- **Auto-`OPTIONS` responses carried a value-less `Allow` header.** `Dispatcher`
+  called `addHeader('Allow', $methods)` after `addHeader()` had been narrowed to a
+  single line argument, so the methods were silently dropped and the response
+  contained a bare `Allow` line that clients reject.
 
 ### Added
 
@@ -42,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `setRaw()`.
 - `Cookies::applyTo()`, `Cookies::clear()`.
 - `Response::addHeader()`, `Response::addHeaders()`, `Response::addCookie()`,
-  `Response::replaceHeader()`, `Response::replaceHeaders()`.
+  `Response::replaceHeader()`, `Response::replaceHeaders()`,
+  `Response::getHeaderValues()`, `Response::getHeaderLines()`.
 
 ### Changed
 
@@ -61,15 +66,23 @@ array $vars, AppContext $context)` builds the controller and action stage and
 - **BREAKING:** `Cookie::make()` was renamed to `Cookie::create()`, following the
   framework's factory convention (`Model::create()`). `make()` is removed with no
   alias.
-- **BREAKING:** `Response::getHeaders()` now returns complete header lines
-  (`'Content-Type: application/json'`); repeated headers appear as separate
-  entries. `Response::getHeader($name)` returns the trimmed value of the first
-  matching line (or `null`), matching `Request::header()` and PSR-7.
-- **BREAKING:** `Response::setHeader()`/`setHeaders()` were replaced by
-  `replaceHeader()`/`replaceHeaders()`, which accept a complete line and match its
-  field name. `addHeader()`/`addHeaders()` append complete lines, so repeated headers
-  such as `Set-Cookie` are preserved. The constructor and the `json()`, `html()`,
-  `text()`, and `redirect()` factories use the same format.
+- **BREAKING:** `Response::getHeaders()` now returns values by field name
+  (`['Content-Type' => ['application/json']]`), with one list per field so a
+  repeated header such as `Set-Cookie` keeps every value. This is PSR-7's shape.
+  Use `getHeader($name)` for one value, `getHeaderValues($name)` for all of one
+  field, and `getHeaderLines()` for wire format (`'Content-Type: application/json'`).
+- **BREAKING:** `Response::replaceHeader()` and `addHeader()` take a field name and
+  a value (`addHeader('Set-Cookie', $value)`); a complete `Name: value` line is still
+  accepted as the first argument. Both throw `InvalidArgumentException` for a name
+  that is not an RFC 9110 token or a value containing CR/LF, so a malformed header
+  can no longer reach the SAPI or a worker adapter. `setHeader()`/`setHeaders()`
+  remain as aliases for `replaceHeader()`/`replaceHeaders()`. The constructor and the
+  `json()`, `html()`, `text()`, and `redirect()` factories use a name-keyed map (a
+  list of lines is still read).
+- `Response::send()` passes `replace: false` for the second and later values of a
+  field. Previously every value was sent with `replace: true`, so only the last
+  `Set-Cookie` of a response was actually written.
+- `Response::send()` no longer emits headers after `headers_sent()`.
 - **BREAKING:** `Cookie::send()` and `Cookies::sendAll()` were removed. They called
   `setcookie()`, which has no effect under workers and would duplicate the header
   emitted by `Response::send()` under `php-fpm`. Responses are now the only cookie
