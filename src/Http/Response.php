@@ -47,7 +47,7 @@ class Response
 
         foreach ($this->headers as $name => $values) {
             if (is_int($name)) {
-                [$name, $value] = self::parseHeader((string) $values, null);
+                [$name, $value] = self::parseHeaderLine((string) $values);
                 $values = [$value];
             }
 
@@ -76,7 +76,8 @@ class Response
         // Validate once per distinct name rather than once per value: a repeated
         // field's name is the same name.
         foreach ($fields as $name => $_) {
-            self::validateField($name, $normalized[$index[strtolower($name)]] ?? []);
+            self::validateName($name);
+            self::validateValues($name, $normalized[$index[strtolower($name)]] ?? []);
         }
     }
 
@@ -92,7 +93,7 @@ class Response
     private array $headerIndex = [];
 
     /**
-     * Field names already accepted by {@see parseHeader()}.
+     * Field names already accepted by {@see validateName()}.
      *
      * The token check is a pure function of the name and the same names recur on
      * every request, so the result is cached. Values are never cached: they carry
@@ -146,13 +147,19 @@ class Response
      */
     public function replaceHeader(string $name, ?string $value = null): static
     {
-        [$name, $value] = self::parseHeader($name, $value);
+        if ($value === null) {
+            [$name, $value] = self::parseHeaderLine($name);
+        } else {
+            self::validateName($name);
+            self::validateValues($name, [$value]);
+        }
 
-        $key = $this->headerIndex[strtolower($name)] ?? null;
+        $lower = strtolower($name);
+        $key   = $this->headerIndex[$lower] ?? null;
 
         if ($key === null) {
-            $this->headerIndex[strtolower($name)] = $name;
-            $this->headers[$name] = [$value];
+            $this->headerIndex[$lower] = $name;
+            $this->headers[$name]      = [$value];
             return $this;
         }
 
@@ -208,13 +215,19 @@ class Response
      */
     public function addHeader(string $name, ?string $value = null): static
     {
-        [$name, $value] = self::parseHeader($name, $value);
+        if ($value === null) {
+            [$name, $value] = self::parseHeaderLine($name);
+        } else {
+            self::validateName($name);
+            self::validateValues($name, [$value]);
+        }
 
-        $key = $this->headerIndex[strtolower($name)] ?? null;
+        $lower = strtolower($name);
+        $key   = $this->headerIndex[$lower] ?? null;
 
         if ($key === null) {
-            $this->headerIndex[strtolower($name)] = $name;
-            $this->headers[$name] = [$value];
+            $this->headerIndex[$lower] = $name;
+            $this->headers[$name]      = [$value];
             return $this;
         }
 
@@ -386,52 +399,62 @@ class Response
     }
 
     /**
-     * Split a name/value pair or a complete `Name: value` line.
+     * Split a complete `Name: value` line into its name and trimmed value.
      *
      * @return array{0: string, 1: string}
-     * @throws \InvalidArgumentException When the name or value is not a valid field.
+     * @throws \InvalidArgumentException When the line or its value is not valid.
      */
-    private static function parseHeader(string $name, ?string $value): array
+    private static function parseHeaderLine(string $line): array
     {
-        if ($value === null) {
-            $colon = strpos($name, ':');
+        $colon = strpos($line, ':');
 
-            if ($colon === false) {
-                throw new \InvalidArgumentException("Header line must contain a colon: {$name}");
-            }
-
-            $value = ltrim(substr($name, $colon + 1));
-            $name  = substr($name, 0, $colon);
+        if ($colon === false) {
+            throw new \InvalidArgumentException("Header line must contain a colon: {$line}");
         }
 
-        self::validateField($name, [$value]);
+        $name  = substr($line, 0, $colon);
+        $value = trim(substr($line, $colon + 1), " \t");
 
-        return [$name, trim($value, " \t")];
+        self::validateName($name);
+        self::validateValues($name, [$value]);
+
+        return [$name, $value];
     }
 
     /**
-     * Validate a field name once and each of its values.
+     * Validate a field name, reusing an earlier verdict for the same name.
      *
-     * @param string       $name   Field name.
-     * @param list<string> $values The field's values.
-     * @throws \InvalidArgumentException When the name or a value is not a valid field.
+     * A name is a pure function of itself and the same names recur on every
+     * request, so the token check is memoised. Values are never memoised: they
+     * carry the request's data.
+     *
+     * @throws \InvalidArgumentException When the name is not an RFC 9110 token.
      */
-    private static function validateField(string $name, array $values): void
+    private static function validateName(string &$name): void
     {
-        if (!isset(self::$validNames[$name])) {
-            // RFC 9110 field-name is a non-empty token; a colon or whitespace in a
-            // name would let the name and value run together into a second field.
-            if ($name === '' || strcspn($name, "()<>@,;:\\\"/[]?={} \t\r\n\x00") !== strlen($name)) {
-                throw new \InvalidArgumentException("Invalid header name: {$name}");
-            }
-
-            self::$validNames[$name] = true;
+        if (isset(self::$validNames[$name])) {
+            return;
         }
 
+        // RFC 9110 field-name is a non-empty token; a colon or whitespace in a
+        // name would let the name and value run together into a second field.
+        if ($name === '' || strcspn($name, "()<>@,;:\\\"/[]?={} \t\r\n\x00") !== strlen($name)) {
+            throw new \InvalidArgumentException("Invalid header name: {$name}");
+        }
+
+        self::$validNames[$name] = true;
+    }
+
+    /**
+     * Reject a value that would end its field and start another one.
+     *
+     * @param string       $name   Field name, for the message.
+     * @param list<string> $values The values to check.
+     * @throws \InvalidArgumentException When a value contains CR, LF or NUL.
+     */
+    private static function validateValues(string $name, array $values): void
+    {
         foreach ($values as $value) {
-            // A CR or LF in the value would end the field and start another one,
-            // so it is checked every time. `strpbrk` is the cheapest of the
-            // candidates that look for any of the three.
             if (strpbrk($value, "\r\n\x00") !== false) {
                 throw new \InvalidArgumentException("Invalid header value for {$name}: {$value}");
             }
