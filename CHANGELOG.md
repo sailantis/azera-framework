@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Global and route-group middleware now run before controller construction.**
+  Previously, `Dispatcher` constructed the controller and resolved action arguments
+  before running these middleware, so they could not prevent that work. The pipeline
+  now runs global and route-group middleware first. If they allow the request,
+  `Dispatcher` constructs the controller, then runs controller and action middleware
+  before reflecting the action and resolving its arguments.
+
+  This also prevents action-name disclosure. Previously, `ActionNotFoundException`
+  could occur before middleware rejected the request, allowing a 404-versus-redirect
+  difference to reveal whether an action existed. An unknown action is now reported
+  only if the request passes through the pipeline.
+
+- **Unknown controller classes now raise `ControllerNotFoundException`.** Although
+  declared in `dispatch()`'s `@throws`, the previous path through `AppContext::get()`
+  raised `RuntimeException("Service not found: ...")` instead.
 - **Incoming cookies are read from `Request`, not `$_COOKIE`.** `Cookies`, `Cookie`,
   and `CsrfMiddleware` now use the request as their source, so workers that disable
   CGI globals with `Worker::withoutCgiGlobals()` can still read client cookies.
@@ -31,6 +46,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING:** `Dispatcher::buildPipeline()` now takes a controller class name
+  (`string $controllerClass`) instead of a `Controller` instance, and no longer
+  receives pre-resolved action parameters. It builds only the global and route-group
+  stage. A new `protected buildActionPipeline(Controller $controller, string $action,
+array $vars, AppContext $context)` builds the controller and action stage and
+  resolves action arguments. Subclasses that overrode `buildPipeline()` must be
+  updated.
+- Controller and action middleware declarations are now read from the controller
+  _instance_, which means normal PHP property resolution applies: a subclass that
+  redeclares `$middlewares` **replaces** the parent's list instead of extending it.
+  Behaviour is unchanged from before; this is documented so it is not mistaken for
+  inheritance of the parent's entries.
 - **BREAKING:** `Cookie::make()` was renamed to `Cookie::create()`, following the
   framework's factory convention (`Model::create()`). `make()` is removed with no
   alias.

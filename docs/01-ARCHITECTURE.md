@@ -39,7 +39,7 @@ Custom services can be registered with `$ctx->set($id, new MyService())` or `$ct
 ### MVC Layer
 
 - `Router` matches URI + method to route patterns, extracting typed parameters; supports named routes, inline or scoped groups (`prefix()`, `namespace()`, `controller()`, `middleware()`), and custom parameter validators
-- `Dispatcher` is instantiated without arguments; obtains `AppContext` internally. It resolves controllers via DI (`AppContext::get()`), runs the global and per-route middleware pipeline, injects action parameters (route vars or DI), and stores resolved route info via `AppContext::setRoute()`
+- `Dispatcher` takes no constructor arguments and obtains `AppContext` internally. It resolves the controller class from the route and stores route data with `AppContext::setRoute()`. Global and route-group middleware run first; if they allow the request, the controller is constructed via DI (`AppContext::get()`). Controller and action middleware then run, and action parameters (route variables or DI) are resolved in the innermost stage immediately before invocation
 - `Controller` provides access to request/context plus controller- and action-level middleware declarations
 - `ViewEngine` renders templates, layouts, and namespaced views; supports global view variables and partial rendering
 - `ModelMapping` maps logical model names to PHP classes and table names – useful when decoupling route/query naming from class names

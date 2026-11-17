@@ -13,6 +13,12 @@ use Azera\Core\Exceptions\ControllerNotFoundException;
 
 /**
  * Dispatcher is responsible for handling the execution of controller actions based on the current routing information. It builds a middleware pipeline, and invokes the action, returning a Response object. It supports global and group-based middleware, as well as controller and action-specific middleware.
+ *
+ * The pipeline is assembled in two stages. Global and group middleware run from
+ * {@see buildPipeline()}, which needs only the controller's class name, so the
+ * controller is not constructed until that stage allows the request through.
+ * Controller and action middleware run from {@see buildActionPipeline()}, after
+ * construction but before the action is reflected.
  */
 class Dispatcher
 {
@@ -236,13 +242,8 @@ class Dispatcher
             ? $namespace . '\\' . $controllerName
             : $controllerName;
 
-        /**
-         * @var Controller $controller
-         */
-        $controller = $this->context->get($controllerClass);
-
-        if (!$controller instanceof Controller) {
-            throw new InvalidControllerException("{$controllerClass} is not a Controller");
+        if (!class_exists($controllerClass)) {
+            throw new ControllerNotFoundException("Controller {$controllerClass} not found");
         }
 
         // Cache route metadata, not resolved action arguments: they may contain
@@ -259,17 +260,16 @@ class Dispatcher
             )
         );
 
-        $params = $this->resolveActionArguments(
-            $controller,
+        // The outer pipeline runs before the controller exists: global and
+        // group middleware only need the class NAME, which is already known
+        // here. Constructing the controller, reflecting the action, and
+        // resolving its arguments all happen inside the core handler below,
+        // so middleware that rejects a request pays for none of it — and an
+        // unknown action can no longer be distinguished from a rejected one.
+        $pipeline = $this->buildPipeline(
+            $controllerClass,
             $actionName,
             $vars,
-            $this->context
-        );
-
-        $pipeline = $this->buildPipeline(
-            $controller,
-            $actionName,
-            $params,
             $groups,
             $this->context
         );
@@ -542,25 +542,33 @@ class Dispatcher
     }
 
     /**
-     * Build the middleware pipeline for the given controller action. The pipeline will include global middleware, controller-specific middleware, and action-specific middleware, in that order. Each middleware will be normalized to an instance of MiddlewareInterface, allowing for flexible definitions (class name, instance, closure, or array with arguments). The final callable returned by this method will execute the entire middleware stack and ultimately invoke the controller action.
+     * Build the outer middleware pipeline for a route.
      *
-     * @param Controller $controller The controller instance to invoke
-     * @param string $action The action method name to invoke on the controller
-     * @param array $params Parameters to pass to the controller action
-     * @param ?array $groups Middleware groups to apply to the pipeline
-     * @param AppContext $context The application context to pass to middleware and controller
-     * @return callable A callable that executes the middleware pipeline and invokes the controller action when called
+     * Only global middleware and route-group middleware run here, because only
+     * they can be resolved without the controller: this method is given the
+     * controller class NAME, not an instance. Controller- and action-level
+     * middleware are applied later by {@see buildActionPipeline()}, from the
+     * core handler, once the controller has been constructed.
+     *
+     * The outer chain therefore wraps the inner one, which keeps the documented
+     * order intact: global, then groups, then controller, then action.
+     *
+     * @param string     $controllerClass Fully qualified controller class name.
+     * @param string     $action          Action method name to invoke.
+     * @param array      $vars            Route variables, resolved later by the core handler.
+     * @param ?array     $groups          Middleware groups to apply to the pipeline.
+     * @param AppContext $context         The application context passed to middleware.
+     * @return callable A callable that executes the outer pipeline and, if not
+     *                  short-circuited, constructs the controller and invokes the action.
      */
-    protected function buildPipeline(Controller $controller, string $action, array $params, ?array $groups, AppContext $context): callable
+    protected function buildPipeline(string $controllerClass, string $action, array $vars, ?array $groups, AppContext $context): callable
     {
         /** @var MiddlewareInterface[] $middleware */
         $middleware = [];
 
         // 1) Global Middleware
-        if (!empty($this->globalMiddleware)) {
-            foreach ($this->globalMiddleware as $mw) {
-                $middleware[] = $this->normalizeMiddleware($mw);
-            }
+        foreach ($this->globalMiddleware as $mw) {
+            $middleware[] = $this->normalizeMiddleware($mw);
         }
 
         // 2) Middleware from Route Groups
@@ -574,29 +582,17 @@ class Dispatcher
             }
         }
 
-        // 2) Controller-based Middleware
-        $controllerMiddleware = $controller->getMiddlewares();
-        if (!empty($controllerMiddleware)) {
-            foreach ($controllerMiddleware as $mw) {
-                $middleware[] = $this->normalizeMiddleware($mw);
-            }
-        }
+        // Core-Handler: construct the controller only now that everything the
+        // outer pipeline guards has been allowed through.
+        $core = function () use ($controllerClass, $action, $vars): Response {
+            $controller = $this->context->get($controllerClass);
 
-        // 3) Action-based Middleware
-        $actionMiddleware = $controller->getActionMiddlewares($action);
-        if (!empty($actionMiddleware)) {
-            foreach ($actionMiddleware as $mw) {
-                $middleware[] = $this->normalizeMiddleware($mw);
+            if (!$controller instanceof Controller) {
+                throw new InvalidControllerException("{$controllerClass} is not a Controller");
             }
-        }
 
-        // Core-Handler
-        $core = fn() =>
-            $this->invokeController(
-                $controller,
-                $action,
-                $params
-            );
+            return $this->buildActionPipeline($controller, $action, $vars, $this->context)();
+        };
 
         // No middleware is the common case, and building a chain of zero links
         // only to call it once is pure overhead: the pipeline is rebuilt on every
@@ -607,6 +603,60 @@ class Dispatcher
         }
 
         // Run the pipeline efficiently
+        $next  = $core;
+        $count = count($middleware);
+
+        for ($i = $count - 1; $i >= 0; $i--) {
+            /** @var MiddlewareInterface $mw */
+            $mw   = $middleware[$i];
+            $next = fn() => $mw->process($context, $next);
+        }
+
+        return $next;
+    }
+
+    /**
+     * Build the inner middleware pipeline: controller-wide, then action-level.
+     *
+     * Runs after the controller exists, so declarations are read from the
+     * instance ({@see Controller::getMiddlewares()}), which keeps normal PHP
+     * property resolution: a subclass that redeclares `$middlewares` replaces
+     * the parent's list rather than appending to it.
+     *
+     * The action's arguments are resolved in the innermost closure, immediately
+     * before invocation, so a middleware that rejects the request also avoids
+     * the reflection and container work that resolution would do.
+     *
+     * @param Controller $controller The controller instance to invoke.
+     * @param string     $action     The action method name to invoke.
+     * @param array      $vars       Route variables used to resolve arguments.
+     * @param AppContext $context    The application context passed to middleware.
+     * @return callable A callable that runs controller and action middleware
+     *                  around the controller action.
+     */
+    protected function buildActionPipeline(Controller $controller, string $action, array $vars, AppContext $context): callable
+    {
+        /** @var MiddlewareInterface[] $middleware */
+        $middleware = [];
+
+        foreach ($controller->getMiddlewares() as $mw) {
+            $middleware[] = $this->normalizeMiddleware($mw);
+        }
+
+        foreach ($controller->getActionMiddlewares($action) as $mw) {
+            $middleware[] = $this->normalizeMiddleware($mw);
+        }
+
+        $core = fn(): Response => $this->invokeController(
+            $controller,
+            $action,
+            $this->resolveActionArguments($controller, $action, $vars, $context)
+        );
+
+        if ($middleware === []) {
+            return $core;
+        }
+
         $next  = $core;
         $count = count($middleware);
 

@@ -58,12 +58,12 @@ Constructor parameters on the controller itself are also auto-wired via `AppCont
 
 All helpers delegate to `AppContext` and are available anywhere inside the controller:
 
-| Method             | Returns                        |
-| ------------------ | ------------------------------ |
-| `$this->context()` | `AppContext`                   |
-| `$this->request()` | `Azera\Http\Request`           |
-| `$this->view()`    | `Azera\Core\ViewEngine`        |
-| `$this->session()` | `Azera\Http\Session` or `null` |
+| Method             | Returns                                                     |
+| ------------------ | ----------------------------------------------------------- |
+| `$this->context()` | `AppContext`                                                |
+| `$this->request()` | `Azera\Http\Request`                                        |
+| `$this->view()`    | `Azera\Core\ViewEngine`                                     |
+| `$this->session()` | `Azera\Http\Session` or `null`                              |
 | `$this->cookies()` | `Azera\Http\Cookies` — set cookies; emitted on the response |
 
 ---
@@ -121,7 +121,7 @@ class AuthMiddleware implements MiddlewareInterface
         if (!$context->session()?->get('user_id')) {
             return Response::redirect('/login');
         }
-        return $next($context); // runs the action
+        return $next(); // runs the action
     }
 }
 ```
@@ -133,9 +133,9 @@ class SecurityHeadersMiddleware implements MiddlewareInterface
 {
     public function process(AppContext $context, callable $next): ?Response
     {
-        $response = $next($context); // run the action (and earlier middleware)
+        $response = $next(); // run the action (and earlier middleware)
         if ($response instanceof Response) {
-            $response->replaceHeader('X-Frame-Options: DENY');
+            $response->addHeader('X-Frame-Options: DENY');
         }
         return $response;
     }
@@ -155,6 +155,13 @@ Middleware wraps the entire request pipeline around controller actions. The exec
 ```
 Global middleware → Route-group middleware → Controller middleware → Action middleware → action
 ```
+
+The dispatcher builds the pipeline in two stages. Global and route-group middleware
+run before the controller is constructed; only its class name is needed at this stage.
+If they reject the request, the controller is not constructed, the action is not
+reflected, and its arguments are not resolved. Controller and action middleware run
+after construction but before action reflection, so they can reject the request without
+revealing whether the action exists.
 
 Each middleware implements `Azera\Core\MiddlewareInterface`:
 
@@ -244,6 +251,16 @@ All three places (`$middlewares`, `$actionMiddlewares`, group arrays) accept the
 | `[MyMiddleware::class, [$arg1, $arg2]]` | Instantiated with `new MyMiddleware($arg1, $arg2)` |
 | `new MyMiddleware()`                    | Used as-is (already an instance)                   |
 | `fn($ctx, $next) => $next($ctx)`        | Closure, wrapped automatically                     |
+
+> **Note:** as a *property default*, `$middlewares` and `$actionMiddlewares` must be
+> constant expressions, so `new MyMiddleware()` is not allowed there — use the class
+> string or `[class, args]` form. An instance is fine when the array is assigned in a
+> constructor or passed to `defineMiddlewareGroup()`.
+
+Because controller middleware is read from the instance, a subclass that redeclares
+`$middlewares` **replaces** the parent's list rather than appending to it — normal PHP
+property resolution. Use a shared parent class or the property's own list if you want
+both.
 
 ---
 
