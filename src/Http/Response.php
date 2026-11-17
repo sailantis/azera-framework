@@ -33,10 +33,17 @@ class Response
         protected array $headers = [],
         protected string $body = ''
     ) {
+        // Nothing to normalise in the common case: no headers, as in the
+        // factories and the middleware path that add theirs afterwards.
+        if ($this->headers === []) {
+            return;
+        }
+
         // An integer key is a complete line rather than a name, so the older
         // `['Content-Type: application/json']` form keeps working.
         $normalized = [];
         $index      = [];
+        $fields     = [];
 
         foreach ($this->headers as $name => $values) {
             if (is_int($name)) {
@@ -44,21 +51,33 @@ class Response
                 $values = [$value];
             }
 
-            $key = $index[strtolower($name)] ??= $name;
+            $key = $index[strtolower($name)] ?? null;
 
-            foreach (is_array($values) ? $values : [$values] as $value) {
-                $normalized[$key][] = self::parseHeader($name, (string) $value)[1];
+            if ($key === null) {
+                $key = $index[strtolower($name)] = $name;
+                $fields[$name] = true;
             }
 
-            // A field declared with no values is not a field; leaving it out keeps
-            // the index and the stored names in step.
-            if (!isset($normalized[$key])) {
-                unset($index[strtolower($name)]);
+            if (is_array($values)) {
+                // A field declared with no values is not a field; skipping it keeps
+                // the index and the stored names in step.
+                if ($values !== []) {
+                    $normalized[$key] = [...$normalized[$key] ?? [], ...array_values($values)];
+                }
+                continue;
             }
+
+            $normalized[$key][] = (string) $values;
         }
 
         $this->headers     = $normalized;
         $this->headerIndex = $index;
+
+        // Validate once per distinct name rather than once per value: a repeated
+        // field's name is the same name.
+        foreach ($fields as $name => $_) {
+            self::validateField($name, $normalized[$index[strtolower($name)]] ?? []);
+        }
     }
 
     /**
@@ -71,6 +90,17 @@ class Response
      * @var array<string, string>
      */
     private array $headerIndex = [];
+
+    /**
+     * Field names already accepted by {@see parseHeader()}.
+     *
+     * The token check is a pure function of the name and the same names recur on
+     * every request, so the result is cached. Values are never cached: they carry
+     * the request's data.
+     *
+     * @var array<string, true>
+     */
+    private static array $validNames = [];
 
     /**
      * Set the HTTP status code.
@@ -374,18 +404,38 @@ class Response
             $name  = substr($name, 0, $colon);
         }
 
-        // RFC 9110 field-name is a non-empty token; a colon or whitespace in a name
-        // would let the name and value run together into a second field.
-        if ($name === '' || preg_match("/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/D", $name) !== 1) {
-            throw new \InvalidArgumentException("Invalid header name: {$name}");
-        }
-
-        // A CR or LF in the value would end the field and start another one.
-        if (preg_match('/[\r\n\x00]/', $value) === 1) {
-            throw new \InvalidArgumentException("Invalid header value for {$name}: {$value}");
-        }
+        self::validateField($name, [$value]);
 
         return [$name, trim($value, " \t")];
+    }
+
+    /**
+     * Validate a field name once and each of its values.
+     *
+     * @param string       $name   Field name.
+     * @param list<string> $values The field's values.
+     * @throws \InvalidArgumentException When the name or a value is not a valid field.
+     */
+    private static function validateField(string $name, array $values): void
+    {
+        if (!isset(self::$validNames[$name])) {
+            // RFC 9110 field-name is a non-empty token; a colon or whitespace in a
+            // name would let the name and value run together into a second field.
+            if ($name === '' || strcspn($name, "()<>@,;:\\\"/[]?={} \t\r\n\x00") !== strlen($name)) {
+                throw new \InvalidArgumentException("Invalid header name: {$name}");
+            }
+
+            self::$validNames[$name] = true;
+        }
+
+        foreach ($values as $value) {
+            // A CR or LF in the value would end the field and start another one,
+            // so it is checked every time. `strpbrk` is the cheapest of the
+            // candidates that look for any of the three.
+            if (strpbrk($value, "\r\n\x00") !== false) {
+                throw new \InvalidArgumentException("Invalid header value for {$name}: {$value}");
+            }
+        }
     }
 
     /**
