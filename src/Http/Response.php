@@ -149,13 +149,12 @@ class Response
     {
         if ($value === null) {
             [$name, $value] = self::parseHeaderLine($name);
-        } else {
+        } elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
             self::validateName($name);
             self::validateValues($name, [$value]);
         }
 
-        $lower = strtolower($name);
-        $key   = $this->headerIndex[$lower] ?? null;
+        $key = $this->headerIndex[$lower = strtolower($name)] ?? null;
 
         if ($key === null) {
             $this->headerIndex[$lower] = $name;
@@ -217,13 +216,12 @@ class Response
     {
         if ($value === null) {
             [$name, $value] = self::parseHeaderLine($name);
-        } else {
+        } elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
             self::validateName($name);
             self::validateValues($name, [$value]);
         }
 
-        $lower = strtolower($name);
-        $key   = $this->headerIndex[$lower] ?? null;
+        $key = $this->headerIndex[$lower = strtolower($name)] ?? null;
 
         if ($key === null) {
             $this->headerIndex[$lower] = $name;
