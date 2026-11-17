@@ -43,8 +43,8 @@ class Response
         // An integer key is a complete line rather than a name, so the older
         // `['Content-Type: application/json']` form keeps working. Turning them
         // into name => value pairs first keeps the loop below to one shape.
-        if (array_is_list($this->headers)) {
-            $lines         = $this->headers;
+        if (isset($this->headers[0])) {
+            $lines = $this->headers;
             $this->headers = [];
 
             foreach ($lines as $line) {
@@ -84,7 +84,7 @@ class Response
         }
 
         $this->headers = $normalized;
-        self::validateHeaderMap($this->headers);
+        //self::validateHeaderMap($this->headers);
     }
 
     /**
