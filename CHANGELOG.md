@@ -83,6 +83,9 @@ array $vars, AppContext $context)` builds the controller and action stage and
   field. Previously every value was sent with `replace: true`, so only the last
   `Set-Cookie` of a response was actually written.
 - `Response::send()` no longer emits headers after `headers_sent()`.
+- Header names are validated against the RFC 9110 token grammar and values may not
+  contain CR, LF or NUL. The name check is memoised (it is a pure function of the
+  name) so the guard does not enter the per-request cost.
 - **BREAKING:** `Cookie::send()` and `Cookies::sendAll()` were removed. They called
   `setcookie()`, which has no effect under workers and would duplicate the header
   emitted by `Response::send()` under `php-fpm`. Responses are now the only cookie
