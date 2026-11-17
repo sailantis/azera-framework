@@ -34,51 +34,57 @@ class Response
         protected string $body = ''
     ) {
         // Nothing to normalise in the common case: no headers, as in the
-        // factories and the middleware path that add theirs afterwards.
+        // factories and the security-headers middleware, which add theirs after
+        // construction.
         if ($this->headers === []) {
             return;
         }
 
         // An integer key is a complete line rather than a name, so the older
-        // `['Content-Type: application/json']` form keeps working.
+        // `['Content-Type: application/json']` form keeps working. Turning them
+        // into name => value pairs first keeps the loop below to one shape.
+        if (array_is_list($this->headers)) {
+            $lines         = $this->headers;
+            $this->headers = [];
+
+            foreach ($lines as $line) {
+                [$name, $value] = self::parseHeaderLine((string) $line);
+                $this->headers[$name][] = $value;
+            }
+        }
+
         $normalized = [];
-        $index      = [];
-        $fields     = [];
 
         foreach ($this->headers as $name => $values) {
-            if (is_int($name)) {
-                [$name, $value] = self::parseHeaderLine((string) $values);
-                $values = [$value];
-            }
+            $lower = strtolower($name);
 
-            $key = $index[strtolower($name)] ?? null;
-
-            if ($key === null) {
-                $key = $index[strtolower($name)] = $name;
-                $fields[$name] = true;
+            if (isset($this->headerIndex[$lower])) {
+                $name = $this->headerIndex[$lower];
+            } else {
+                $this->headerIndex[$lower] = $name;
             }
 
             if (is_array($values)) {
                 // A field declared with no values is not a field; skipping it keeps
                 // the index and the stored names in step.
-                if ($values !== []) {
-                    $normalized[$key] = [...$normalized[$key] ?? [], ...array_values($values)];
+                if ($values === []) {
+                    continue;
                 }
-                continue;
+
+                $values = array_values($values);
+            } else {
+                $values = [(string) $values];
             }
 
-            $normalized[$key][] = (string) $values;
+            if (isset($normalized[$name])) {
+                $normalized[$name] = [...$normalized[$name], ...$values];
+            } else {
+                $normalized[$name] = $values;
+            }
         }
 
-        $this->headers     = $normalized;
-        $this->headerIndex = $index;
-
-        // Validate once per distinct name rather than once per value: a repeated
-        // field's name is the same name.
-        foreach ($fields as $name => $_) {
-            self::validateName($name);
-            self::validateValues($name, $normalized[$index[strtolower($name)]] ?? []);
-        }
+        $this->headers = $normalized;
+        self::validateHeaderMap($this->headers);
     }
 
     /**
@@ -456,6 +462,20 @@ class Response
             if (strpbrk($value, "\r\n\x00") !== false) {
                 throw new \InvalidArgumentException("Invalid header value for {$name}: {$value}");
             }
+        }
+    }
+
+    /**
+     * Validate a whole map, once per distinct name.
+     *
+     * @param array<string, list<string>> $headers Fields to check.
+     * @throws \InvalidArgumentException When a name or a value is not valid.
+     */
+    private static function validateHeaderMap(array $headers): void
+    {
+        foreach ($headers as $name => $values) {
+            self::validateName($name);
+            self::validateValues($name, $values);
         }
     }
 
