@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `Response::strict()` enables header validation, off by default. It is a
+  development assertion, not a security control: PHP's `header()` already refuses a
+  value containing CR or LF, and the PSR-7 adapters reject one at construction, so
+  what the check adds is a message naming the offending field when the application
+  itself builds a malformed header — `'Location: ' . $url`, a field name with a
+  space in it. Enable it from the application's own debug switch, once at boot:
+  it is process-wide, and a resident worker shares the value across every request
+  it serves. When off, the cost is one static read per header.
+
+  Both the name/value setters and the `Name: value` line form are validated, so
+  `new Response(headers: ['ETag: ' . $etag])` is covered as well as
+  `setHeader('ETag', $etag)`. With `strict()` on, a value containing CR, LF or NUL
+  and a name that is not an RFC 9110 token raise `InvalidArgumentException`.
+
+### Fixed
+
+- **Header validation was silently disabled.** The guard had been commented out
+  while the documentation still promised that malformed names and values raise
+  `InvalidArgumentException`. It is now gated by `Response::strict()` rather than
+  removed, and covered by `tests/Http/ResponseHeaderTest.php` — the header API had
+  no tests at all, which is why the guard could be dropped without a failure.
+- **Documentation no longer claims validation that is off by default.** The
+  `addHeader()` `@throws` tag and the API doc described a guard that never ran.
+
 ## [0.5.0] - 2026-11-18
 
 A **minor, breaking** release. Response headers are now stored by field name, so repeated

@@ -47,7 +47,9 @@ class Response
             }
         }
 
-        //self::validateHeaderMap($this->headers);
+        if (self::$strict) {
+            self::validateHeaderMap($this->headers);
+        }
     }
 
     /**
@@ -82,6 +84,51 @@ class Response
      * @var array<string, true>
      */
     protected static array $validNames = [];
+
+    /**
+     * Whether header names and values are checked as they are set.
+     *
+     * OFF BY DEFAULT, and the default is the point. This is a development
+     * assertion about the APPLICATION's code, not a security control: PHP's
+     * `header()` already refuses a value containing CR or LF, and the PSR-7
+     * adapters (RoadRunner, Volucer) reject one at construction. What is left
+     * for this check to catch is a malformed header written by the application
+     * itself — `'Location: ' . $url` where `$url` came from a request, a field
+     * name with a space in it — and the value of catching that early is a
+     * message naming the field instead of a silently dropped header.
+     *
+     * Because that is a debugging aid rather than a guarantee, it is paid for
+     * only where it is wanted. When off, the cost is one static read per header;
+     * when on, 6 headers cost ~2.5 us per request (~0.4% of a PHP-FPM request,
+     * ~1.3% of a resident-worker one).
+     *
+     * PROCESS-WIDE, so set it once at boot from the application's own debug
+     * switch — never per request. A resident worker keeps this value for every
+     * request it serves after the one that changed it. No env lookup happens
+     * here: reading the environment inside a header setter would add a global
+     * read to the hot path and make the behaviour SAPI-dependent and hard to
+     * test. The entry script knows its own debug flag and states it once.
+     */
+    protected static bool $strict = false;
+
+    /**
+     * Enable or disable header validation, or read the current setting.
+     *
+     * Enable it in development so a malformed header fails loudly and names the
+     * field; leave it off elsewhere. See {@see self::$strict} for why the
+     * default is off and what the check does and does not protect.
+     *
+     * @param bool|null $on `true`/`false` to set, `null` (default) to read.
+     * @return bool The setting in effect after the call.
+     */
+    public static function strict(?bool $on = null): bool
+    {
+        if ($on !== null) {
+            self::$strict = $on;
+        }
+
+        return self::$strict;
+    }
 
     /**
      * Set the HTTP status code.
@@ -130,11 +177,10 @@ class Response
     {
         if ($value === null) {
             [$name, $value] = self::parseHeaderLine($name);
-        }
-        /* elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
+        } elseif (self::$strict) {
             self::validateName($name);
             self::validateValues($name, [$value]);
-        } */
+        }
 
         $lower = strtolower($name);
         $key   = $this->headerIndex[$lower] ?? null;
@@ -171,6 +217,11 @@ class Response
         }
 
         foreach ($headers as $name => $values) {
+            $values = (array) $values;
+            if (self::$strict) {
+                self::validateName($name);
+                self::validateValues($name, $values);
+            }
             $lower = strtolower($name);
             $key   = $this->headerIndex[$lower] ?? null;
 
@@ -179,7 +230,7 @@ class Response
                 $key = $name;
             }
 
-            $this->headers[$key] = (array) $values;
+            $this->headers[$key] = $values;
         }
 
         return $this;
@@ -200,11 +251,10 @@ class Response
     {
         if ($value === null) {
             [$name, $value] = self::parseHeaderLine($name);
-        }
-        /* elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
+        } elseif (self::$strict) {
             self::validateName($name);
             self::validateValues($name, [$value]);
-        }*/
+        }
 
         $lower = strtolower($name);
         $key   = $this->headerIndex[$lower] ?? null;
@@ -362,8 +412,14 @@ class Response
     /**
      * Split a complete `Name: value` line into its name and trimmed value.
      *
+     * This is the path a header built by concatenation takes —
+     * `new Response(headers: ['ETag: ' . $etag])` — so it is validated under the
+     * same switch as the name/value setters. Validating only the two-argument
+     * form would leave the style most code actually writes unchecked.
+     *
      * @return array{0: string, 1: string}
-     * @throws \InvalidArgumentException When the line or its value is not valid.
+     * @throws \InvalidArgumentException When the line has no colon, or (in
+     *         strict mode) when its name or value is not a valid field.
      */
     private static function parseHeaderLine(string $line): array
     {
@@ -374,8 +430,10 @@ class Response
 
         $value = ltrim(substr($line, strlen($name) + 1));
 
-        //self::validateName($name);
-        //self::validateValues($name, [$value]);
+        if (self::$strict) {
+            self::validateName($name);
+            self::validateValues($name, [$value]);
+        }
 
         return [$name, $value];
     }

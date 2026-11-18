@@ -10,6 +10,51 @@ or use one of the static factory methods (`json()`, `html()`,
 
 ## Public methods
 
+### strict() · <small>[🗎](../../src/Http/Response.php#L124)</small>
+
+`public static function strict(?bool $on = null): bool`
+
+Enable or disable header validation, or read the current setting.
+
+This is a **development assertion about the application's own code**, not a
+security control. PHP's `header()` already refuses a value containing CR or LF,
+and the PSR-7 adapters (RoadRunner, Volucer) reject one at construction, so what
+this check adds is an early, framework-owned error naming the offending field
+when the application builds a malformed header itself — `'Location: ' . $url`
+where `$url` came from a request, or a field name with a space in it.
+
+**Off by default**, and the default is deliberate: the value of catching the
+mistake early is a better message, not a guarantee, so it is paid for only where
+it is wanted. Enable it from the application's own debug switch, once at boot:
+
+```php
+// public/index.php, rr-worker.php, volucer-worker.php, task.php
+Response::strict(DEBUG_MODE);
+```
+
+Both the name/value setters and the `Name: value` line form are validated, so
+`new Response(headers: ['ETag: ' . $etag])` is covered as well as
+`setHeader('ETag', $etag)`.
+
+**The setting is process-wide**, so set it once — never per request. A resident
+worker (RoadRunner, Volucer) keeps the value for every request it serves after
+the one that changed it. No environment lookup happens in a header setter: the
+entry script knows its own debug flag and states it once.
+
+When enabled, a value containing CR, LF or NUL, or a name that is not an RFC 9110
+token, raises `InvalidArgumentException`. When disabled, headers are stored as
+given and the cost is one static read per header.
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$on` | bool\|null | `null` | `true`/`false` to set; omit to read. |
+
+**Return value**
+
+- Type: `bool` — the setting in effect after the call.
+
+---
+
 ### __construct() · <small>[🗎](../../src/Http/Response.php#L22)</small>
 
 `public function __construct(int $status = 200, array $headers = [], string $body = ''): mixed`
