@@ -9,96 +9,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Global and route-group middleware now run before controller construction.**
-  Previously, `Dispatcher` constructed the controller and resolved action arguments
-  before running these middleware, so they could not prevent that work. The pipeline
-  now runs global and route-group middleware first. If they allow the request,
-  `Dispatcher` constructs the controller, then runs controller and action middleware
-  before reflecting the action and resolving its arguments.
-
-  This also prevents action-name disclosure. Previously, `ActionNotFoundException`
-  could occur before middleware rejected the request, allowing a 404-versus-redirect
-  difference to reveal whether an action existed. An unknown action is now reported
-  only if the request passes through the pipeline.
-
-- **Unknown controller classes now raise `ControllerNotFoundException`.** Although
-  declared in `dispatch()`'s `@throws`, the previous path through `AppContext::get()`
-  raised `RuntimeException("Service not found: ...")` instead.
+- **Global and route-group middleware now run before controller construction and
+  action resolution.** If they allow the request, `Dispatcher` constructs the
+  controller, runs controller and action middleware, then reflects the action and
+  resolves its arguments. Rejected requests no longer reveal whether an action exists
+  through a 404-versus-redirect difference; unknown actions are reported only after
+  middleware allows the request.
+- **Unknown controller classes now raise `ControllerNotFoundException`.** The previous
+  `AppContext::get()` path raised `RuntimeException("Service not found: ...")`,
+  despite `dispatch()` declaring the former in `@throws`.
 - **Incoming cookies are read from `Request`, not `$_COOKIE`.** `Cookies`, `Cookie`,
-  and `CsrfMiddleware` now use the request as their source, so workers that disable
-  CGI globals with `Worker::withoutCgiGlobals()` can still read client cookies.
-  Previously, these components read `$_COOKIE` directly and returned the caller's
-  default when it was unavailable.
-- **Worker responses now include `Set-Cookie` headers.** `Cookie::send()` and
-  `Cookies::sendAll()` used `setcookie()`, which returns `true` but writes no response
-  header under worker SAPIs; outgoing cookies were silently dropped. `Dispatcher`
-  now adds cookies from the jar to responses. Response headers keep one list per field
-  name, so repeated headers such as multiple `Set-Cookie` values survive.
-- **Auto-`OPTIONS` responses carried a value-less `Allow` header.** `Dispatcher`
-  called `addHeader('Allow', $methods)` after `addHeader()` had been narrowed to a
-  single line argument, so the methods were silently dropped and the response
-  contained a bare `Allow` line that clients reject.
+  and `CsrfMiddleware` can now read cookies when workers disable CGI globals with
+  `Worker::withoutCgiGlobals()`. Previously, they returned the caller's default if
+  `$_COOKIE` was unavailable.
+- **Worker responses now include `Set-Cookie` headers.** `setcookie()` does not add
+  response headers under worker SAPIs, so cookies were silently dropped. `Dispatcher`
+  now adds jar cookies to responses, and repeated header values such as multiple
+  `Set-Cookie` headers are preserved.
+- **Auto-`OPTIONS` responses now include the `Allow` value.** A call to
+  `addHeader('Allow', $methods)` silently dropped the methods, leaving a bare header
+  that clients reject.
 
 ### Added
 
-- `Request::cookies()`, `Request::cookie()`.
-- `Cookie::create()` (replacing `make()`), `toHeader()`, `isDirty()`,
-  `setRaw()`.
-- `Cookies::applyTo()`, `Cookies::clear()`.
-- `Response::addHeader()`, `Response::addHeaders()`, `Response::addCookie()`,
-  `Response::replaceHeader()`, `Response::replaceHeaders()`,
-  `Response::getHeaderValues()`, `Response::getHeaderLines()`.
+- `Request::cookies()` and `Request::cookie()`.
+- `Cookie::create()` (replacing `make()`), `toHeader()`, `isDirty()`, and `setRaw()`.
+- `Cookies::applyTo()` and `Cookies::clear()`.
+- `Response::addHeader()`, `addHeaders()`, `addCookie()`, `setHeader()`,
+  `setHeaders()`, `getHeaderValues()`, and `getHeaderLines()`.
 
 ### Changed
 
-- **BREAKING:** `Dispatcher::buildPipeline()` now takes a controller class name
-  (`string $controllerClass`) instead of a `Controller` instance, and no longer
-  receives pre-resolved action parameters. It builds only the global and route-group
-  stage. A new `protected buildActionPipeline(Controller $controller, string $action,
-array $vars, AppContext $context)` builds the controller and action stage and
-  resolves action arguments. Subclasses that overrode `buildPipeline()` must be
-  updated.
-- Controller and action middleware declarations are now read from the controller
-  _instance_, which means normal PHP property resolution applies: a subclass that
-  redeclares `$middlewares` **replaces** the parent's list instead of extending it.
-  Behaviour is unchanged from before; this is documented so it is not mistaken for
-  inheritance of the parent's entries.
-- **BREAKING:** `Cookie::make()` was renamed to `Cookie::create()`, following the
-  framework's factory convention (`Model::create()`). `make()` is removed with no
-  alias.
-- **BREAKING:** `Response::getHeaders()` now returns values by field name
-  (`['Content-Type' => ['application/json']]`), with one list per field so a
-  repeated header such as `Set-Cookie` keeps every value. This is PSR-7's shape.
-  Use `getHeader($name)` for one value, `getHeaderValues($name)` for all of one
-  field, and `getHeaderLines()` for wire format (`'Content-Type: application/json'`).
-- **BREAKING:** `Response::replaceHeader()` and `addHeader()` take a field name and
-  a value (`addHeader('Set-Cookie', $value)`); a complete `Name: value` line is still
-  accepted as the first argument. Both throw `InvalidArgumentException` for a name
-  that is not an RFC 9110 token or a value containing CR/LF, so a malformed header
-  can no longer reach the SAPI or a worker adapter. `setHeader()`/`setHeaders()`
-  remain as aliases for `replaceHeader()`/`replaceHeaders()`. The constructor and the
-  `json()`, `html()`, `text()`, and `redirect()` factories use a name-keyed map (a
-  list of lines is still read).
-- `Response::send()` passes `replace: false` for the second and later values of a
-  field. Previously every value was sent with `replace: true`, so only the last
-  `Set-Cookie` of a response was actually written.
+- **BREAKING:** `Dispatcher::buildPipeline()` now takes a controller class
+  (`string $controllerClass`) instead of an instance and no longer receives resolved
+  action parameters. It builds the global and route-group stages only.
+  `buildActionPipeline(Controller $controller, string $action, array $vars,
+  AppContext $context)` builds the controller and action stages and resolves action
+  arguments. Subclasses overriding `buildPipeline()` must be updated.
+- Controller and action middleware declarations are read from the controller
+  _instance_. A subclass that redeclares `$middlewares` replaces the parent's list;
+  it does not extend it. This behavior is unchanged.
+- **BREAKING:** `Cookie::make()` is now `Cookie::create()`, following the
+  `Model::create()` factory convention. `make()` has been removed without an alias.
+- **BREAKING:** `Response::getHeaders()` now returns a map from field names to value
+  lists (for example, `['Content-Type' => ['application/json']]`), matching PSR-7's
+  shape and preserving repeated values such as `Set-Cookie`. Use `getHeader($name)`
+  for one value, `getHeaderValues($name)` for all values, and `getHeaderLines()` for
+  formatted lines such as `'Content-Type: application/json'`.
+- **BREAKING:** `Response::setHeader()` and `addHeader()` now take a field name and
+  value; `addHeader()` still accepts a complete `Name: value` line as its first
+  argument. `setHeader()` replaces a field's values; `addHeader()` appends one.
+  `setHeaders()` and `addHeaders()` accept lists, with `setHeaders()` replacing the
+  field's full list. The constructor and `json()`, `html()`, `text()`, and `redirect()`
+  factories now take a name-keyed header map (lists of lines are still accepted).
+  Invalid names (not RFC 9110 tokens) and values containing CR or LF raise
+  `InvalidArgumentException`.
+- `Response::send()` now preserves repeated field values by passing `replace: false`
+  for the second and later values. Previously only the last `Set-Cookie` was written.
 - `Response::send()` no longer emits headers after `headers_sent()`.
-- Header names are validated against the RFC 9110 token grammar and values may not
-  contain CR, LF or NUL. The name check is memoised (it is a pure function of the
-  name) so the guard does not enter the per-request cost.
-- **BREAKING:** `Cookie::send()` and `Cookies::sendAll()` were removed. They called
-  `setcookie()`, which has no effect under workers and would duplicate the header
-  emitted by `Response::send()` under `php-fpm`. Responses are now the only cookie
-  emission path. `Cookie::delete()` returns `static` and queues a past-expiry header.
-- Only **written or modified** cookies are emitted; reading a cookie does not queue it.
-  Because a `Cookie` request header contains no attributes, re-emitting a read cookie
-  with the jar's defaults could change its expiry, path, or security settings.
-- Changing an attribute such as `expires()` or `secure()` on a cookie read from the
-  request emits its existing value with the updated attributes. `Cookie::toHeader()`
-  gets the value through `value()`, which decrypts the raw incoming value unless
-  `set()` has replaced it.
-- `Cookies` now requires a request to read incoming cookies; `AppContext` supplies it.
-  A jar constructed with `new Cookies()` has no incoming cookies to read.
+- `Response::send()` no longer emits headers after `headers_sent()`.
+- Header names must match the RFC 9110 token grammar; values may not contain CR, LF, or
+  NUL. Name validation is memoised to avoid repeated per-request checks.
+- **BREAKING:** `Cookie::send()` and `Cookies::sendAll()` have been removed.
+  `setcookie()` has no effect under workers and would duplicate headers under
+  `php-fpm`; responses are now the only cookie emission path. `Cookie::delete()` now
+  returns `static` and queues a past-expiry header.
+- Only **written or modified** cookies are emitted. Re-emitting a read cookie with
+  default attributes could change its expiry, path, or security settings.
+- Changing an attribute such as `expires()` or `secure()` on a request cookie emits
+  its existing value with the updated attributes. `Cookie::toHeader()` gets that value
+  through `value()`, which decrypts the raw incoming value unless `set()` replaced it.
+- `Cookies` now needs a `Request` to read incoming cookies; `AppContext` supplies it.
+  `new Cookies()` creates a jar with no incoming cookies.
 
 ## [0.4.2] - 2026-11-09
 

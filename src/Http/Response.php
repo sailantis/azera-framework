@@ -21,71 +21,45 @@ class Response
      */
     public function __construct(
         protected int $status = 200,
-        /**
-         * Header values by field name, e.g. `'Content-Type' => ['application/json']`.
-         *
-         * Every name maps to a list even when the field was set once: a repeated
-         * field (two `Set-Cookie` lines) is the case that must not be lost, and a
-         * uniform shape keeps readers from branching on the value type.
-         *
-         * @var array<string, list<string>>
-         */
-        protected array $headers = [],
+        array $headers = [],
         protected string $body = ''
     ) {
-        // Nothing to normalise in the common case: no headers, as in the
-        // factories and the security-headers middleware, which add theirs after
-        // construction.
-        if ($this->headers === []) {
-            return;
-        }
-
         // An integer key is a complete line rather than a name, so the older
         // `['Content-Type: application/json']` form keeps working. Turning them
         // into name => value pairs first keeps the loop below to one shape.
-        if (isset($this->headers[0])) {
-            $lines = $this->headers;
-            $this->headers = [];
-
-            foreach ($lines as $line) {
+        if (isset($headers[0])) {
+            foreach ($headers as $line) {
                 [$name, $value] = self::parseHeaderLine((string) $line);
-                $this->headers[$name][] = $value;
-            }
-        }
-
-        $normalized = [];
-
-        foreach ($this->headers as $name => $values) {
-            $lower = strtolower($name);
-
-            if (isset($this->headerIndex[$lower])) {
-                $name = $this->headerIndex[$lower];
-            } else {
-                $this->headerIndex[$lower] = $name;
-            }
-
-            if (is_array($values)) {
-                // A field declared with no values is not a field; skipping it keeps
-                // the index and the stored names in step.
-                if ($values === []) {
-                    continue;
+                $lower = strtolower($name);
+                $key   = $this->headerIndex[$lower] ?? null;
+                if ($key === null) {
+                    $this->headerIndex[$lower] = $name;
+                    $this->headers[$name]      = [$value];
+                } else {
+                    $this->headers[$key][] = $value;
                 }
-
-                $values = array_values($values);
-            } else {
-                $values = [(string) $values];
             }
-
-            if (isset($normalized[$name])) {
-                $normalized[$name] = [...$normalized[$name], ...$values];
-            } else {
-                $normalized[$name] = $values;
+        } else {
+            foreach ($headers as $name => $values) {
+                $lower = strtolower($name);
+                $this->headerIndex[$lower] = $name;
+                $this->headers[$name]      = (array) $values;
             }
         }
 
-        $this->headers = $normalized;
         //self::validateHeaderMap($this->headers);
     }
+
+    /**
+     * Header values by field name, e.g. `'Content-Type' => ['application/json']`.
+     *
+     * Every name maps to a list even when the field was set once: a repeated
+     * field (two `Set-Cookie` lines) is the case that must not be lost, and a
+     * uniform shape keeps readers from branching on the value type.
+     *
+     * @var array<string, list<string>>
+     */
+    protected array $headers = [];
 
     /**
      * Lowercase field name to the spelling stored in {@see $headers}.
@@ -96,7 +70,7 @@ class Response
      *
      * @var array<string, string>
      */
-    private array $headerIndex = [];
+    protected array $headerIndex = [];
 
     /**
      * Field names already accepted by {@see validateName()}.
@@ -107,7 +81,7 @@ class Response
      *
      * @var array<string, true>
      */
-    private static array $validNames = [];
+    protected static array $validNames = [];
 
     /**
      * Set the HTTP status code.
@@ -140,27 +114,30 @@ class Response
     }
 
     /**
-     * Replace the values of a header field, or add the field if absent.
+     * Set a header field, replacing every value already stored for that name.
      *
      * A complete line (`"Content-Type: application/json"`) may be passed instead of
      * a name and value; a field name can never contain a colon, so the two forms
-     * cannot be confused.
+     * cannot be confused. Use {@see addHeader()} to append a second value to a
+     * repeated field such as `Set-Cookie` instead of replacing it.
      *
      * @param string      $name  Header field name, or a complete `Name: value` line.
      * @param string|null $value Header value; omit when passing a complete line.
      * @return $this
-     * @throws \InvalidArgumentException When the name or value is not a valid field.
+     * @throws \InvalidArgumentException When the line has no colon.
      */
-    public function replaceHeader(string $name, ?string $value = null): static
+    public function setHeader(string $name, ?string $value = null): static
     {
         if ($value === null) {
             [$name, $value] = self::parseHeaderLine($name);
-        } elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
+        }
+        /* elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
             self::validateName($name);
             self::validateValues($name, [$value]);
-        }
+        } */
 
-        $key = $this->headerIndex[$lower = strtolower($name)] ?? null;
+        $lower = strtolower($name);
+        $key   = $this->headerIndex[$lower] ?? null;
 
         if ($key === null) {
             $this->headerIndex[$lower] = $name;
@@ -173,35 +150,36 @@ class Response
     }
 
     /**
-     * Replace several header fields, each with {@see replaceHeader()} semantics.
+     * Set several header fields, each with {@see setHeader()} semantics.
      *
-     * Accepts a list of complete lines (`['X-Trace: abc']`) and a name => value map
-     * (`['X-Trace' => 'abc']`) in any mix; an integer key is read as a line. A list
-     * of values replaces the field and keeps every one, as PSR-7's `withHeader()`
-     * does.
+     * Accepts a list of complete lines (`['X-Trace: abc']`) or a name => value map
+     * (`['X-Trace' => 'abc']`). A list of values replaces the field and keeps every
+     * one, as PSR-7's `withHeader()` does; {@see addHeaders()} appends instead.
      *
-     * @param array<int|string, string|list<string>> $headers Fields to replace.
+     * @param array<int|string, string|list<string>> $headers Fields to set.
      * @return $this
+     * @throws \InvalidArgumentException When a line has no colon.
      */
-    public function replaceHeaders(array $headers): static
+    public function setHeaders(array $headers): static
     {
-        foreach ($headers as $key => $value) {
-            if (is_int($key)) {
-                $this->replaceHeader((string) $value);
-                continue;
+        if (isset($headers[0])) {
+            foreach ($headers as $line) {
+                $this->setHeader((string) $line);
             }
 
-            $first = true;
+            return $this;
+        }
 
-            foreach ((array) $value as $item) {
-                if ($first) {
-                    $this->replaceHeader($key, (string) $item);
-                    $first = false;
-                    continue;
-                }
+        foreach ($headers as $name => $values) {
+            $lower = strtolower($name);
+            $key   = $this->headerIndex[$lower] ?? null;
 
-                $this->addHeader($key, (string) $item);
+            if ($key === null) {
+                $this->headerIndex[$lower] = $name;
+                $key = $name;
             }
+
+            $this->headers[$key] = (array) $values;
         }
 
         return $this;
@@ -222,12 +200,14 @@ class Response
     {
         if ($value === null) {
             [$name, $value] = self::parseHeaderLine($name);
-        } elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
+        }
+        /* elseif (!isset(self::$validNames[$name]) || strpbrk($value, "\r\n\x00") !== false) {
             self::validateName($name);
             self::validateValues($name, [$value]);
-        }
+        }*/
 
-        $key = $this->headerIndex[$lower = strtolower($name)] ?? null;
+        $lower = strtolower($name);
+        $key   = $this->headerIndex[$lower] ?? null;
 
         if ($key === null) {
             $this->headerIndex[$lower] = $name;
@@ -247,41 +227,18 @@ class Response
      */
     public function addHeaders(array $headers): static
     {
-        foreach ($headers as $key => $value) {
-            foreach ((array) $value as $item) {
-                if (is_int($key)) {
-                    $this->addHeader((string) $item);
-                    continue;
+        if (isset($headers[0])) {
+            foreach ($headers as $line) {
+                $this->addHeader($line);
+            }
+        } else {
+            foreach ($headers as $key => $value) {
+                foreach ((array) $value as $item) {
+                    $this->addHeader($key, (string) $item);
                 }
-
-                $this->addHeader($key, (string) $item);
             }
         }
-
         return $this;
-    }
-
-    /**
-     * Set a header with the given name and value, replacing any existing header of the same name.
-     *
-     * @param string $name Header field name.
-     * @param string $value Header value.
-     * @return static
-     */
-    public function setHeader(string $name, string $value): static
-    {
-        return $this->replaceHeader($name, $value);
-    }
-
-    /**
-     * Set multiple headers, replacing any existing headers with the same names.
-     *
-     * @param array<string, string> $headers Associative array of header names and values.
-     * @return static
-     */
-    public function setHeaders(array $headers): static
-    {
-        return $this->replaceHeaders($headers);
     }
 
     /**
@@ -410,17 +367,15 @@ class Response
      */
     private static function parseHeaderLine(string $line): array
     {
-        $colon = strpos($line, ':');
-
-        if ($colon === false) {
+        $name = strstr($line, ':', true);
+        if ($name === false) {
             throw new \InvalidArgumentException("Header line must contain a colon: {$line}");
         }
 
-        $name  = substr($line, 0, $colon);
-        $value = trim(substr($line, $colon + 1), " \t");
+        $value = ltrim(substr($line, strlen($name) + 1));
 
-        self::validateName($name);
-        self::validateValues($name, [$value]);
+        //self::validateName($name);
+        //self::validateValues($name, [$value]);
 
         return [$name, $value];
     }
