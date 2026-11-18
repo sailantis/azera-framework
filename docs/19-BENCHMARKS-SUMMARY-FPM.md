@@ -4,9 +4,9 @@ The headline numbers from the measured nginx + PHP-FPM deployment: the cost of o
 
 **Environment** — PHP 8.5.11 · Linux 6.8.0-139-generic · OPcache: yes · JIT: tracing (buffer 64M) · 1000 iterations per run over 10 runs, lower is better.
 
-**Frameworks** — Azera v0.4.1-5-gf9b2de0 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0.
+**Frameworks** — Azera v0.5.0 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0.
 
-_Measured 2026-11-11T19:29:49+00:00_
+_Measured 2026-11-18T16:24:17+00:00_
 
 ## Total response times
 
@@ -53,30 +53,30 @@ Trimmed mean in milliseconds, lower is better. **Bold** = fastest for that endpo
 
 | Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP |
 |---|---|---:|---:|---:|---:|---:|---:|
-| `GET /` | no DB — routing + template only | **0.625** | 3.62 | 1.85 | 6.71 | 1.88 | 1.44 |
-| `GET /echo` | no DB — routing + dispatch only | **0.518** | 3.45 | 1.60 | 6.54 | 1.72 | 1.30 |
-| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **1.34** | 4.70 | 3.40 | 7.63 | 2.70 | 2.79 |
-| `GET /items-fast` | 20 of 1000 items (page 1, + COUNT), hydrated rows not built | **1.25** | 4.42 | 3.31 | 7.49 | 2.58 | 2.70 |
-| `GET /items/1` | 1 item by id | **1.23** | 4.41 | 2.74 | 7.48 | 2.51 | 2.56 |
-| `POST /items` | 1 row upserted (sentinel #999999) | **1.41** | 4.45 | 3.68 | 7.52 | 2.69 | 2.72 |
-| `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **1.17** | 4.24 | 2.42 | 7.12 | 2.55 | 2.19 |
-| `GET /items-qb/1` | 1 item by id | **1.13** | 4.11 | 2.36 | 7.08 | 2.46 | 2.11 |
-| `POST /items-qb` | 1 row upserted (sentinel #999997) | **1.24** | 4.24 | 3.23 | 7.24 | 2.70 | 2.22 |
-| `GET /api/items` | 20 of 1000 items as JSON | **1.21** | 4.55 | 2.73 | 6.78 | 2.51 | 2.46 |
-| `GET /api/items-fast` | 20 of 1000 items as JSON, rows not hydrated | **1.13** | 4.14 | 2.67 | 6.63 | 2.42 | 2.41 |
-| `GET /api/items/1` | 1 item by id as JSON | **1.14** | 4.36 | 2.50 | 6.68 | 2.42 | 2.43 |
-| `POST /api/items` | 1 row upserted (sentinel #999998) | **1.22** | 4.27 | 3.43 | 6.76 | 2.51 | 2.59 |
-| `GET /features/aop` | no DB — interceptor pipeline | **2.32** | 4.97 | 3.08 | 8.23 | — | — |
-| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **1.41** | 4.29 | 2.70 | 7.32 | 2.36 | 2.32 |
-| `GET /features/log` | no DB — buffered log handlers | **1.00** | 3.50 | 1.74 | 6.69 | — | — |
-| `GET /features/retry` | no DB — retry policy | **1.01** | 3.51 | 1.74 | 6.74 | — | — |
-| `GET /features/pipeline` | no DB — middleware pipeline | **0.576** | 3.50 | 1.75 | 6.72 | — | — |
-| `GET /features/db-events` | 1 event row INSERTed per request | **1.51** | 4.30 | 2.86 | 7.57 | 2.62 | 2.54 |
-| `GET /features/events` | no DB — in-process listeners | **1.48** | 4.01 | 2.19 | 7.28 | 2.56 | 1.87 |
-| `GET /features/validation` | no DB — validator run | **0.585** | 4.41 | 2.10 | 6.83 | 2.17 | 1.73 |
-| `GET /features/config` | no DB — config lookup | **0.531** | 3.49 | 1.76 | 6.72 | 1.82 | 1.30 |
-| `GET /features/request-scoped` | no DB — scoped service resolve | **0.532** | 3.49 | 1.74 | 6.78 | 1.80 | 1.33 |
-| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.536** | 3.64 | 1.78 | 6.84 | 1.81 | 1.43 |
+| `GET /` | no DB — routing + template only | **0.641** | 3.58 | 1.86 | 6.66 | 1.92 | 1.45 |
+| `GET /echo` | no DB — routing + dispatch only | **0.536** | 3.44 | 1.64 | 6.58 | 1.73 | 1.33 |
+| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **1.37** | 4.69 | 3.39 | 7.78 | 2.73 | 2.82 |
+| `GET /items-fast` | 20 of 1000 items (page 1, + COUNT), hydrated rows not built | **1.29** | 4.41 | 3.31 | 7.61 | 2.61 | 2.74 |
+| `GET /items/1` | 1 item by id | **1.27** | 4.41 | 2.76 | 7.61 | 2.56 | 2.58 |
+| `POST /items` | 1 row upserted (sentinel #999999) | **1.44** | 4.42 | 3.68 | 7.71 | 2.78 | 2.77 |
+| `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **1.21** | 4.27 | 2.43 | 7.27 | 2.63 | 2.23 |
+| `GET /items-qb/1` | 1 item by id | **1.17** | 4.13 | 2.37 | 7.23 | 2.53 | 2.15 |
+| `POST /items-qb` | 1 row upserted (sentinel #999997) | **1.27** | 4.25 | 3.20 | 7.42 | 2.76 | 2.24 |
+| `GET /api/items` | 20 of 1000 items as JSON | **1.25** | 4.65 | 2.73 | 6.88 | 2.54 | 2.49 |
+| `GET /api/items-fast` | 20 of 1000 items as JSON, rows not hydrated | **1.16** | 4.24 | 2.68 | 6.67 | 2.45 | 2.44 |
+| `GET /api/items/1` | 1 item by id as JSON | **1.19** | 4.42 | 2.50 | 6.78 | 2.43 | 2.45 |
+| `POST /api/items` | 1 row upserted (sentinel #999998) | **1.24** | 4.38 | 3.46 | 6.85 | 2.55 | 2.61 |
+| `GET /features/aop` | no DB — interceptor pipeline | **2.38** | 4.95 | 3.06 | 8.34 | — | — |
+| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **1.45** | 4.32 | 2.71 | 7.43 | 2.40 | 2.33 |
+| `GET /features/log` | no DB — buffered log handlers | **1.05** | 3.50 | 1.74 | 6.80 | — | — |
+| `GET /features/retry` | no DB — retry policy | **1.03** | 3.51 | 1.74 | 6.82 | — | — |
+| `GET /features/pipeline` | no DB — middleware pipeline | **0.594** | 3.51 | 1.75 | 6.79 | — | — |
+| `GET /features/db-events` | 1 event row INSERTed per request | **1.53** | 4.33 | 2.86 | 7.61 | 2.66 | 2.53 |
+| `GET /features/events` | no DB — in-process listeners | **1.51** | 4.01 | 2.20 | 7.37 | 2.60 | 1.88 |
+| `GET /features/validation` | no DB — validator run | **0.609** | 4.41 | 2.07 | 6.93 | 2.20 | 1.73 |
+| `GET /features/config` | no DB — config lookup | **0.557** | 3.48 | 1.73 | 6.84 | 1.86 | 1.33 |
+| `GET /features/request-scoped` | no DB — scoped service resolve | **0.560** | 3.46 | 1.73 | 6.91 | 1.84 | 1.34 |
+| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.574** | 3.64 | 1.77 | 6.90 | 1.87 | 1.47 |
 
 **Full comparison** — this page is a summary. The complete report, with every feature chart and the endpoint table for all six frameworks, is published at:
 
