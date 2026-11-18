@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-18
+
+A **patch** release. Header validation — commented out since 0.5.0's predecessor — is
+restored behind `Response::strict()`, off by default, and the header API now has tests.
+
 ### Added
 
-- `Response::strict()` enables header validation, which is on by default. This is a
+- `Response::strict()` enables header validation, which is **off by default**. This is a
   development assertion, not a security control: PHP's `header()` rejects CR/LF, and
   PSR-7 adapters reject malformed headers during construction. The check adds an
   error that identifies the offending field when application code builds an invalid
@@ -323,7 +328,8 @@ with the packaging and tooling a published library is expected to carry.
 characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.5.1
 [0.5.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.5.0
 [0.4.2]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.2
 [0.4.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.1
