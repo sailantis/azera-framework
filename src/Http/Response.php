@@ -194,7 +194,7 @@ class Response
      * @param string      $name  Header field name, or a complete `Name: value` line.
      * @param string|null $value Header value; omit when passing a complete line.
      * @return $this
-     * @throws \InvalidArgumentException When the name or value is not a valid field.
+     * @throws \InvalidArgumentException When the line has no colon.
      */
     public function addHeader(string $name, ?string $value = null): static
     {

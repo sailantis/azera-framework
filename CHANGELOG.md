@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-18
+
+A **minor, breaking** release. Response headers are now stored by field name, so repeated
+fields such as `Set-Cookie` survive; cookies are emitted through the response instead of
+`setcookie()`; and the middleware pipeline builds in two stages so global and route-group
+middleware run before the controller does.
+
 ### Fixed
 
 - **Global and route-group middleware now run before controller construction and
@@ -62,14 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `setHeaders()` and `addHeaders()` accept lists, with `setHeaders()` replacing the
   field's full list. The constructor and `json()`, `html()`, `text()`, and `redirect()`
   factories now take a name-keyed header map (lists of lines are still accepted).
-  Invalid names (not RFC 9110 tokens) and values containing CR or LF raise
-  `InvalidArgumentException`.
 - `Response::send()` now preserves repeated field values by passing `replace: false`
   for the second and later values. Previously only the last `Set-Cookie` was written.
 - `Response::send()` no longer emits headers after `headers_sent()`.
-- `Response::send()` no longer emits headers after `headers_sent()`.
-- Header names must match the RFC 9110 token grammar; values may not contain CR, LF, or
-  NUL. Name validation is memoised to avoid repeated per-request checks.
 - **BREAKING:** `Cookie::send()` and `Cookies::sendAll()` have been removed.
   `setcookie()` has no effect under workers and would duplicate headers under
   `php-fpm`; responses are now the only cookie emission path. `Cookie::delete()` now
@@ -296,7 +298,10 @@ with the packaging and tooling a published library is expected to carry.
 characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.5.0
+[0.4.2]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.2
+[0.4.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.1
 [0.4.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.0
 [0.3.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.1
 [0.3.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.3.0

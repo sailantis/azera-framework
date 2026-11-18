@@ -154,7 +154,7 @@ second `Set-Cookie` must not overwrite the first.
 
 **Throws**
 
-- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When the name or value is not a valid field.
+- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When a `Name: value` line has no colon.
 
 
 ---
