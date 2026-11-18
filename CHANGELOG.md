@@ -9,19 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `Response::strict()` enables header validation, off by default. It is a
-  development assertion, not a security control: PHP's `header()` already refuses a
-  value containing CR or LF, and the PSR-7 adapters reject one at construction, so
-  what the check adds is a message naming the offending field when the application
-  itself builds a malformed header — `'Location: ' . $url`, a field name with a
-  space in it. Enable it from the application's own debug switch, once at boot:
-  it is process-wide, and a resident worker shares the value across every request
-  it serves. When off, the cost is one static read per header.
+- `Response::strict()` enables header validation, which is on by default. This is a
+  development assertion, not a security control: PHP's `header()` rejects CR/LF, and
+  PSR-7 adapters reject malformed headers during construction. The check adds an
+  error that identifies the offending field when application code builds an invalid
+  header, such as `'Location: ' . $url` or a name containing spaces.
 
-  Both the name/value setters and the `Name: value` line form are validated, so
-  `new Response(headers: ['ETag: ' . $etag])` is covered as well as
-  `setHeader('ETag', $etag)`. With `strict()` on, a value containing CR, LF or NUL
-  and a name that is not an RFC 9110 token raise `InvalidArgumentException`.
+  Set it once at startup using the application's debug switch. It is process-wide,
+  so resident workers share the setting across requests. When disabled, it adds one
+  static read per header. Validation covers both name/value setters and complete
+  `Name: value` lines, including `new Response(headers: ['ETag: ' . $etag])`.
+  Invalid names (not RFC 9110 tokens) and values containing CR, LF, or NUL raise
+  `InvalidArgumentException` when strict mode is enabled.
 
 ### Fixed
 
@@ -77,7 +76,7 @@ middleware run before the controller does.
   (`string $controllerClass`) instead of an instance and no longer receives resolved
   action parameters. It builds the global and route-group stages only.
   `buildActionPipeline(Controller $controller, string $action, array $vars,
-  AppContext $context)` builds the controller and action stages and resolves action
+AppContext $context)` builds the controller and action stages and resolves action
   arguments. Subclasses overriding `buildPipeline()` must be updated.
 - Controller and action middleware declarations are read from the controller
   _instance_. A subclass that redeclares `$middlewares` replaces the parent's list;
