@@ -57,7 +57,7 @@ Built-in types:
 | `int`   | Digits only (`ctype_digit`)        |
 | `alpha` | Letters only (`ctype_alpha`)       |
 | `alnum` | Letters and digits (`ctype_alnum`) |
-| `uuid`  | 36-char UUID with hyphens          |
+| `uuid`  | Canonical `8-4-4-4-12` hex UUID    |
 | (none)  | Any single segment (no validation) |
 
 ```php
@@ -276,6 +276,32 @@ class FileController extends Controller
 
 The parameter can also be declared plain `array` to receive all segments at once.
 
+A wildcard may capture zero segments. Thus `/files/{params:*}` also matches `/files`,
+with `params` set to `[]`.
+
+### Static suffixes after a wildcard
+
+Static segments after a wildcard form a **required suffix**. Use one when a wildcard
+route must end with a fixed path:
+
+```php
+$router->add('GET', '/docs/{path:*}/edit', 'DocsController::editAction');
+```
+
+| URI | `path` | Match |
+| --- | --- | --- |
+| `/docs` | — | No: suffix missing |
+| `/docs/a` | — | No: suffix missing |
+| `/docs/a/b/edit` | `['a', 'b']` | Yes |
+| `/docs/a/b/read` | — | No: suffix must be `edit` |
+
+The suffix is excluded from the capture. If it appears more than once, the last
+occurrence is the suffix: `/docs/a/edit/edit` captures `['a', 'edit']`.
+
+Only static segments may follow a wildcard. Registration rejects `{a:*}/{b}` because
+there is no unambiguous way to split the path between the two parameters.
+
+
 ## DI Injection Example
 
 Parameters that can't be matched by name fall through to DI resolution:
@@ -322,7 +348,80 @@ $router->add('GET', '/hello/{name}', 'WelcomeController::helloAction');
 // GET /hello/World → {"message":"Hello, World!"}
 ```
 
+## How Matching Works
+
+The router lazily builds a compiled index for each method bucket on the first request
+that needs it. Matching uses combined patterns for most routes and individual scan
+steps for routes that cannot safely be combined.
+
+**Combined patterns.** Static routes and routes with `int`, `alpha`, `alnum`, `uuid`,
+or untyped parameters can be expressed as PCRE. The router combines up to 128 routes
+in each alternating pattern:
+
+```
+#^(?|users/(\d+)/show(*:0)|users/(\d+)/edit(*:1)|…)$#u
+```
+
+Each pattern is matched with one `preg_match`; its `MARK` group identifies the matching
+route. Thus, 200 such routes require two calls instead of 200. The `(?|…)` branch reset
+lets routes with different numbers of parameters share a pattern by resetting capture
+numbering for each alternative.
+
+**Scan steps.** These route forms are checked individually because combining them
+would change which URLs match:
+
+| Kind | Why |
+| --- | --- |
+| `{name?:type}` optional segments | an invalid optional segment is skipped, shifting later positions |
+| `{name:regex(…)}` | arbitrary user PCRE |
+| custom `type()` validators | closures; not serialisable, and unknown semantics |
+| a wildcard with an unusual shape | see below |
+
+Combined patterns and scan steps remain interleaved in specificity order. A route that
+needs a scan step does not disable the fast path for its neighbors.
+
+### Performance
+
+Measured on PHP 8.5 with `xdebug.mode=off`, matching the last route in a bucket (the
+worst case), before and after adding the compiled index:
+
+| Routes in bucket | Before | After | Speedup |
+| --- | --- | --- | --- |
+| 1 | 8.2 µs | 6.0 µs | 1.4× |
+| 5 | 23.9 µs | 4.6 µs | 5.2× |
+| 20 | 94.7 µs | 5.5 µs | 17× |
+| 60 | 277 µs | 8.1 µs | 34× |
+| 200 | 740 µs | 12.7 µs | 58× |
+
+Before, each candidate added about 4.7 µs, so matching time grew linearly with bucket
+size. With the index, average cost falls as buckets grow: 0.28 µs per route at 20
+candidates and 0.064 µs at 200.
+
+A static route takes about 1.8 µs and a 404 about 3.9 µs. `getAllowedMethods()`—used
+for 405 and OPTIONS responses—takes about 8.5 µs for seven methods, instead of seven
+full matches.
+
+Reproduce with:
+
+```bash
+php -d xdebug.mode=off benchmarks/router-match.php
+```
+
+Compiling a bucket takes about 1 µs for a single-bucket table. This cost stays roughly
+flat as the table grows because buckets are compiled on demand.
+
+### Inspired by
+
+The compiled index, chunked combined-regex strategy, and method-bucketed candidate lists
+are inspired by [Phalcon](https://github.com/phalcon/phalcon)'s MVC router
+([`src/Mvc/Router.php`](https://github.com/phalcon/phalcon/blob/v6.0.x/src/Mvc/Router.php)).
+Azera differs in three ways: it orders candidates by *specificity*, not reverse
+registration order, so it needs no "shadowed static route" map; it uses a fallback for
+each contiguous run rather than each method bucket; and it treats segments after a
+wildcard as a required suffix rather than ignoring them.
+
 ## Route Cache
+
 
 A cold SAPI — php-fpm, php-cgi, Volucer's spawn_cgi — builds the whole route table
 inside the timed request, because nothing survives between requests. On a 120-route
@@ -456,7 +555,6 @@ azera routes:list            list the routed table
 `routes:cache` reports the number of routes, the byte size, and every watched file.
 
 ### What this is worth
-
 Measured on the VM, PHP 8.5, with the table in a shared OPcache — a warm `require` and
 `restoreState()`, against building the same routes from their units in the same process:
 

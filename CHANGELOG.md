@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+A **minor** release with two themes: the router now uses a compiled index instead of
+scanning routes one at a time, and several long-standing bugs are fixed. The behavior
+corrections are listed under *Changed*; they fix unintended behavior rather than add
+new rules.
+
+### Added
+
+- `Router::match()` now uses a compiled index for each method bucket. Routes that can
+  be expressed as PCRE are combined into patterns of up to 128 alternatives. Matching
+  200 such routes takes two `preg_match` calls instead of 200 token walks. Matching
+  the last route in a 60-route bucket improved from **277 µs to 8.1 µs**. Routes that
+  cannot be combined—such as optional segments, `regex(…)` types, and custom
+  validators—keep their behavior and are interleaved by specificity, so they do not
+  slow the fast path for other routes.
+- `benchmarks/router-match.php` reports cost per candidate, the named real-world cases,
+  and the initial compile cost. Run it with `-d xdebug.mode=off`.
+
+### Changed
+
+- **`{param:uuid}` now matches only the canonical `8-4-4-4-12` hexadecimal form.**
+  The previous validator checked four hyphen positions, then called `ctype_xdigit()`
+  on the remaining characters. It therefore accepted malformed values such as
+  `123e4567-e89b-12d3-a456-42661417400-`. Routes relying on that behavior no longer match.
+- **Static segments after a wildcard are a required suffix.** `/docs/{path:*}/edit` used
+  to ignore `/edit`, matching `/docs/a/b/wrong` with `path = [a, b, wrong]`. It now
+  matches `/docs/a/b/edit` with `path = [a, b]` and rejects paths without the `/edit`
+  suffix. A wildcard at the end of a route still matches zero or more segments.
+- **Unknown parameter types now throw when a route is added.** Previously, `{id:int?}`
+  (the `?` belongs on the name) registered successfully, then raised
+  `Unknown validator: int?` during a matching request.
+- The compiled index is derived state and is not stored in the route cache. Existing
+  cached route tables remain valid; the router rebuilds each needed index bucket on
+  the first match after restoring the cache.
+
+### Fixed
+
+- **`setRevalidateFreq()` without `cached()` emptied the route table.**
+  `ensureFlushed()` cleared the table but had no declared units to rebuild. As a result,
+  the first request matched and the second returned 404.
+- **`autoOptions(true)` with an `OPTIONS` request recursed until memory ran out.**
+  `match()` delegated unmatched `OPTIONS` requests to `getAllowedMethods()`, which
+  called `match()` for `OPTIONS` again. `getAllowedMethods()` no longer calls `match()`.
+- **`getAllowedMethods()` no longer runs seven full matches.** It walks the compiled
+  index once to find every matching method, reducing the measured time from 197 µs to
+  under 15 µs.
+- A wildcard followed by a non-static segment is rejected at registration instead of
+  leaving the split between parameters ambiguous at match time.
+
+### Performance
+
+| Case | Before | After |
+| --- | --- | --- |
+| typed match, 20-route bucket (last candidate) | 94.7 µs | 5.5 µs |
+| typed match, 60-route bucket (last candidate) | 277 µs | 8.1 µs |
+| typed match, 200-route bucket (last candidate) | 740 µs | 12.7 µs |
+| static match | 1.6 µs | 1.8 µs |
+| 404 | 17.6 µs | 3.9 µs |
+| 405 / `getAllowedMethods()` | 197 µs | 8.5 µs |
+| compile a 300-bucket table on first match | 32 µs | 46 µs |
+
+The last row shows the trade-off: the first match pays to compile the buckets it needs.
+Buckets are compiled on demand, so the cost depends on the routes a request looks at,
+not the entire table. An earlier revision compiled every bucket eagerly and took 2.8 ms
+for the same table.
+
 ## [0.5.1] - 2026-11-18
 
 A **patch** release. Header validation — commented out since 0.5.0's predecessor — is

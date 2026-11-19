@@ -617,7 +617,7 @@ class RouterStateTest extends TestCase
     /** The envelope the router writes, for tests that need to forge a file. */
     private function envelope(array $files, ?int $compiled = null): array
     {
-        return ['version' => 1, 'compiled' => $compiled ?? time(), 'files' => $files];
+        return ['version' => 2, 'compiled' => $compiled ?? time(), 'files' => $files];
     }
 
     private function writeState(string $path, array $state): void
@@ -638,7 +638,7 @@ class RouterStateTest extends TestCase
         $this->assertFileExists($cache, 'a miss writes the table, so the next process inherits it');
 
         $written = require $cache;
-        $this->assertSame(1, $written['__cache']['version']);
+        $this->assertSame(2, $written['__cache']['version']);
         $this->assertArrayHasKey($source, $written['__cache']['files']);
     }
 
@@ -750,6 +750,34 @@ class RouterStateTest extends TestCase
 
         $this->assertNotNull($router->match('/fresh', 'GET'));
         $this->assertNull($router->match('/x', 'GET'), 'the hand-written table must be replaced');
+    }
+
+    public function testAnOlderCacheVersionIsRebuiltRatherThanTrusted(): void
+    {
+        $cache  = $this->tmpPath('.php');
+        $source = $this->tmpSource();
+
+        // A version-1 table is not merely older data: its bucket keys differ (the
+        // dynamic bucket used to be `__DYNAMIC__`), so loading it would answer
+        // "no route" for every dynamic route without raising anything. The version
+        // must mark it stale instead.
+        $built = new Router();
+        $built->get('/dynamic/{id:int}', 'A::b');
+        $state = $built->exportState();
+        $state['groups']['GET']['__DYNAMIC__'] = $state['groups']['GET']["\0dyn"] ?? [];
+        unset($state['groups']['GET']["\0dyn"]);
+        $state['__cache'] = ['version' => 1, 'compiled' => time(), 'files' => [$source => (int) filemtime($source)]];
+        $this->writeState($cache, $state);
+
+        $ran = false;
+        $router = (new Router())->setCachePath($cache);
+        $router->cached($source, static function (Router $r) use (&$ran): void {
+            $ran = true;
+            $r->get('/dynamic/{id:int}', 'A::b');
+        });
+
+        $this->assertNotNull($router->match('/dynamic/7', 'GET'));
+        $this->assertTrue($ran, 'an old cache version must be rebuilt, not restored');
     }
 
     public function testAMissingSourceMakesTheTableStale(): void
