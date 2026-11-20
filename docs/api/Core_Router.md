@@ -2,15 +2,17 @@
 
 **Full name:** [Azera\Core\Router](../../src/Core/Router.php)
 
-A simple and efficient router for mapping HTTP requests to handlers based on URI patterns and HTTP methods. Supports static routes, typed parameters, optional segments, wildcards, and route groups with shared middleware, namespaces, or controllers. Routes are matched in order of specificity, with static routes taking precedence over dynamic ones. Named routes allow for easy URL generation.
+Maps HTTP methods and URI patterns to handlers. Supports static routes,
+typed and optional parameters, wildcards, and route groups with shared
+middleware, namespaces, or controllers. Routes are matched by specificity,
+with static routes before dynamic ones. Named routes support URL generation.
 
-The compiled route index, the chunked combined-regex matching strategy and the
-method-bucketed candidate lists are inspired by Phalcon's MVC router, whose design
-proved the approach works on a comparable C-extension-free implementation:
+The compiled route index, chunked combined-regex matching,
+and method-bucketed candidate lists are inspired by Phalcon's MVC router:
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Core/Router.php#L104)</small>
+### __construct() · <small>[🗎](../../src/Core/Router.php#L114)</small>
 
 `public function __construct(): mixed`
 
@@ -23,7 +25,7 @@ Create a new Router instance.
 
 ---
 
-### type() · <small>[🗎](../../src/Core/Router.php#L130)</small>
+### type() · <small>[🗎](../../src/Core/Router.php#L140)</small>
 
 `public function type(string $name, callable $validator): static`
 
@@ -53,7 +55,7 @@ $router->add('GET', '/blog/{slug:slug}', 'Blog::view');
 
 ---
 
-### autoOptions() · <small>[🗎](../../src/Core/Router.php#L166)</small>
+### autoOptions() · <small>[🗎](../../src/Core/Router.php#L176)</small>
 
 `public function autoOptions(bool $enabled = true): static`
 
@@ -79,7 +81,7 @@ CORS headers.
 
 ---
 
-### add() · <small>[🗎](../../src/Core/Router.php#L180)</small>
+### add() · <small>[🗎](../../src/Core/Router.php#L190)</small>
 
 `public function add(array|string|null $method, string $pattern, array|string|null $handler = null): static`
 
@@ -101,7 +103,7 @@ Add a new route to the router. The route can be defined for specific HTTP method
 
 ---
 
-### get() · <small>[🗎](../../src/Core/Router.php#L299)</small>
+### get() · <small>[🗎](../../src/Core/Router.php#L309)</small>
 
 `public function get(string $pattern, array|string|null $handler = null): static`
 
@@ -122,7 +124,7 @@ Convenience method to add a GET route.
 
 ---
 
-### post() · <small>[🗎](../../src/Core/Router.php#L311)</small>
+### post() · <small>[🗎](../../src/Core/Router.php#L321)</small>
 
 `public function post(string $pattern, array|string|null $handler = null): static`
 
@@ -143,7 +145,7 @@ Convenience method to add a POST route.
 
 ---
 
-### put() · <small>[🗎](../../src/Core/Router.php#L323)</small>
+### put() · <small>[🗎](../../src/Core/Router.php#L333)</small>
 
 `public function put(string $pattern, array|string|null $handler = null): static`
 
@@ -164,7 +166,7 @@ Convenience method to add a PUT route.
 
 ---
 
-### delete() · <small>[🗎](../../src/Core/Router.php#L335)</small>
+### delete() · <small>[🗎](../../src/Core/Router.php#L345)</small>
 
 `public function delete(string $pattern, array|string|null $handler = null): static`
 
@@ -185,7 +187,7 @@ Convenience method to add a DELETE route.
 
 ---
 
-### patch() · <small>[🗎](../../src/Core/Router.php#L347)</small>
+### patch() · <small>[🗎](../../src/Core/Router.php#L357)</small>
 
 `public function patch(string $pattern, array|string|null $handler = null): static`
 
@@ -206,7 +208,7 @@ Convenience method to add a PATCH route.
 
 ---
 
-### setName() · <small>[🗎](../../src/Core/Router.php#L359)</small>
+### setName() · <small>[🗎](../../src/Core/Router.php#L369)</small>
 
 `public function setName(string $name): static`
 
@@ -230,7 +232,7 @@ Assign a name to the most recently added route. This allows you to generate URLs
 
 ---
 
-### hasNamedRoute() · <small>[🗎](../../src/Core/Router.php#L380)</small>
+### hasNamedRoute() · <small>[🗎](../../src/Core/Router.php#L390)</small>
 
 `public function hasNamedRoute(string $name): bool`
 
@@ -250,7 +252,7 @@ Check if a named route exists.
 
 ---
 
-### urlFor() · <small>[🗎](../../src/Core/Router.php#L396)</small>
+### urlFor() · <small>[🗎](../../src/Core/Router.php#L406)</small>
 
 `public function urlFor(string $name, array $params = [], array $query = []): string`
 
@@ -276,7 +278,7 @@ Generate a URL for a named route, substituting parameters as needed.
 
 ---
 
-### allRoutes() · <small>[🗎](../../src/Core/Router.php#L425)</small>
+### allRoutes() · <small>[🗎](../../src/Core/Router.php#L435)</small>
 
 `public function allRoutes(): array`
 
@@ -296,7 +298,7 @@ Each entry is an associative array with keys:
 
 ---
 
-### prefix() · <small>[🗎](../../src/Core/Router.php#L587)</small>
+### prefix() · <small>[🗎](../../src/Core/Router.php#L597)</small>
 
 `public function prefix(string $prefix, callable|null $callback = null): static`
 
@@ -324,7 +326,7 @@ $router->add('GET', '/dashboard', 'Admin::dashboard');
 
 ---
 
-### middleware() · <small>[🗎](../../src/Core/Router.php#L621)</small>
+### middleware() · <small>[🗎](../../src/Core/Router.php#L631)</small>
 
 `public function middleware(array|string $name, callable|null $callback = null): static`
 
@@ -352,7 +354,7 @@ $router->add('GET', '/admin/dashboard', 'Admin::dashboard');
 
 ---
 
-### namespace() · <small>[🗎](../../src/Core/Router.php#L657)</small>
+### namespace() · <small>[🗎](../../src/Core/Router.php#L667)</small>
 
 `public function namespace(string $namespace, callable|null $callback = null): static`
 
@@ -380,7 +382,7 @@ $router->add('GET', '/dashboard', 'Dashboard::view');
 
 ---
 
-### controller() · <small>[🗎](../../src/Core/Router.php#L699)</small>
+### controller() · <small>[🗎](../../src/Core/Router.php#L709)</small>
 
 `public function controller(string $controller, callable|null $callback = null): static`
 
@@ -408,7 +410,7 @@ $router->add('GET', '/dashboard', '::view');
 
 ---
 
-### match() · <small>[🗎](../../src/Core/Router.php#L1073)</small>
+### match() · <small>[🗎](../../src/Core/Router.php#L1088)</small>
 
 `public function match(string $uri, string $method = 'GET'): array|null`
 
@@ -436,7 +438,7 @@ the relative order of the two kinds is preserved exactly.
 
 ---
 
-### getAllowedMethods() · <small>[🗎](../../src/Core/Router.php#L1589)</small>
+### getAllowedMethods() · <small>[🗎](../../src/Core/Router.php#L1670)</small>
 
 `public function getAllowedMethods(string $uri): array`
 
@@ -459,7 +461,34 @@ per method. It also cannot recurse: `self::match()` calls this only for
 
 ---
 
-### exportState() · <small>[🗎](../../src/Core/Router.php#L1816)</small>
+### allowedMethods() · <small>[🗎](../../src/Core/Router.php#L1690)</small>
+
+`public function allowedMethods(string $uri): array|null`
+
+The methods that would match `$uri`, or null when `$uri` matches no route.
+
+Null is a 404. A non-empty list is a 405 whose `Allow` header is that list.
+The result is never an empty array, so a caller needs one branch rather than
+two: either the path is unknown, or exactly which methods it serves.
+
+Asking is opt-in. A caller that does not need to tell a 404 from a 405 never
+pays for the scan -- the existence check below settles every unknown path in
+about 0.15 µs, and the per-method walk only runs for a path that exists.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$uri` | string | - |  |
+
+**Return value**
+
+- Type: `array`|`null`
+
+
+---
+
+### exportState() · <small>[🗎](../../src/Core/Router.php#L2084)</small>
 
 `public function exportState(): array`
 
@@ -479,7 +508,7 @@ them). `resolvedOverrides` is derived from handlers and is not persisted.
 
 ---
 
-### restoreState() · <small>[🗎](../../src/Core/Router.php#L1848)</small>
+### restoreState() · <small>[🗎](../../src/Core/Router.php#L2116)</small>
 
 `public function restoreState(array $state): static`
 
@@ -508,7 +537,7 @@ every benchmark entry point do.
 
 ---
 
-### customTypes() · <small>[🗎](../../src/Core/Router.php#L1895)</small>
+### customTypes() · <small>[🗎](../../src/Core/Router.php#L2166)</small>
 
 `public function customTypes(): array`
 
@@ -528,7 +557,7 @@ visible where it matters.
 
 ---
 
-### setCachePath() · <small>[🗎](../../src/Core/Router.php#L1953)</small>
+### setCachePath() · <small>[🗎](../../src/Core/Router.php#L2229)</small>
 
 `public function setCachePath(string|null $path): static`
 
@@ -550,7 +579,7 @@ derived default path; use `self::disableCache()` to opt out.
 
 ---
 
-### disableCache() · <small>[🗎](../../src/Core/Router.php#L1986)</small>
+### disableCache() · <small>[🗎](../../src/Core/Router.php#L2262)</small>
 
 `public function disableCache(): static`
 
@@ -567,7 +596,7 @@ uncached benchmarks when bootstrap always declares `cached()` units.
 
 ---
 
-### cachePath() · <small>[🗎](../../src/Core/Router.php#L2029)</small>
+### cachePath() · <small>[🗎](../../src/Core/Router.php#L2305)</small>
 
 `public function cachePath(): string|null`
 
@@ -586,7 +615,7 @@ The derived path is available only after route units are declared.
 
 ---
 
-### resolvedCachePath() · <small>[🗎](../../src/Core/Router.php#L2065)</small>
+### resolvedCachePath() · <small>[🗎](../../src/Core/Router.php#L2341)</small>
 
 `public function resolvedCachePath(): string|null`
 
@@ -602,7 +631,7 @@ cache a name that the application has not actually opted into.
 
 ---
 
-### setRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L2080)</small>
+### setRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L2356)</small>
 
 `public function setRevalidateFreq(int $seconds): static`
 
@@ -626,7 +655,7 @@ are never reused, so the next rebuild checks the current files.
 
 ---
 
-### getRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L2092)</small>
+### getRevalidateFreq() · <small>[🗎](../../src/Core/Router.php#L2368)</small>
 
 `public function getRevalidateFreq(): int`
 
@@ -639,7 +668,7 @@ How many seconds a positive freshness verdict is reused for.
 
 ---
 
-### cached() · <small>[🗎](../../src/Core/Router.php#L2116)</small>
+### cached() · <small>[🗎](../../src/Core/Router.php#L2392)</small>
 
 `public function cached(array|string $files, callable $build): static`
 
@@ -672,7 +701,7 @@ disabled, callbacks run immediately. Declaring a block enables caching;
 
 ---
 
-### cachedSources() · <small>[🗎](../../src/Core/Router.php#L2186)</small>
+### cachedSources() · <small>[🗎](../../src/Core/Router.php#L2462)</small>
 
 `public function cachedSources(): array`
 
@@ -685,7 +714,7 @@ The declared source files of every unit, deduplicated, in declaration order.
 
 ---
 
-### warnOnWriteFailure() · <small>[🗎](../../src/Core/Router.php#L2505)</small>
+### warnOnWriteFailure() · <small>[🗎](../../src/Core/Router.php#L2781)</small>
 
 `public function warnOnWriteFailure(bool $on = true): static`
 
@@ -707,7 +736,7 @@ legitimate configuration, and the only cost is rebuilding per request.
 
 ---
 
-### compileCache() · <small>[🗎](../../src/Core/Router.php#L2662)</small>
+### compileCache() · <small>[🗎](../../src/Core/Router.php#L2940)</small>
 
 `public function compileCache(): int`
 
@@ -724,7 +753,7 @@ the first router read creates a missing table.
 
 ---
 
-### clearCache() · <small>[🗎](../../src/Core/Router.php#L2688)</small>
+### clearCache() · <small>[🗎](../../src/Core/Router.php#L2966)</small>
 
 `public function clearCache(): bool`
 
@@ -738,7 +767,7 @@ Delete the compiled table.
 
 ---
 
-### cacheStatus() · <small>[🗎](../../src/Core/Router.php#L2712)</small>
+### cacheStatus() · <small>[🗎](../../src/Core/Router.php#L2990)</small>
 
 `public function cacheStatus(): array`
 

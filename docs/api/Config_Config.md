@@ -152,7 +152,7 @@ Merge another configuration array into this one (recursive).
 
 ### scope() · <small>[🗎](../../src/Config/Config.php#L145)</small>
 
-`public function scope(string $namespace): self`
+`public function scope(string $namespace): Azera\Config\Config`
 
 Get a namespaced sub-configuration view.
 
@@ -168,7 +168,7 @@ Returns a new Config rooted at the given namespace, so
 
 **Return value**
 
-- Type: `self`
+- Type: [Config](Config_Config.md)
 
 
 

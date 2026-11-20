@@ -96,9 +96,21 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 (new \App\Bootstrap())->boot();
 
+// Optional: the Kernel adds the 404/405/500 policy and an error boundary.
+// Without it, an uncaught exception is a fatal error under FPM.
 $ctx = \Azera\AppContext::instance();
+(new \Azera\Core\Kernel($ctx))->handle($ctx->request())->send();
+```
+
+The same three lines work unchanged in a RoadRunner or Volucer worker, because the
+Kernel never writes output — a worker reads the response through its getters.
+
+If you would rather wire it yourself, `match()` + `dispatch()` remain public:
+
+```php
+$ctx     = \Azera\AppContext::instance();
 $request = $ctx->request();
-$route = $ctx->router()->match($request->path(), $request->method());
+$route   = $ctx->router()->match($request->path(), $request->method());
 
 $response = $route === null
     ? \Azera\Http\Response::text("404 Not Found\n", 404)

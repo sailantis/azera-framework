@@ -68,8 +68,13 @@
 
 - [Controller](Core_Controller.md) `Azera\Core\Controller`
 - [Dispatcher](Core_Dispatcher.md) `Azera\Core\Dispatcher`
+- [ErrorHandlerInterface](Core_ErrorHandlerInterface.md) `Azera\Core\ErrorHandlerInterface`
 - [Exception](Core_Exception.md) `Azera\Core\Exception`
+- [Kernel](Core_Kernel.md) `Azera\Core\Kernel`
 - [MiddlewareInterface](Core_MiddlewareInterface.md) `Azera\Core\MiddlewareInterface`
+- [NotFoundHandlerInterface](Core_NotFoundHandlerInterface.md) `Azera\Core\NotFoundHandlerInterface`
+- [PlainErrorHandler](Core_PlainErrorHandler.md) `Azera\Core\PlainErrorHandler`
+- [PlainNotFoundHandler](Core_PlainNotFoundHandler.md) `Azera\Core\PlainNotFoundHandler`
 - [ResolvedRoute](Core_ResolvedRoute.md) `Azera\Core\ResolvedRoute`
 - [Router](Core_Router.md) `Azera\Core\Router`
 - [ViewEngine](Core_ViewEngine.md) `Azera\Core\ViewEngine`

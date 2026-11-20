@@ -9,6 +9,10 @@ use Azera\Cache\NullCache;
 use Azera\Config\Config;
 use Azera\Core\Dispatcher;
 use Azera\Core\Engines\ClarityEngine;
+use Azera\Core\ErrorHandlerInterface;
+use Azera\Core\NotFoundHandlerInterface;
+use Azera\Core\PlainErrorHandler;
+use Azera\Core\PlainNotFoundHandler;
 use Azera\Core\ResolvedRoute;
 use Azera\Core\Router;
 use Azera\Core\ViewEngine;
@@ -47,11 +51,13 @@ class AppContext
             Cookies::class                  => fn() => new Cookies($this->request()),
             DatabaseManager::class          => fn() => new DatabaseManager(),
             Dispatcher::class               => fn() => new Dispatcher(),
+            ErrorHandlerInterface::class    => fn() => new PlainErrorHandler(),
             EventDispatcherInterface::class => fn() => new NullEventDispatcher(),
             EntityManager::class            => fn() => new EntityManager($this->heap()),
             Heap::class                     => fn() => new Heap(),
             HttpRequest::class              => fn() => new HttpRequest(),
             LoggerInterface::class          => fn() => new NullLogger(),
+            NotFoundHandlerInterface::class => fn() => new PlainNotFoundHandler(),
             Router::class                   => fn() => new Router(),
             // Opt-in per request: resolves to null until setSession() binds one.
             Session::class       => fn() => null,

@@ -23,6 +23,24 @@ new rules.
   slow the fast path for other routes.
 - `benchmarks/router-match.php` reports cost per candidate, the named real-world cases,
   and the initial compile cost. Run it with `-d xdebug.mode=off`.
+- **`Router::allowedMethods()`** returns the methods that would match a URI, or `null`
+  when the URI matches no route at all. It is how a caller distinguishes a 404 from a
+  405 without adding a status field to the router: `null` is a 404, a non-empty list is
+  a 405 whose `Allow` header is that list. The result is never `[]`, so one branch
+  covers both. `match()` keeps its `?array` return and its signature — asking for the
+  distinction is opt-in and costs nothing for callers that do not ask.
+- **`Azera\Core\Kernel`** (optional) coordinates `Router` and `Dispatcher` for one
+  request: it dispatches a match, answers a miss through `NotFoundHandlerInterface`,
+  answers a known path with the wrong method as `405` + `Allow`, and answers an
+  exception through `ErrorHandlerInterface`. `Kernel::handle()` never writes output, so
+  the same call serves FPM and a resident worker. `Router::match()` and
+  `Dispatcher::dispatch()` remain public and independently callable — the Kernel adds a
+  boundary, it does not become the only way in.
+- **`NotFoundHandlerInterface`** / **`ErrorHandlerInterface`**, with
+  `PlainNotFoundHandler` and `PlainErrorHandler` as defaults registered on
+  `AppContext`. One policy now serves every entry point instead of each transport
+  carrying its own copy. They are separate interfaces so a 404 policy cannot answer a
+  `TypeError`.
 
 ### Changed
 
@@ -40,6 +58,14 @@ new rules.
 - The compiled index is derived state and is not stored in the route cache. Existing
   cached route tables remain valid; the router rebuilds each needed index bucket on
   the first match after restoring the cache.
+- **`getAllowedMethods()` now reports `OPTIONS`** when `autoOptions()` is enabled, the
+  path exists, and no explicit `OPTIONS` route is registered. Previously only `match()`'s
+  auto-OPTIONS branch added it, so the same URI produced two different `Allow` values
+  depending on which method was asked. Both now share one synthesis point.
+- **`getAllowedMethods()` reports methods registered outside its known list.** It
+  iterated a fixed set of seven methods, so a route registered as `PROPFIND` was matched
+  by `match()` but never appeared in `Allow`. The list is now derived from the table:
+  known methods in their documented order, then anything else alphabetically.
 
 ### Fixed
 
@@ -52,6 +78,13 @@ new rules.
 - **`getAllowedMethods()` no longer runs seven full matches.** It walks the compiled
   index once to find every matching method, reducing the measured time from 197 µs to
   under 15 µs.
+- **A percent-encoded URI matched inconsistently.** Whether `/a%20b/7` matched
+  `/a b/{id:int}` depended on whether the route happened to be inlinable: the combined
+  regex matched the raw subject, while the token scan used the decoded segments. Route
+  matching, `allowedMethods()` and `getAllowedMethods()` now share one URI-preparation
+  step, so they cannot disagree, and a static route registered as `/a b` is reachable as
+  `/a%20b`. A decoded `%2F` falls back to walking the candidates rather than inventing a
+  segment boundary the client never sent.
 - A wildcard followed by a non-static segment is rejected at registration instead of
   leaving the split between parameters ambiguous at match time.
 
@@ -63,8 +96,9 @@ new rules.
 | typed match, 60-route bucket (last candidate) | 277 µs | 8.1 µs |
 | typed match, 200-route bucket (last candidate) | 740 µs | 12.7 µs |
 | static match | 1.6 µs | 1.8 µs |
-| 404 | 17.6 µs | 3.9 µs |
+| 404 | 17.6 µs | 2.3 µs |
 | 405 / `getAllowedMethods()` | 197 µs | 8.5 µs |
+| `allowedMethods()` on an unknown path (guarded) | — | 3.7 µs |
 | compile a 300-bucket table on first match | 32 µs | 46 µs |
 
 The last row shows the trade-off: the first match pays to compile the buckets it needs.

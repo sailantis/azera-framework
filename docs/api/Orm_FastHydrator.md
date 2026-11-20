@@ -34,7 +34,7 @@ L1-cached per class like Metadata; nothing else to configure.
 
 ### for() · <small>[🗎](../../src/Orm/FastHydrator.php#L122)</small>
 
-`public static function for(string $class): self`
+`public static function for(string $class): Azera\Orm\FastHydrator`
 
 Per-class singleton plan (mirrors Metadata::for semantics).
 
@@ -46,7 +46,7 @@ Per-class singleton plan (mirrors Metadata::for semantics).
 
 **Return value**
 
-- Type: `self`
+- Type: [FastHydrator](Orm_FastHydrator.md)
 
 
 ---

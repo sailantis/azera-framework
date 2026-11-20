@@ -148,6 +148,59 @@ $router->add(['PUT', 'PATCH'], '/users/{id:int}', 'UserController::updateAction'
 $router->add('*', '/health', 'HealthController::statusAction');
 ```
 
+## 404 vs 405
+
+`match()` returns `null` whether no route matches the path or the path matches a
+route with a different method. To distinguish a 404 from a 405 and send the
+appropriate `Allow` header, call `allowedMethods()`:
+
+```php
+$route = $ctx->router()->match($path, $method);
+
+if ($route !== null) {
+    $response = $ctx->dispatcher()->dispatch($route);
+} else {
+    $allowed = $ctx->router()->allowedMethods($path);
+
+    $response = $allowed === null
+        ? /* 404, the path matches no route for any method */
+        : Response::status(405)->addHeader('Allow', implode(', ', $allowed));
+}
+```
+
+`allowedMethods()` returns `null` if no route matches the path, or a non-empty list
+of allowed methods otherwise. It never returns an empty list.
+
+This check is opt-in and uses two stages: a quick path-existence check, followed by
+a full method scan only if the path exists. On a 120-route table without a
+leading-parameter route, the measured costs were (`benchmarks/router-match.php`,
+"Existence guard"):
+
+| | cost |
+| --- | --- |
+| `allowedMethods()`, unknown path | 3.7 µs |
+| `getAllowedMethods()`, unknown path | 7.4 µs |
+| `allowedMethods()`, 405 (path exists) | 9.3 µs |
+| `match()`, unknown path, for reference | 2.6 µs |
+
+The existence check roughly halves the cost of an unknown path, but does not remove
+it. `ensureFlushed()` and URI preparation still run on every entry point and cost
+more than the `isset()` check. The main saving is avoiding the seven-method scan,
+whose cost grows with the route table.
+
+The existence check is only a fast path. A leading-parameter route such as
+`/{controller}/{action}` may match any first segment, so the router falls back to
+the full scan rather than risk a false 404. The mixed benchmark table includes such
+a route and therefore shows no benefit.
+
+For compatibility, `getAllowedMethods()` retains its `array` return type and returns
+`[]` when `allowedMethods()` would return `null`.
+
+Both methods return the same list for a given URI. It includes `OPTIONS` when
+`autoOptions()` is enabled and the path exists, as well as custom methods such as
+`PROPFIND`. Known methods use the documented order; other methods follow
+alphabetically.
+
 ## Named Routes and URL Generation
 
 ```php
@@ -220,6 +273,77 @@ $router->prefix('/api', function (Router $r) {
 ```
 
 Inline groups can be combined, and callback-scoped groups automatically restore the previous stack when they finish.
+
+## Handling a request: the Kernel
+
+`Azera\Core\Kernel` is an optional coordinator around the router and dispatcher. It
+owns the three decisions every entry point would otherwise repeat: what a missing
+route answers, what a wrong method answers, and what an exception answers.
+
+```php
+use Azera\AppContext;
+use Azera\Core\Kernel;
+
+$ctx = AppContext::instance();
+
+(new Kernel($ctx))->handle($ctx->request())->send();
+```
+
+It is optional. `match()` + `dispatch()` remain public and independently callable,
+which is what tests and the plain entry point below rely on. What the Kernel adds is
+the error boundary: under FPM an uncaught exception is a fatal error and nothing in
+the framework installs a handler for it, so a request either answers through the
+Kernel or has no boundary at all.
+
+`handle()` never writes output. A persistent worker reads the response through its
+getters; only the FPM entry point calls `send()` on the result.
+
+### Not-found and error policy
+
+Both live on `AppContext`, so the same policy serves FPM, RoadRunner and Volucer
+without each entry point carrying a copy:
+
+```php
+use Azera\Core\ErrorHandlerInterface;
+use Azera\Core\NotFoundHandlerInterface;
+use Azera\Http\Request;
+use Azera\Http\Response;
+
+$ctx->set(NotFoundHandlerInterface::class, new class implements NotFoundHandlerInterface {
+    public function for(Request $request): Response
+    {
+        return Response::html('<h1>Not here</h1>', 404);
+    }
+});
+
+$ctx->set(ErrorHandlerInterface::class, new class implements ErrorHandlerInterface {
+    public function for(Throwable $error, Request $request): Response
+    {
+        $ctx->logger()->error($error->getMessage());   // where logging belongs
+        return Response::text("500 Internal Server Error\n", 500);
+    }
+});
+```
+
+Defaults are `PlainNotFoundHandler` (a bare 404) and `PlainErrorHandler` (a bare 500
+that discloses nothing). They are lazily resolved, so an application that never
+serves an unmatched request never builds them.
+
+The two are separate interfaces deliberately: a not-found handler decides what a
+missing URL looks like, and letting it also see exceptions would allow a `TypeError`
+to be answered by a 404 policy.
+
+### What the Kernel answers
+
+| Situation | Response |
+| --- | --- |
+| route matched | the dispatcher's response |
+| path matches no route | `NotFoundHandlerInterface` |
+| path exists, method does not | `405` + `Allow`, from `Router::allowedMethods()` |
+| anything thrown | `ErrorHandlerInterface` |
+
+`dd()` in halt mode is passed through rather than treated as a failure: its rendered
+dump is the response, and the worker is what wraps it.
 
 ## Dispatcher Configuration
 
@@ -397,9 +521,10 @@ Before, each candidate added about 4.7 µs, so matching time grew linearly with 
 size. With the index, average cost falls as buckets grow: 0.28 µs per route at 20
 candidates and 0.064 µs at 200.
 
-A static route takes about 1.8 µs and a 404 about 3.9 µs. `getAllowedMethods()`—used
-for 405 and OPTIONS responses—takes about 8.5 µs for seven methods, instead of seven
-full matches.
+A static route takes about 1.8 µs and a 404 about 2.3 µs. `getAllowedMethods()`—used
+for 405 and OPTIONS responses—walks the compiled index once for all seven methods
+rather than running seven full matches. See [404 vs 405](#404-vs-405) for what that
+costs and for the cheaper `allowedMethods()` form.
 
 Reproduce with:
 

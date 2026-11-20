@@ -121,11 +121,49 @@ foreach ($cases as $label => $fn) {
     printf("%-24s %8.3f us\n", $label, bench($fn));
 }
 
-printf(
-    "%-24s %8.1f us\n",
-    'getAllowedMethods (405)',
-    bench(fn() => $router->getAllowedMethods('/users/42/nothere'), 20_000),
-);
+$allowCases = [
+    'getAllowedMethods (405)' => fn() => $router->getAllowedMethods('/users/42/nothere'),
+    'getAllowedMethods (404)' => fn() => $router->getAllowedMethods('/no/such/thing'),
+    'allowedMethods (405)'    => fn() => $router->allowedMethods('/users/42/nothere'),
+    'allowedMethods (404)'    => fn() => $router->allowedMethods('/no/such/thing'),
+];
+
+// This table contains /{lang}/pageN, so the existence check cannot answer "no" for
+// an unknown path and defers to the full scan. The group below shows the guarded
+// case on a table without a leading-parameter route.
+foreach ($allowCases as $label => $fn) {
+    printf("%-24s %8.3f us\n", $label, bench($fn, 20_000));
+}
+
+rule('Existence guard (no leading-parameter route)');
+
+$guarded = new Router();
+for ($i = 0; $i < 40; $i++) {
+    $guarded->get("/static/p{$i}", "C{$i}::index");
+}
+for ($i = 0; $i < 40; $i++) {
+    $guarded->get("/users/{id:int}/sub{$i}", "U{$i}::show");
+}
+for ($i = 0; $i < 20; $i++) {
+    $guarded->get("/files/{path:*}/x{$i}", "F{$i}::get");
+}
+for ($i = 0; $i < 20; $i++) {
+    $guarded->post("/api/v1/item{$i}/{id:int}", "A{$i}::post");
+}
+
+// Warm the compiled index so the measurement is the steady state.
+$guarded->match('/static/p7', 'GET');
+$guarded->allowedMethods('/nope');
+
+foreach ([
+    'allowedMethods (404)'    => fn() => $guarded->allowedMethods('/nope/deep/path'),
+    'getAllowedMethods (404)' => fn() => $guarded->getAllowedMethods('/nope/deep/path'),
+    'allowedMethods (405)'    => fn() => $guarded->allowedMethods('/api/v1/item3/9'),
+    'getAllowedMethods (405)' => fn() => $guarded->getAllowedMethods('/api/v1/item3/9'),
+    'match (404), reference'  => fn() => $guarded->match('/nope/deep/path', 'GET'),
+] as $label => $fn) {
+    printf("%-24s %8.3f us\n", $label, bench($fn, 20_000));
+}
 
 rule('Cold compile cost (one-time, per process or per cache miss)');
 

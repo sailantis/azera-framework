@@ -4,9 +4,15 @@
 
 Dispatcher is responsible for handling the execution of controller actions based on the current routing information. It builds a middleware pipeline, and invokes the action, returning a Response object. It supports global and group-based middleware, as well as controller and action-specific middleware.
 
+The pipeline is assembled in two stages. Global and group middleware run from
+`buildPipeline()`, which needs only the controller's class name, so the
+controller is not constructed until that stage allows the request through.
+Controller and action middleware run from `buildActionPipeline()`, after
+construction but before the action is reflected.
+
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Core/Dispatcher.php#L24)</small>
+### __construct() · <small>[🗎](../../src/Core/Dispatcher.php#L30)</small>
 
 `public function __construct(): mixed`
 
@@ -19,7 +25,7 @@ Create a new Dispatcher and bind it to the current [`AppContext`](AppContext.md)
 
 ---
 
-### addMiddleware() · <small>[🗎](../../src/Core/Dispatcher.php#L40)</small>
+### addMiddleware() · <small>[🗎](../../src/Core/Dispatcher.php#L46)</small>
 
 `public function addMiddleware(Azera\Core\MiddlewareInterface $mw): void`
 
@@ -41,7 +47,7 @@ controller, or action middleware.
 
 ---
 
-### defineMiddlewareGroup() · <small>[🗎](../../src/Core/Dispatcher.php#L57)</small>
+### defineMiddlewareGroup() · <small>[🗎](../../src/Core/Dispatcher.php#L63)</small>
 
 `public function defineMiddlewareGroup(string $name, array $middleware): void`
 
@@ -65,7 +71,7 @@ applied in the order they are listed on the route.
 
 ---
 
-### getBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L108)</small>
+### getBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L114)</small>
 
 `public function getBaseNamespace(): string`
 
@@ -79,7 +85,7 @@ Get the base namespace for controllers.
 
 ---
 
-### setBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L119)</small>
+### setBaseNamespace() · <small>[🗎](../../src/Core/Dispatcher.php#L125)</small>
 
 `public function setBaseNamespace(string $baseNamespace): static`
 
@@ -98,7 +104,7 @@ Set the base namespace for controllers. This namespace will be prefixed to all c
 
 ---
 
-### getDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L130)</small>
+### getDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L136)</small>
 
 `public function getDefaultController(): string`
 
@@ -112,7 +118,7 @@ Get the default controller name used when a route doesn't provide one.
 
 ---
 
-### setDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L141)</small>
+### setDefaultController() · <small>[🗎](../../src/Core/Dispatcher.php#L147)</small>
 
 `public function setDefaultController(string $defaultController): static`
 
@@ -135,7 +141,7 @@ Set the default controller name.
 
 ---
 
-### getDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L155)</small>
+### getDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L161)</small>
 
 `public function getDefaultAction(): string`
 
@@ -149,7 +155,7 @@ Get the default action name used when a route doesn't provide one.
 
 ---
 
-### setDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L166)</small>
+### setDefaultAction() · <small>[🗎](../../src/Core/Dispatcher.php#L172)</small>
 
 `public function setDefaultAction(string $defaultAction): static`
 
@@ -172,7 +178,7 @@ Set the default action name.
 
 ---
 
-### dispatch() · <small>[🗎](../../src/Core/Dispatcher.php#L183)</small>
+### dispatch() · <small>[🗎](../../src/Core/Dispatcher.php#L189)</small>
 
 `public function dispatch(array $routeInfo): Azera\Http\Response`
 

@@ -38,7 +38,8 @@ Custom services can be registered with `$ctx->set($id, new MyService())` or `$ct
 
 ### MVC Layer
 
-- `Router` matches URI + method to route patterns, extracting typed parameters; supports named routes, inline or scoped groups (`prefix()`, `namespace()`, `controller()`, `middleware()`), and custom parameter validators
+- `Router` matches URI + method to route patterns, extracting typed parameters; supports named routes, inline or scoped groups (`prefix()`, `namespace()`, `controller()`, `middleware()`), and custom parameter validators. `match()` returns `null` for both an unknown path and a known path with the wrong method; `allowedMethods()` tells them apart (null versus a list) for callers that want to answer 405 instead of 404
+- `Kernel` (optional) coordinates `Router` and `Dispatcher` for one request and owns the 404/405/500 policy: a missing route answers through `NotFoundHandlerInterface`, a wrong method answers 405 with `Allow`, and an exception answers through `ErrorHandlerInterface`. It never writes output, so the same call serves FPM and a resident worker
 - `Dispatcher` takes no constructor arguments and obtains `AppContext` internally. It resolves the controller class from the route and stores route data with `AppContext::setRoute()`. Global and route-group middleware run first; if they allow the request, the controller is constructed via DI (`AppContext::get()`). Controller and action middleware then run, and action parameters (route variables or DI) are resolved in the innermost stage immediately before invocation
 - `Controller` provides access to request/context plus controller- and action-level middleware declarations
 - `ViewEngine` renders templates, layouts, and namespaced views; supports global view variables and partial rendering
@@ -65,6 +66,7 @@ Custom services can be registered with `$ctx->set($id, new MyService())` or `$ct
 
 ```text
 HTTP Request
+  -> Kernel::handle()          (optional; skip it to call the two below directly)
   -> Router::match()
   -> Dispatcher::dispatch(routeInfo)
   -> Controller action
@@ -72,6 +74,7 @@ HTTP Request
 ```
 
 For controller return-value mapping, see [Controllers & Views](03-CONTROLLERS-VIEWS.md#returning-responses).
+For the 404/405/500 policy the Kernel owns, see [MVC Routing](02-CORE-ROUTING.md#handling-a-request-the-kernel).
 
 ## Data Flow
 
@@ -128,6 +131,14 @@ Azera provides opt-in enterprise subsystems that use PSR interfaces directly (no
 | Cache     | PSR-16 | `cache()`  | `NullCache`            |
 | Queue     | —      | `queue()`  | throws if unregistered |
 | Config    | —      | `config()` | empty `Config`         |
+
+Two more defaults are resolved by interface rather than by accessor, because only the
+Kernel consumes them:
+
+| Service | Interface | Default |
+| ------- | --------- | ------- |
+| 404 policy | `NotFoundHandlerInterface` | `PlainNotFoundHandler` |
+| error policy | `ErrorHandlerInterface` | `PlainErrorHandler` |
 
 All subsystems are **zero-cost when unused** — each accessor lazily returns a no-op default, so calling code can always invoke `$ctx->logger()->info(...)` or `$ctx->events()->dispatch(...)` without null-checks. Register real implementations via `$ctx->set(InterfaceClass::class, $factory)` to activate them.
 

@@ -10,51 +10,6 @@ or use one of the static factory methods (`json()`, `html()`,
 
 ## Public methods
 
-### strict() · <small>[🗎](../../src/Http/Response.php#L124)</small>
-
-`public static function strict(?bool $on = null): bool`
-
-Enable or disable header validation, or read the current setting.
-
-This is a **development assertion about the application's own code**, not a
-security control. PHP's `header()` already refuses a value containing CR or LF,
-and the PSR-7 adapters (RoadRunner, Volucer) reject one at construction, so what
-this check adds is an early, framework-owned error naming the offending field
-when the application builds a malformed header itself — `'Location: ' . $url`
-where `$url` came from a request, or a field name with a space in it.
-
-**Off by default**, and the default is deliberate: the value of catching the
-mistake early is a better message, not a guarantee, so it is paid for only where
-it is wanted. Enable it from the application's own debug switch, once at boot:
-
-```php
-// public/index.php, rr-worker.php, volucer-worker.php, task.php
-Response::strict(DEBUG_MODE);
-```
-
-Both the name/value setters and the `Name: value` line form are validated, so
-`new Response(headers: ['ETag: ' . $etag])` is covered as well as
-`setHeader('ETag', $etag)`.
-
-**The setting is process-wide**, so set it once — never per request. A resident
-worker (RoadRunner, Volucer) keeps the value for every request it serves after
-the one that changed it. No environment lookup happens in a header setter: the
-entry script knows its own debug flag and states it once.
-
-When enabled, a value containing CR, LF or NUL, or a name that is not an RFC 9110
-token, raises `InvalidArgumentException`. When disabled, headers are stored as
-given and the cost is one static read per header.
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$on` | bool\|null | `null` | `true`/`false` to set; omit to read. |
-
-**Return value**
-
-- Type: `bool` — the setting in effect after the call.
-
----
-
 ### __construct() · <small>[🗎](../../src/Http/Response.php#L22)</small>
 
 `public function __construct(int $status = 200, array $headers = [], string $body = ''): mixed`
@@ -76,7 +31,31 @@ Create a new Response.
 
 ---
 
-### setStatus() · <small>[🗎](../../src/Http/Response.php#L92)</small>
+### strict() · <small>[🗎](../../src/Http/Response.php#L124)</small>
+
+`public static function strict(bool|null $on = null): bool`
+
+Enable or disable header validation, or read the current setting.
+
+Enable it in development so a malformed header fails loudly and names the
+field; leave it off elsewhere. See {@see \self::$strict} for why the
+default is off and what the check does and does not protect.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$on` | bool\|null | `null` | `true`/`false` to set, `null` (default) to read. |
+
+**Return value**
+
+- Type: `bool`
+- Description: The setting in effect after the call.
+
+
+---
+
+### setStatus() · <small>[🗎](../../src/Http/Response.php#L139)</small>
 
 `public function setStatus(int $code): static`
 
@@ -95,7 +74,7 @@ Set the HTTP status code.
 
 ---
 
-### getStatus() · <small>[🗎](../../src/Http/Response.php#L103)</small>
+### getStatus() · <small>[🗎](../../src/Http/Response.php#L150)</small>
 
 `public function getStatus(): int`
 
@@ -108,7 +87,7 @@ Get the HTTP status code.
 
 ---
 
-### getBody() · <small>[🗎](../../src/Http/Response.php#L111)</small>
+### getBody() · <small>[🗎](../../src/Http/Response.php#L158)</small>
 
 `public function getBody(): string`
 
@@ -121,7 +100,7 @@ Get the response body.
 
 ---
 
-### setHeader() · <small>[🗎](../../src/Http/Response.php#L129)</small>
+### setHeader() · <small>[🗎](../../src/Http/Response.php#L176)</small>
 
 `public function setHeader(string $name, string|null $value = null): static`
 
@@ -150,7 +129,7 @@ repeated field such as `Set-Cookie` instead of replacing it.
 
 ---
 
-### setHeaders() · <small>[🗎](../../src/Http/Response.php#L163)</small>
+### setHeaders() · <small>[🗎](../../src/Http/Response.php#L209)</small>
 
 `public function setHeaders(array $headers): static`
 
@@ -177,7 +156,7 @@ one, as PSR-7's `withHeader()` does; `addHeaders()` appends instead.
 
 ---
 
-### addHeader() · <small>[🗎](../../src/Http/Response.php#L199)</small>
+### addHeader() · <small>[🗎](../../src/Http/Response.php#L250)</small>
 
 `public function addHeader(string $name, string|null $value = null): static`
 
@@ -199,12 +178,12 @@ second `Set-Cookie` must not overwrite the first.
 
 **Throws**
 
-- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When a `Name: value` line has no colon.
+- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When the line has no colon.
 
 
 ---
 
-### addHeaders() · <small>[🗎](../../src/Http/Response.php#L228)</small>
+### addHeaders() · <small>[🗎](../../src/Http/Response.php#L278)</small>
 
 `public function addHeaders(array $headers): static`
 
@@ -223,7 +202,7 @@ Append several header fields, each with `addHeader()` semantics.
 
 ---
 
-### addCookie() · <small>[🗎](../../src/Http/Response.php#L254)</small>
+### addCookie() · <small>[🗎](../../src/Http/Response.php#L304)</small>
 
 `public function addCookie(Azera\Http\Cookie $cookie): static`
 
@@ -247,7 +226,7 @@ cookies; this method always writes what it is given.
 
 ---
 
-### getHeaders() · <small>[🗎](../../src/Http/Response.php#L271)</small>
+### getHeaders() · <small>[🗎](../../src/Http/Response.php#L321)</small>
 
 `public function getHeaders(): array`
 
@@ -265,7 +244,7 @@ PSR-7's `getHeaders()` uses. Use `getHeader()` for a single value and
 
 ---
 
-### getHeaderValues() · <small>[🗎](../../src/Http/Response.php#L282)</small>
+### getHeaderValues() · <small>[🗎](../../src/Http/Response.php#L332)</small>
 
 `public function getHeaderValues(string $name): array`
 
@@ -284,7 +263,7 @@ Get every value of one header field, or an empty list when it is absent.
 
 ---
 
-### getHeader() · <small>[🗎](../../src/Http/Response.php#L298)</small>
+### getHeader() · <small>[🗎](../../src/Http/Response.php#L348)</small>
 
 `public function getHeader(string $name, string|null $default = null): string|null`
 
@@ -307,7 +286,7 @@ A header present with an empty value returns `''`; an absent header returns
 
 ---
 
-### getHeaderLines() · <small>[🗎](../../src/Http/Response.php#L317)</small>
+### getHeaderLines() · <small>[🗎](../../src/Http/Response.php#L367)</small>
 
 `public function getHeaderLines(): array`
 
@@ -323,7 +302,7 @@ worker adapters write; nothing in this class depends on it.
 
 ---
 
-### write() · <small>[🗎](../../src/Http/Response.php#L336)</small>
+### write() · <small>[🗎](../../src/Http/Response.php#L386)</small>
 
 `public function write(string $text): static`
 
@@ -342,7 +321,7 @@ Append text to the response body.
 
 ---
 
-### send() · <small>[🗎](../../src/Http/Response.php#L345)</small>
+### send() · <small>[🗎](../../src/Http/Response.php#L395)</small>
 
 `public function send(): void`
 
@@ -355,7 +334,7 @@ Send the response: emit the status code, headers, and body.
 
 ---
 
-### json() · <small>[🗎](../../src/Http/Response.php#L444)</small>
+### json() · <small>[🗎](../../src/Http/Response.php#L502)</small>
 
 `public static function json(mixed $data, int $status = 200): static`
 
@@ -375,7 +354,7 @@ Create a JSON response.
 
 ---
 
-### text() · <small>[🗎](../../src/Http/Response.php#L460)</small>
+### text() · <small>[🗎](../../src/Http/Response.php#L518)</small>
 
 `public static function text(string $text, int $status = 200): static`
 
@@ -395,7 +374,7 @@ Create a plain-text response.
 
 ---
 
-### html() · <small>[🗎](../../src/Http/Response.php#L476)</small>
+### html() · <small>[🗎](../../src/Http/Response.php#L534)</small>
 
 `public static function html(string $html, int $status = 200): static`
 
@@ -415,7 +394,7 @@ Create an HTML response.
 
 ---
 
-### redirect() · <small>[🗎](../../src/Http/Response.php#L492)</small>
+### redirect() · <small>[🗎](../../src/Http/Response.php#L550)</small>
 
 `public static function redirect(string $url, int $status = 302): static`
 
@@ -435,7 +414,7 @@ Create a redirect response.
 
 ---
 
-### status() · <small>[🗎](../../src/Http/Response.php#L507)</small>
+### status() · <small>[🗎](../../src/Http/Response.php#L565)</small>
 
 `public static function status(int $status): static`
 

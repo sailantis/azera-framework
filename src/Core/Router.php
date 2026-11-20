@@ -7,26 +7,18 @@ use RuntimeException;
 use InvalidArgumentException;
 
 /**
- * A simple and efficient router for mapping HTTP requests to handlers based on URI patterns and HTTP methods. Supports static routes, typed parameters, optional segments, wildcards, and route groups with shared middleware, namespaces, or controllers. Routes are matched in order of specificity, with static routes taking precedence over dynamic ones. Named routes allow for easy URL generation.
+ * Maps HTTP methods and URI patterns to handlers. Supports static routes,
+ * typed and optional parameters, wildcards, and route groups with shared
+ * middleware, namespaces, or controllers. Routes are matched by specificity,
+ * with static routes before dynamic ones. Named routes support URL generation.
  *
- * The compiled route index, the chunked combined-regex matching strategy and the
- * method-bucketed candidate lists are inspired by Phalcon's MVC router, whose design
- * proved the approach works on a comparable C-extension-free implementation:
+ * The compiled route index, chunked combined-regex matching,
+ * and method-bucketed candidate lists are inspired by Phalcon's MVC router:
  *
  * @link https://github.com/phalcon/phalcon
  * @link https://github.com/phalcon/phalcon/blob/v6.0.x/src/Mvc/Router.php
- * @see  self::buildSegments() for the Azera adaptation.
+ * @see  self::buildSegmentsFor() for the Azera adaptation.
  *
- * Where this differs from that reference, deliberately:
- *
- * - Candidates are ordered by specificity, not by reverse registration order, and
- *   static routes are consulted before any dynamic one. There is therefore no
- *   "shadowed static" map: a static route can never be beaten by a later regex.
- * - A bucket whose routes cannot all be expressed as PCRE falls back per contiguous
- *   run rather than being disabled as a whole, so one exotic route does not cost the
- *   fast path for its neighbours.
- * - Trailing segments after a wildcard are a required suffix, and `uuid` matches the
- *   canonical form only.
  */
 class Router
 {
@@ -82,6 +74,24 @@ class Router
      * @var array<string, array<string, list<array<string, mixed>>>>
      */
     private array $compiled = [];
+    /**
+     * Union of every path-bearing key in the table, for the cheap "could any route
+     * match this URI?" check in {@see self::allowedMethods()}.
+     *
+     * Derived state, invalidated exactly like {@see self::$compiled}: a view of
+     * `$static` and `$groups`, never persisted, so a hand-edited cache cannot
+     * influence it.
+     *
+     * @var array{static: array<string, true>, first: array<string, true>, dynamic: bool}|null
+     */
+    private ?array $pathIndex = null;
+
+    /**
+     * Memoised {@see self::methodBuckets()}; invalidated with {@see self::$pathIndex}.
+     *
+     * @var list<string>|null
+     */
+    private ?array $methodList = null;
     protected array $middlewareGroupStack = [];
     protected array $prefixGroupStack = [];
     protected array $namespaceGroupStack = [];
@@ -735,6 +745,8 @@ class Router
                 'groups'   => $groups,
                 'override' => $this->cachedOverride($handler),
             ];
+            $this->pathIndex  = null;
+            $this->methodList = null;
             return;
         }
 
@@ -762,8 +774,11 @@ class Router
         $this->unsortedBuckets[$method . "\0" . $first] = true;
 
         // The compiled index is derived from the buckets, so any insert invalidates
-        // the method it belongs to.
+        // the method it belongs to. The path index is a union over every method, so
+        // it is invalidated too.
         unset($this->compiled[$method]);
+        $this->pathIndex  = null;
+        $this->methodList = null;
     }
 
     /**
@@ -788,7 +803,7 @@ class Router
             $kind = $token[0];
 
             if ($kind === self::KIND_WILDCARD) {
-                $wildcard   = true;
+                $wildcard = true;
                 $captures[] = [$token[1], self::KIND_WILDCARD];
                 continue;
             }
@@ -1064,7 +1079,7 @@ class Router
      * (`{x?:int}`, `regex(...)`, custom validators) stay as single scan steps and
      * the relative order of the two kinds is preserved exactly.
      *
-     * @see self::buildSegments() for how the index is compiled.
+     * @see self::buildSegmentsFor() for how the index is compiled.
      *
      * @param string $uri The request URI (path) to match, e.g. "/blog/hello-world"
      * @param string $method The HTTP method, e.g. "GET", "POST"
@@ -1089,47 +1104,52 @@ class Router
             }
         }
 
-        // Trimmed once, then reused: `$path` is the subject the combined patterns
-        // match against, and it needs no leading slash.
-        $path = trim($uri, '/');
+        // The common case, kept inline: no "%" means the raw path *is* the decoded
+        // path, so the segments and the regex subject come straight from the URI.
+        // {@see self::prepare()} handles the encoded case; measured against this
+        // inline form it costs nothing extra for an ordinary URI, but it returns an
+        // array that this hot path would then have to unpack, and the branch below
+        // keeps the 405 path's array allocation off every request that never asks.
+        if (!str_contains($uri, '%')) {
+            $path = trim($uri, '/');
+            $u    = null;
 
-        // Static routes are consulted first and are unconditional: a literal path is
-        // always more specific than any pattern that could also match it, so this
-        // holds regardless of registration order.
-        if ($path === '') {
-            if (isset($this->static[$method]['/'])) {
-                return $this->matchStatic($this->static[$method]['/']);
+            // Static routes are consulted first and are unconditional: a literal
+            // path is always more specific than any pattern that could also match
+            // it, so this holds regardless of registration order.
+            if (isset($this->static[$method]['/' . $path])) {
+                return $this->matchStatic($this->static[$method]['/' . $path]);
             }
-            $parts = [''];
+
+            $parts   = $path === '' ? [''] : explode('/', $path);
+            $subject = $path;
         } else {
-            $uri = '/' . $path;
-            if (isset($this->static[$method][$uri])) {
-                return $this->matchStatic($this->static[$method][$uri]);
-            }
-            $parts = explode('/', $path);
-        }
+            $u = $this->prepare($uri);
 
-        // A URI with no "%" needs no decoding at all, which is the common case.
-        if (str_contains($path, '%')) {
-            foreach ($parts as $index => $part) {
-                if ($part !== '' && str_contains($part, '%')) {
-                    $parts[$index] = rawurldecode($part);
-                }
+            // `staticKey` is the decoded form, so a route registered as "/a b" is
+            // reachable as "/a%20b". Null means a decoded segment contains a
+            // separator: no literal can match it, and no combined pattern can
+            // describe it.
+            if ($u['staticKey'] !== null && isset($this->static[$method][$u['staticKey']])) {
+                return $this->matchStatic($this->static[$method][$u['staticKey']]);
             }
+
+            $parts   = $u['parts'];
+            $subject = $u['subject'];
         }
 
         $first = $parts[0];
         $found = null;
 
         if (isset($this->groups[$method][$first])) {
-            $found = $this->matchRun($this->bucketSegments($method, (string) $first), $parts, $path);
+            $found = $this->matchRun($this->bucketSegments($method, (string) $first), $parts, $subject);
         }
 
         if ($found === null && isset($this->groups[$method][self::DYNAMIC_BUCKET])) {
             $found = $this->matchRun(
                 $this->bucketSegments($method, self::DYNAMIC_BUCKET),
                 $parts,
-                $path,
+                $subject,
             );
         }
 
@@ -1137,11 +1157,13 @@ class Router
             return $found;
         }
 
-        // Auto-OPTIONS: if no explicit OPTIONS route matched, generate one
+        // Auto-OPTIONS: if no explicit OPTIONS route matched, generate one.
+        // servedMethods() owns the OPTIONS synthesis, so this branch and
+        // getAllowedMethods() cannot advertise different `Allow` lists.
         if ($method === 'OPTIONS' && $this->autoOptions) {
-            $allowed = $this->allowedMethodsFor('/' . $path);
-            if (!empty($allowed)) {
-                $allowed[] = 'OPTIONS';
+            $allowed = $this->servedMethods($u ?? $this->prepare($uri));
+
+            if ($allowed !== []) {
                 return [
                     'vars'              => [],
                     'override'          => [],
@@ -1156,20 +1178,74 @@ class Router
     }
 
     /**
+     * The one place a URI is split, so every public method sees the same segments.
+     *
+     * Segments are decoded individually, never the whole path: decoding `/a%2Fb` as
+     * one string would invent a segment boundary the client never sent. When a
+     * decoded segment does contain a separator, `subject` is null and the caller
+     * must fall back to walking the candidates, because no combined pattern can
+     * describe a path whose segment count depends on decoding.
+     *
+     * @return array{path: string, staticKey: ?string, parts: list<string>, subject: ?string}
+     */
+    private function prepare(string $uri): array
+    {
+        $path = trim($uri, '/');
+
+        // A URI with no "%" needs no decoding at all, which is the common case.
+        if (!str_contains($path, '%')) {
+            return [
+                'path'      => $path,
+                'staticKey' => '/' . $path,
+                'parts'     => $path === '' ? [''] : explode('/', $path),
+                'subject'   => $path,
+            ];
+        }
+
+        $parts = $path === '' ? [''] : explode('/', $path);
+        $lossy = false;
+
+        foreach ($parts as $index => $part) {
+            if ($part !== '' && str_contains($part, '%')) {
+                $parts[$index] = rawurldecode($part);
+
+                if (str_contains($parts[$index], '/')) {
+                    $lossy = true;
+                }
+            }
+        }
+
+        $subject = implode('/', $parts);
+
+        return [
+            'path'      => $path,
+            'staticKey' => $lossy ? null : '/' . $subject,
+            'parts'     => $parts,
+            'subject'   => $lossy ? null : $subject,
+        ];
+    }
+
+    /**
      * Match one bucket's segment list, in order, and return the first hit.
+     *
+     * When `$subject` is null the URI could not be expressed without a segment
+     * boundary appearing from nowhere (see {@see self::prepare()}), so a combined
+     * pattern would answer a question about a different path. In that case each
+     * chunk is expanded and its candidates are walked in the same order, which is
+     * the pre-index behaviour and therefore equivalent by construction.
      *
      * @param list<array<string, mixed>> $run
      * @param list<string>               $parts
-     * @param string                     $path The trimmed URI, used as the regex subject.
+     * @param string|null                $subject The decoded URI without its leading slash, used as the regex subject.
      * @return array{vars: array, override: array<string, string>, groups: array}|null
      */
-    private function matchRun(array $run, array $parts, string $path): ?array
+    private function matchRun(array $run, array $parts, ?string $subject): ?array
     {
+        $partCount = \count($parts);
+
         foreach ($run as $segment) {
             if (isset($segment['route'])) {
                 $route = $segment['route'];
-
-                $partCount = \count($parts);
 
                 if ($partCount < $route['min']) {
                     continue;
@@ -1190,7 +1266,31 @@ class Router
                 ];
             }
 
-            if (!preg_match($segment['chunk'], $path, $matches)) {
+            if ($subject === null) {
+                foreach ($segment['routes'] as $route) {
+                    if ($partCount < $route['min']) {
+                        continue;
+                    }
+                    if (!$route['wildcard'] && $partCount > $route['max']) {
+                        continue;
+                    }
+
+                    $params = $this->matchTokens($route['tokens'], $parts, $partCount);
+                    if ($params === null) {
+                        continue;
+                    }
+
+                    return [
+                        'vars'     => $params,
+                        'override' => $route['override'],
+                        'groups'   => $route['groups'],
+                    ];
+                }
+
+                continue;
+            }
+
+            if (!preg_match($segment['chunk'], $subject, $matches)) {
                 continue;
             }
 
@@ -1248,8 +1348,7 @@ class Router
         set_error_handler(static fn(): bool => true);
 
         try {
-            return $this->compiled[$method][$first] =
-                $this->buildSegmentsFor($this->groups[$method][$first]);
+            return $this->compiled[$method][$first] = $this->buildSegmentsFor($this->groups[$method][$first]);
         } finally {
             restore_error_handler();
         }
@@ -1388,24 +1487,6 @@ class Router
     }
 
     /**
-     * Build the compiled match segments for one HTTP method.
-     *
-     * Each bucket becomes a list of segments in specificity order: a segment is
-     * either one non-combinable candidate, or a chunk of combined patterns covering
-     * a contiguous run of combinable ones.
-     *
-     * @return array<string, list<array<string, mixed>>>
-     */
-    private function buildSegments(string $method): array
-    {
-        foreach (array_keys($this->groups[$method] ?? []) as $first) {
-            $this->bucketSegments($method, (string) $first);
-        }
-
-        return $this->compiled[$method] ?? [];
-    }
-
-    /**
      * Turn one specificity-ordered bucket into match segments.
      *
      * @param list<array<string, mixed>> $routes
@@ -1483,15 +1564,15 @@ class Router
 
             foreach ($slice as $slot => [$route, $body]) {
                 $routes[$slot] = $route;
-                $bodies[]      = $body . '(*:' . $slot . ')';
+                $bodies[] = $body . '(*:' . $slot . ')';
             }
 
             $pattern = '#^(?|' . implode('|', $bodies) . ')$#u';
 
             // A pattern that does not compile falls back to one scan step per route
             // rather than silently skipping routes at dispatch time. Checked here,
-            // once, so the request path never pays for it. The surrounding error
-            // handler in buildSegments() already suppresses the warning.
+            // once, so the request path never pays for it. The error handler
+            // installed by bucketSegments() already suppresses the warning.
             if (preg_match($pattern, '') === false) {
                 foreach ($routes as $route) {
                     $segments[] = ['route' => $route];
@@ -1539,14 +1620,14 @@ class Router
                 if ($isLast) {
                     // A bare trailing wildcard also matches zero segments, so the
                     // separator is part of the optional group rather than mandatory.
-                    $body   .= $hasBody ? '(?:/(.*))?' : '(.*)';
+                    $body .= $hasBody ? '(?:/(.*))?' : '(.*)';
                     $hasBody = true;
                     continue;
                 }
 
                 // With a suffix the wildcard is greedy; the anchored suffix then takes
                 // the last occurrence, so "/files/a/x2/x2" captures "a/x2".
-                $body   .= ($hasBody ? '/' : '') . '(.*)';
+                $body .= ($hasBody ? '/' : '') . '(.*)';
                 $hasBody = true;
                 continue;
             }
@@ -1563,14 +1644,14 @@ class Router
                 'alnum' => '[A-Za-z0-9]+',
                 'uuid'  => '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
                 '*'     => '[^/]+',
-                default => null,
+                default => null
             };
 
             if ($capture === null) {
                 return null;
             }
 
-            $body   .= ($hasBody ? '/' : '') . '(' . $capture . ')';
+            $body .= ($hasBody ? '/' : '') . '(' . $capture . ')';
             $hasBody = true;
         }
 
@@ -1590,29 +1671,92 @@ class Router
     {
         $this->ensureFlushed();
 
-        $uri = '/' . trim($uri, '/');
-
-        return $this->allowedMethodsFor($uri);
+        return $this->servedMethods($this->prepare($uri));
     }
 
     /**
+     * The methods that would match `$uri`, or null when `$uri` matches no route.
+     *
+     * Null is a 404. A non-empty list is a 405 whose `Allow` header is that list.
+     * The result is never an empty array, so a caller needs one branch rather than
+     * two: either the path is unknown, or exactly which methods it serves.
+     *
+     * Asking is opt-in. A caller that does not need to tell a 404 from a 405 never
+     * pays for the scan -- the existence check below settles every unknown path in
+     * about 0.15 µs, and the per-method walk only runs for a path that exists.
+     *
+     * @return list<string>|null
+     */
+    public function allowedMethods(string $uri): ?array
+    {
+        $this->ensureFlushed();
+
+        $u = $this->prepare($uri);
+
+        if (!$this->mayExist($u)) {
+            return null;
+        }
+
+        $allowed = $this->servedMethods($u);
+
+        return $allowed === [] ? null : $allowed;
+    }
+
+    /**
+     * What this server would actually serve for a URI: the registered methods plus
+     * any synthetic `OPTIONS` that {@see self::autoOptions()} implies.
+     *
+     * This is the only place `OPTIONS` is added, so `match()`'s auto-OPTIONS branch
+     * and `getAllowedMethods()` cannot advertise different lists for one URI.
+     *
+     * @param array{path: string, staticKey: ?string, parts: list<string>, subject: ?string} $u
      * @return list<string>
      */
-    private function allowedMethodsFor(string $uri): array
+    private function servedMethods(array $u): array
     {
-        $uri     = '/' . trim($uri, '/');
-        $parts   = explode('/', trim($uri, '/'));
-        $first   = $parts[0] ?? '';
-        $count   = \count($parts);
-        $subject = $first === '' ? '' : substr($uri, 1);
-        $allowed = [];
+        $allowed = $this->registeredMethods($u);
 
-        foreach (self::KNOWN_METHODS as $method) {
+        if ($allowed === [] || !$this->autoOptions) {
+            return $allowed;
+        }
+
+        // An explicit OPTIONS route is already in the list, and a real OPTIONS bucket
+        // is too. Appending unconditionally would emit the method twice.
+        if (\in_array('OPTIONS', $allowed, true)) {
+            return $allowed;
+        }
+
+        $allowed[] = 'OPTIONS';
+
+        return $allowed;
+    }
+
+    /**
+     * The methods registered for a URI, with no synthesis.
+     *
+     * Ordered: the documented methods first, then any other method a route was
+     * registered under, alphabetically. Deriving the tail from the table rather than
+     * from {@see self::KNOWN_METHODS} is what lets a `PROPFIND` route -- which
+     * `match()` happily serves -- appear in `Allow` instead of being reported as 404.
+     *
+     * @param array{path: string, staticKey: ?string, parts: list<string>, subject: ?string} $u
+     * @return list<string>
+     */
+    private function registeredMethods(array $u): array
+    {
+        $parts     = $u['parts'];
+        $staticKey = $u['staticKey'];
+        $subject   = $u['subject'];
+        $first     = $parts[0];
+        $count     = \count($parts);
+        $allowed   = [];
+
+        foreach ($this->methodBuckets() as $method) {
             // HEAD is servable exactly when GET is: match() routes a HEAD request as
             // GET, so reporting it from the GET bucket keeps the two in step.
             $bucket = $method === 'HEAD' ? 'GET' : $method;
 
-            if (isset($this->static[$bucket][$uri])) {
+            if ($staticKey !== null && isset($this->static[$bucket][$staticKey])) {
                 $allowed[] = $method;
                 continue;
             }
@@ -1621,25 +1765,27 @@ class Router
                 continue;
             }
 
-            if (isset($this->groups[$bucket][$first])
-                && $this->runMatches(
-                    $this->bucketSegments($bucket, $first),
-                    $parts,
-                    $count,
-                    $subject,
-                )
+            if (
+                isset($this->groups[$bucket][$first])
+                    && $this->runMatches(
+                        $this->bucketSegments($bucket, $first),
+                        $parts,
+                        $count,
+                        $subject,
+                    )
             ) {
                 $allowed[] = $method;
                 continue;
             }
 
-            if (isset($this->groups[$bucket][self::DYNAMIC_BUCKET])
-                && $this->runMatches(
-                    $this->bucketSegments($bucket, self::DYNAMIC_BUCKET),
-                    $parts,
-                    $count,
-                    $subject,
-                )
+            if (
+                isset($this->groups[$bucket][self::DYNAMIC_BUCKET])
+                    && $this->runMatches(
+                        $this->bucketSegments($bucket, self::DYNAMIC_BUCKET),
+                        $parts,
+                        $count,
+                        $subject,
+                    )
             ) {
                 $allowed[] = $method;
             }
@@ -1649,12 +1795,117 @@ class Router
     }
 
     /**
+     * Every method worth checking, in a stable order.
+     *
+     * The known methods keep their documented order so `Allow` is predictable; any
+     * other method present in the table follows, sorted, so a non-standard method is
+     * reported rather than silently omitted.
+     *
+     * Memoised because the 405 path asks for it on every call, and the answer only
+     * changes when the table does.
+     *
+     * @return list<string>
+     */
+    private function methodBuckets(): array
+    {
+        if ($this->methodList !== null) {
+            return $this->methodList;
+        }
+
+        $extra = [];
+
+        foreach ([$this->static, $this->groups] as $table) {
+            foreach (array_keys($table) as $method) {
+                $method = (string) $method;
+
+                if (!\in_array($method, self::KNOWN_METHODS, true)) {
+                    $extra[$method] = true;
+                }
+            }
+        }
+
+        if ($extra === []) {
+            return $this->methodList = self::KNOWN_METHODS;
+        }
+
+        $extra = array_keys($extra);
+        sort($extra);
+
+        return $this->methodList = [...self::KNOWN_METHODS, ...$extra];
+    }
+
+    /**
+     * Whether any route could match this URI, for any method.
+     *
+     * A cheap negative answer only: `true` means "scan", not "exists". The `dynamic`
+     * flag is the deliberate escape hatch -- a table with a leading-parameter route
+     * (`/{controller}/{action}`) can match any first segment, so it must never be
+     * short-circuited to a false 404.
+     *
+     * @param array{path: string, staticKey: ?string, parts: list<string>, subject: ?string} $u
+     */
+    private function mayExist(array $u): bool
+    {
+        $index = $this->pathIndex ??= $this->buildPathIndex();
+
+        if ($index['dynamic']) {
+            return true;
+        }
+
+        if ($u['staticKey'] !== null && isset($index['static'][$u['staticKey']])) {
+            return true;
+        }
+
+        return isset($index['first'][$u['parts'][0]]);
+    }
+
+    /**
+     * Build the union of every path-bearing key in the table.
+     *
+     * Derived state, invalidated exactly like {@see self::$compiled}: it is a view of
+     * `$static` and `$groups`, never read from a persisted table.
+     *
+     * @return array{static: array<string, true>, first: array<string, true>, dynamic: bool}
+     */
+    private function buildPathIndex(): array
+    {
+        $static  = [];
+        $first   = [];
+        $dynamic = false;
+
+        foreach ($this->static as $routes) {
+            foreach (array_keys($routes) as $path) {
+                $static[(string) $path] = true;
+            }
+        }
+
+        foreach ($this->groups as $buckets) {
+            foreach (array_keys($buckets) as $key) {
+                if ($key === self::DYNAMIC_BUCKET) {
+                    $dynamic = true;
+                    continue;
+                }
+
+                $first[(string) $key] = true;
+            }
+        }
+
+        return [
+            'static'  => $static,
+            'first'   => $first,
+            'dynamic' => $dynamic,
+        ];
+    }
+
+    /**
      * Whether any candidate in a segment list matches.
      *
      * @param list<array<string, mixed>> $run
      * @param list<string>               $parts
+     * @param string|null                $subject Null when the URI contains a decoded
+     *                                            separator, so chunks are walked instead.
      */
-    private function runMatches(array $run, array $parts, int $partCount, string $subject): bool
+    private function runMatches(array $run, array $parts, int $partCount, ?string $subject): bool
     {
         foreach ($run as $segment) {
             if (isset($segment['route'])) {
@@ -1669,6 +1920,23 @@ class Router
 
                 if ($this->matchTokens($route['tokens'], $parts, $partCount) !== null) {
                     return true;
+                }
+
+                continue;
+            }
+
+            if ($subject === null) {
+                foreach ($segment['routes'] as $route) {
+                    if ($partCount < $route['min']) {
+                        continue;
+                    }
+                    if (!$route['wildcard'] && $partCount > $route['max']) {
+                        continue;
+                    }
+
+                    if ($this->matchTokens($route['tokens'], $parts, $partCount) !== null) {
+                        return true;
+                    }
                 }
 
                 continue;
@@ -1876,6 +2144,9 @@ class Router
         // restored tokens, which is also what completes a state written by an older
         // release (its candidates lack the derived metadata, see prepareRoute()).
         $this->compiled = [];
+
+        // And the path index, for the same reason: it is a union over the buckets.
+        $this->pathIndex = null;
 
         return $this;
     }
@@ -2387,7 +2658,7 @@ class Router
             return null;
         }
 
-        if (!\is_array($state) || !isset($state['__cache']) || !\is_array($state['__cache'])) {
+        if (!isset($state['__cache']) || !\is_array($state['__cache'])) {
             return null;
         }
 
@@ -2655,6 +2926,8 @@ class Router
         $this->unsortedBuckets      = [];
         $this->resolvedOverrides    = [];
         $this->compiled             = [];
+        $this->pathIndex            = null;
+        $this->methodList           = null;
     }
 
     /**
