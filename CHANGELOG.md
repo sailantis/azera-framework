@@ -117,6 +117,12 @@ new rules.
   iterated a fixed set of seven methods, so a route registered as `PROPFIND` was matched
   by `match()` but never appeared in `Allow`. The list is now derived from the table:
   known methods in their documented order, then anything else alphabetically.
+- **`sailantis/clarity-engine` is now required at `^0.5` (or `dev-main`).** The new
+  `Azera\Localization\Intl` delegates to Clarity's `IntlFormatter`, which first ships in
+  0.5.0. The previous `^0.4` range allowed a stable install of 0.4.x, where the class
+  does not exist, so `$ctx->intl()` failed with `Class "Clarity\Localization\IntlFormatter"
+  not found`. Composer will not resolve a conflicting lock: run `composer update
+  sailantis/clarity-engine`.
 
 ### Fixed
 
