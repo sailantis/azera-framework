@@ -2,17 +2,30 @@
 
 **Full name:** [Azera\Core\PlainErrorHandler](../../src/Core/PlainErrorHandler.php)
 
-A bare 500 that discloses nothing, and the default.
+Default handler for 500 responses.
 
-The throwable is not rendered and not echoed: its message may contain a
-connection string, a file path, or user input that reached an exception
-constructor. An application that wants a diagnostic body registers its own
-[`ErrorHandlerInterface`](Core_ErrorHandlerInterface.md), which is also where logging belongs — the handler
-is resolved from the container, so it can take a PSR-3 logger as a dependency.
+The `log_errors` and `display_errors` ini settings control logging and
+diagnostic output, following PHP's fatal-error configuration.
+
+`log_errors` (default On) — write one line to the error log: the class, message,
+method, path and throw site. When disabled, this handler does not write an
+error log entry.
+
+`display_errors` (default Off in production, On in development) — return the
+exception details in the response instead of a plain 500 status. When enabled,
+the body includes the throwable in a PHP-style format, with HTML values escaped
+when `html_errors` is enabled.
+
+`error_reporting` does not control this handler. It handles throwables passed to
+it by the Kernel, and logging and response details are controlled by the ini
+settings above.
+
+Applications can register a custom [`ErrorHandlerInterface`](Core_ErrorHandlerInterface.md) to provide
+features such as PSR-3 logging, structured context, or redaction.
 
 ## Public methods
 
-### for() · <small>[🗎](../../src/Core/PlainErrorHandler.php#L20)</small>
+### for() · <small>[🗎](../../src/Core/PlainErrorHandler.php#L33)</small>
 
 `public function for(Throwable $error, Azera\Http\Request $request): Azera\Http\Response`
 
