@@ -74,9 +74,9 @@ sending the cookie. The cookie is loaded with the incoming value, so
 
 ---
 
-### set() · <small>[🗎](../../src/Http/Cookies.php#L73)</small>
+### set() · <small>[🗎](../../src/Http/Cookies.php#L74)</small>
 
-`public function set(string $name, mixed $value, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): Azera\Http\Cookie`
+`public function set(string $name, mixed $value, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true, string $sameSite = ''): Azera\Http\Cookie`
 
 Create and register a new [`Cookie`](Http_Cookie.md) with the given parameters.
 
@@ -93,6 +93,7 @@ The cookie is not sent until `applyTo()` drains the jar.
 | `$domain` | string | `''` | Domain scope. |
 | `$secure` | bool | `false` | Send over HTTPS only. |
 | `$httpOnly` | bool | `true` | Inaccessible to JavaScript. |
+| `$sameSite` | string | `''` | `SameSite` attribute: 'Lax', 'Strict' or 'None'. |
 
 **Return value**
 
@@ -102,7 +103,7 @@ The cookie is not sent until `applyTo()` drains the jar.
 
 ---
 
-### delete() · <small>[🗎](../../src/Http/Cookies.php#L96)</small>
+### delete() · <small>[🗎](../../src/Http/Cookies.php#L98)</small>
 
 `public function delete(string $name): void`
 
@@ -124,7 +125,7 @@ Works for a cookie that was never registered, and does not depend on
 
 ---
 
-### clear() · <small>[🗎](../../src/Http/Cookies.php#L112)</small>
+### clear() · <small>[🗎](../../src/Http/Cookies.php#L114)</small>
 
 `public function clear(): void`
 
@@ -143,7 +144,7 @@ this jar — so `clear()` only stops *emission*.
 
 ---
 
-### applyTo() · <small>[🗎](../../src/Http/Cookies.php#L131)</small>
+### applyTo() · <small>[🗎](../../src/Http/Cookies.php#L133)</small>
 
 `public function applyTo(Azera\Http\Response $response): Azera\Http\Response`
 

@@ -68,6 +68,7 @@ class Cookies
      * @param string $domain   Domain scope.
      * @param bool   $secure   Send over HTTPS only.
      * @param bool   $httpOnly Inaccessible to JavaScript.
+     * @param string $sameSite `SameSite` attribute: 'Lax', 'Strict' or 'None'.
      * @return Cookie The newly created Cookie instance for further configuration.
      */
     public function set(
@@ -77,9 +78,10 @@ class Cookies
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httpOnly = true
+        bool $httpOnly = true,
+        string $sameSite = ''
     ): Cookie {
-        $cookie = $this->newCookie($name, $expires, $path, $domain, $secure, $httpOnly);
+        $cookie = $this->newCookie($name, $expires, $path, $domain, $secure, $httpOnly, $sameSite);
         $cookie->set($value);
 
         return $this->cookies[$name] = $cookie;
@@ -151,11 +153,12 @@ class Cookies
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httpOnly = true
+        bool $httpOnly = true,
+        string $sameSite = ''
     ): Cookie {
         $rawValue = $this->request?->cookie($name);
 
-        return (new Cookie($name, null, $expires, $path, $domain, $secure, $httpOnly))
+        return (new Cookie($name, null, $expires, $path, $domain, $secure, $httpOnly, $sameSite))
             ->setRaw(is_string($rawValue) ? $rawValue : null);
     }
 }

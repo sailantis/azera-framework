@@ -48,7 +48,7 @@ Create a registry from a set of providers.
 
 ### withDefaults() · <small>[🗎](../../src/Security/Crypt/CipherRegistry.php#L57)</small>
 
-`public static function withDefaults(): Azera\Security\Crypt\CipherRegistry`
+`public static function withDefaults(): self`
 
 Registry with the built-in providers, preferred one first.
 
@@ -60,7 +60,7 @@ present at read time.
 
 **Return value**
 
-- Type: [CipherRegistry](Security_Crypt_CipherRegistry.md)
+- Type: `self`
 
 
 ---
@@ -167,7 +167,7 @@ chosen from the payload, not from local capability.
 
 ### add() · <small>[🗎](../../src/Security/Crypt/CipherRegistry.php#L164)</small>
 
-`public function add(Azera\Security\Crypt\CipherProviderInterface $provider): Azera\Security\Crypt\CipherRegistry`
+`public function add(Azera\Security\Crypt\CipherProviderInterface $provider): self`
 
 Add (or replace) a provider.
 
@@ -179,7 +179,7 @@ Add (or replace) a provider.
 
 **Return value**
 
-- Type: [CipherRegistry](Security_Crypt_CipherRegistry.md)
+- Type: `self`
 
 **Throws**
 

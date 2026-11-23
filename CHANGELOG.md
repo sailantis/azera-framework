@@ -92,6 +92,20 @@ new rules.
 - Documentation: new [Localization](docs/12-LOCALIZATION.md) guide, plus sections in
   the validation, controller and Clarity guides. The Clarity guide's method table
   listed a non-existent `use(ModuleInterface)`; it is now `addModule()`.
+- **`Cookie::sameSite()`**, plus a `$sameSite` argument on `Cookie::create()` and
+  `Cookies::set()`, emits the `Set-Cookie` `SameSite` attribute. The value is
+  case-insensitive and normalised to the canonical `Lax` / `Strict` / `None`
+  spelling; `getSameSite()` reports it, and passing `''` stops emitting it.
+  `toHeader()` validates that `SameSite=None` is paired with `Secure`, as
+  required by browsers. The API also supports setting the attribute alongside
+  the existing cookie name and path validation.
+- **`Session::regenerateId()`**, **`Session::destroy()`**, **`Session::isActive()`**
+  and **`Session::id()`** — session lifecycle methods available through the
+  wrapper, including session ID regeneration, destruction, activity checks and
+  ID retrieval. The mutators report whether the operation was performed and
+  return without changing state when no session is active. `destroy()` also
+  clears the store after `session_destroy()`, so subsequent reads in the same
+  request reflect the destroyed session.
 
 ### Changed
 

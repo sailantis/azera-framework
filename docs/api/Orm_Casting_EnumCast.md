@@ -59,7 +59,7 @@ every class and row using that enum.
 
 ### for() · <small>[🗎](../../src/Orm/Casting/EnumCast.php#L91)</small>
 
-`public static function for(string $enumClass): Azera\Orm\Casting\EnumCast`
+`public static function for(string $enumClass): self`
 
 Memoized instance for an enum class — the registry entry for an
 enum class-string column type.
@@ -77,7 +77,7 @@ enum's cast is done through [`Casts::register()`](Orm_Casting_Casts.md#register)
 
 **Return value**
 
-- Type: [EnumCast](Orm_Casting_EnumCast.md)
+- Type: `self`
 
 
 ---

@@ -11,9 +11,9 @@ cookie into a header line with `toHeader()`, then add it to a
 
 ## Public methods
 
-### create() · <small>[🗎](../../src/Http/Cookie.php#L63)</small>
+### create() · <small>[🗎](../../src/Http/Cookie.php#L78)</small>
 
-`public static function create(string $name, mixed $value = null, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): static`
+`public static function create(string $name, mixed $value = null, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true, string $sameSite = ''): static`
 
 Create a new Cookie instance with the given parameters.
 
@@ -28,6 +28,7 @@ Create a new Cookie instance with the given parameters.
 | `$domain` | string | `''` | Domain for which the cookie is valid (optional). |
 | `$secure` | bool | `false` | Whether the cookie should only be sent over HTTPS (optional). |
 | `$httpOnly` | bool | `true` | Whether the cookie should be inaccessible to JavaScript (optional). |
+| `$sameSite` | string | `''` | `SameSite` attribute: 'Lax', 'Strict' or 'None' (optional). |
 
 **Return value**
 
@@ -37,9 +38,9 @@ Create a new Cookie instance with the given parameters.
 
 ---
 
-### __construct() · <small>[🗎](../../src/Http/Cookie.php#L88)</small>
+### __construct() · <small>[🗎](../../src/Http/Cookie.php#L105)</small>
 
-`public function __construct(string $name, mixed $value = null, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true): mixed`
+`public function __construct(string $name, mixed $value = null, int $expires = 0, string $path = '/', string $domain = '', bool $secure = false, bool $httpOnly = true, string $sameSite = ''): mixed`
 
 Create a new Cookie instance.
 
@@ -54,6 +55,7 @@ Create a new Cookie instance.
 | `$domain` | string | `''` | Domain scope. |
 | `$secure` | bool | `false` | Send over HTTPS only. |
 | `$httpOnly` | bool | `true` | Inaccessible to JavaScript. |
+| `$sameSite` | string | `''` | `SameSite` attribute: 'Lax', 'Strict' or 'None'. |
 
 **Return value**
 
@@ -62,7 +64,7 @@ Create a new Cookie instance.
 
 ---
 
-### value() · <small>[🗎](../../src/Http/Cookie.php#L123)</small>
+### value() · <small>[🗎](../../src/Http/Cookie.php#L148)</small>
 
 `public function value(mixed $default = null): mixed`
 
@@ -85,7 +87,7 @@ The raw value comes from `setRaw()`, which the
 
 ---
 
-### set() · <small>[🗎](../../src/Http/Cookie.php#L159)</small>
+### set() · <small>[🗎](../../src/Http/Cookie.php#L184)</small>
 
 `public function set(mixed $value): static`
 
@@ -104,7 +106,7 @@ Set the cookie value and queue it for the response.
 
 ---
 
-### setRaw() · <small>[🗎](../../src/Http/Cookie.php#L179)</small>
+### setRaw() · <small>[🗎](../../src/Http/Cookie.php#L204)</small>
 
 `public function setRaw(string|null $raw): static`
 
@@ -127,7 +129,7 @@ change.
 
 ---
 
-### isDirty() · <small>[🗎](../../src/Http/Cookie.php#L194)</small>
+### isDirty() · <small>[🗎](../../src/Http/Cookie.php#L219)</small>
 
 `public function isDirty(): bool`
 
@@ -142,7 +144,7 @@ Used by [`Cookies::applyTo()`](Http_Cookies.md#applyto) so that reading a cookie
 
 ---
 
-### markClean() · <small>[🗎](../../src/Http/Cookie.php#L202)</small>
+### markClean() · <small>[🗎](../../src/Http/Cookie.php#L227)</small>
 
 `public function markClean(): void`
 
@@ -155,7 +157,7 @@ Mark the cookie as already emitted, so a repeated drain cannot duplicate it.
 
 ---
 
-### toHeader() · <small>[🗎](../../src/Http/Cookie.php#L222)</small>
+### toHeader() · <small>[🗎](../../src/Http/Cookie.php#L247)</small>
 
 `public function toHeader(): string`
 
@@ -180,7 +182,7 @@ invalid cookie names or unsafe path/domain attributes.
 
 ---
 
-### delete() · <small>[🗎](../../src/Http/Cookie.php#L288)</small>
+### delete() · <small>[🗎](../../src/Http/Cookie.php#L326)</small>
 
 `public function delete(): static`
 
@@ -197,7 +199,7 @@ header anyway — doing both would send two `Set-Cookie` lines for one delete.
 
 ---
 
-### encrypted() · <small>[🗎](../../src/Http/Cookie.php#L304)</small>
+### encrypted() · <small>[🗎](../../src/Http/Cookie.php#L342)</small>
 
 `public function encrypted(bool $state = true): static`
 
@@ -216,7 +218,7 @@ Enable or disable transparent encryption for this cookie.
 
 ---
 
-### key() · <small>[🗎](../../src/Http/Cookie.php#L321)</small>
+### key() · <small>[🗎](../../src/Http/Cookie.php#L359)</small>
 
 `public function key(string|null $key): static`
 
@@ -240,7 +242,7 @@ make the AEAD protection meaningless.
 
 ---
 
-### name() · <small>[🗎](../../src/Http/Cookie.php#L334)</small>
+### name() · <small>[🗎](../../src/Http/Cookie.php#L372)</small>
 
 `public function name(): string`
 
@@ -254,7 +256,7 @@ Get the cookie name.
 
 ---
 
-### expires() · <small>[🗎](../../src/Http/Cookie.php#L345)</small>
+### expires() · <small>[🗎](../../src/Http/Cookie.php#L383)</small>
 
 `public function expires(int $timestamp): static`
 
@@ -273,7 +275,7 @@ Set the expiration timestamp.
 
 ---
 
-### path() · <small>[🗎](../../src/Http/Cookie.php#L358)</small>
+### path() · <small>[🗎](../../src/Http/Cookie.php#L396)</small>
 
 `public function path(string $path): static`
 
@@ -292,7 +294,7 @@ Set the URL path scope for the cookie.
 
 ---
 
-### domain() · <small>[🗎](../../src/Http/Cookie.php#L371)</small>
+### domain() · <small>[🗎](../../src/Http/Cookie.php#L409)</small>
 
 `public function domain(string $domain): static`
 
@@ -311,7 +313,7 @@ Set the domain scope for the cookie.
 
 ---
 
-### secure() · <small>[🗎](../../src/Http/Cookie.php#L384)</small>
+### secure() · <small>[🗎](../../src/Http/Cookie.php#L422)</small>
 
 `public function secure(bool $state): static`
 
@@ -330,7 +332,7 @@ Restrict the cookie to HTTPS connections only.
 
 ---
 
-### httpOnly() · <small>[🗎](../../src/Http/Cookie.php#L397)</small>
+### httpOnly() · <small>[🗎](../../src/Http/Cookie.php#L435)</small>
 
 `public function httpOnly(bool $state): static`
 
@@ -349,7 +351,52 @@ Make the cookie inaccessible to JavaScript (HttpOnly flag).
 
 ---
 
-### __toString() · <small>[🗎](../../src/Http/Cookie.php#L409)</small>
+### sameSite() · <small>[🗎](../../src/Http/Cookie.php#L459)</small>
+
+`public function sameSite(string|null $sameSite): static`
+
+Set the `SameSite` attribute, or clear it.
+
+`Lax` is the browser default in current releases and what you want for a
+first-party session cookie; `Strict` withholds the cookie on *any*
+cross-site navigation (including a link from a chat client), and `None`
+requires `Secure` — a `SameSite=None` cookie without it is rejected
+outright, so `toHeader()` refuses to emit that combination.
+
+Pass `''` (or `null`) to stop emitting the attribute and fall back to the
+browser's default.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$sameSite` | string\|null | - | 'Lax', 'Strict', 'None' (case-insensitive), or<br>'' / null to omit the attribute. |
+
+**Return value**
+
+- Type: `static`
+
+**Throws**
+
+- [InvalidArgumentException](Cache_InvalidArgumentException.md)  When the value is not one of the three.
+
+
+---
+
+### getSameSite() · <small>[🗎](../../src/Http/Cookie.php#L485)</small>
+
+`public function getSameSite(): string`
+
+The `SameSite` attribute in effect, or `''` when it is not emitted.
+
+**Return value**
+
+- Type: `string`
+
+
+---
+
+### __toString() · <small>[🗎](../../src/Http/Cookie.php#L495)</small>
 
 `public function __toString(): string`
 
@@ -363,7 +410,7 @@ Return the cookie value as a string (useful for string-casting).
 
 ---
 
-### cipher() · <small>[🗎](../../src/Http/Cookie.php#L431)</small>
+### cipher() · <small>[🗎](../../src/Http/Cookie.php#L517)</small>
 
 `public function cipher(string|null $cipher): static`
 
@@ -391,7 +438,7 @@ switching to AES-GCM.
 
 ---
 
-### cipherProvider() · <small>[🗎](../../src/Http/Cookie.php#L447)</small>
+### cipherProvider() · <small>[🗎](../../src/Http/Cookie.php#L533)</small>
 
 `public function cipherProvider(Azera\Security\Crypt\CipherProviderInterface $provider): static`
 
@@ -414,7 +461,7 @@ it available for reading payloads that name it.
 
 ---
 
-### ciphers() · <small>[🗎](../../src/Http/Cookie.php#L464)</small>
+### ciphers() · <small>[🗎](../../src/Http/Cookie.php#L550)</small>
 
 `public function ciphers(Azera\Security\Crypt\CipherRegistry $registry): static`
 
@@ -436,7 +483,7 @@ per cookie (and can be shared explicitly) rather than resolved globally.
 
 ---
 
-### registry() · <small>[🗎](../../src/Http/Cookie.php#L475)</small>
+### registry() · <small>[🗎](../../src/Http/Cookie.php#L561)</small>
 
 `public function registry(bool $fresh = false): Azera\Security\Crypt\CipherRegistry`
 

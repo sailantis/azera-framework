@@ -94,7 +94,7 @@ you want to avoid coupling to model classes.
 
 ### modelFor() · <small>[🗎](../../src/Db/Query.php#L186)</small>
 
-`public static function modelFor(string $modelClass, Azera\Db\Database|null $db = null): Azera\Db\Query`
+`public static function modelFor(string $modelClass, Azera\Db\Database|null $db = null): self`
 
 Factory method for a MODEL-backed query with an explicit connection —
 the test/CLI escape hatch for entities()/firstEntity() without a
@@ -109,7 +109,7 @@ bootstrapped model stack. Production code uses Model::query().
 
 **Return value**
 
-- Type: [Query](Db_Query.md)
+- Type: `self`
 
 
 ---

@@ -43,6 +43,346 @@ Cache location: sys_get_temp_dir()/clarity  (configurable via setCachePath())
 
 ---
 
+### setExtension() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L291)</small>
+
+`public function setExtension(string $ext): static`
+
+Set the view file extension for this instance.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$ext` | string | - | Extension with or without a leading dot. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### getExtension() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L308)</small>
+
+`public function getExtension(): string`
+
+Get the file extension used when resolving templates.
+
+**Return value**
+
+- Type: `string`
+- Description: Extension including leading dot, or empty string for no extension.
+
+
+---
+
+### addNamespace() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L322)</small>
+
+`public function addNamespace(string $name, string $path): static`
+
+Add a namespace for view resolution.
+
+Views can be referenced using the syntax "namespace::view.name".
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$name` | string | - | Namespace name to register. |
+| `$path` | string | - | Filesystem path corresponding to the namespace. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### getNamespaces() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L349)</small>
+
+`public function getNamespaces(): array`
+
+Get the currently registered view namespaces.
+
+**Return value**
+
+- Type: `array`
+- Description: Associative array of namespace => path mappings.
+
+
+---
+
+### setViewPath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L254)</small>
+
+`public function setViewPath(string $path): static`
+
+Set the base path for resolving relative template names.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$path` | string | - | Base directory for templates. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### getViewPath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L280)</small>
+
+`public function getViewPath(): string`
+
+Get the currently configured base path for view resolution.
+
+**Return value**
+
+- Type: `string`
+- Description: Base directory for views.
+
+
+---
+
+### render() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L753)</small>
+
+`public function render(string $view, array $vars = []): string`
+
+Render a view template and return the result as a string.
+
+If a layout is configured via setLayout(), the view is first rendered and then
+wrapped in the layout. The layout receives the rendered content in the `content`
+variable.
+
+Templates are automatically compiled to cached PHP classes. The cache is
+automatically invalidated when source files change.
+
+**Basic rendering:**
+```php
+$html = $engine->render('welcome', [
+    'user' => ['name' => 'John', 'email' => 'john@example.com'],
+    'title' => 'Welcome Page'
+]);
+```
+
+**With layout:**
+```php
+$engine->setLayout('layouts/main');
+$html = $engine->render('pages/dashboard', [
+    'stats' => $dashboardStats
+]);
+// The layout receives 'content' variable with rendered 'pages/dashboard'
+```
+
+**Without layout (override):**
+```php
+$engine->setLayout(null); // Subsequent renders use no layout
+$partial = $engine->render('partials/widget', ['data' => $widgetData]);
+```
+
+**Namespaced templates:**
+```php
+$engine->addNamespace('admin', __DIR__ . '/admin_templates');
+$html = $engine->render('admin::dashboard', $data);
+```
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$view` | string | - | View name to render. Can include namespace prefix (e.g. 'admin::dashboard'). |
+| `$vars` | array | `[]` | Variables to pass to the template. Objects stay objects: `a.b`<br>reads a public property while `a:b` reads an array key. |
+
+**Return value**
+
+- Type: `string`
+- Description: Rendered HTML/output, with the debug panel HTML appended when the panel is enabled.
+
+**Throws**
+
+- ClarityException  If the template is not found, fails to compile, or throws at runtime.
+
+
+---
+
+### renderPartial() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L775)</small>
+
+`public function renderPartial(string $view, array $vars = []): string`
+
+Render a partial view (without applying a layout) and return the output.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$view` | string | - | View name to resolve and render. |
+| `$vars` | array | `[]` | Variables for this render call. |
+
+**Return value**
+
+- Type: `string`
+- Description: Rendered HTML/output.
+
+
+---
+
+### renderLayout() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L801)</small>
+
+`public function renderLayout(string $layout, string $content, array $vars = []): string`
+
+Render a layout template wrapping provided content.
+
+The layout receives the rendered view in the `content` variable.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$layout` | string | - | Layout view name. |
+| `$content` | string | - | Previously rendered content. |
+| `$vars` | array | `[]` | Additional variables to pass to the layout. |
+
+**Return value**
+
+- Type: `string`
+- Description: Rendered layout output.
+
+
+---
+
+### addFilter() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L568)</small>
+
+`public function addFilter(string $name, callable $fn): static`
+
+Register a custom filter callable.
+
+Filters transform a piped value and are invoked in templates using pipe syntax:
+- Simple filter: `{{ value |> filterName }}`
+- Filter with arguments: `{{ value |> filterName(arg1, arg2) }}`
+- Chained filters: `{{ value |> filter1 |> filter2 |> filter3 }}`
+
+Filters receive the piped value as the first parameter, followed by any arguments
+specified in the template.
+
+**Example: Currency filter**
+```php
+$engine->addFilter('currency', function($amount, string $symbol = '€') {
+    return $symbol . ' ' . number_format($amount, 2);
+});
+```
+
+Template usage:
+```twig
+{{ price |> currency }}       {# Output: € 99.99 #}
+{{ price |> currency('$') }}  {# Output: $ 99.99 #}
+```
+
+**Example: Excerpt filter**
+```php
+$engine->addFilter('excerpt', function($text, int $length = 100) {
+    return mb_strlen($text) > $length
+        ? mb_substr($text, 0, $length) . '…'
+        : $text;
+});
+```
+
+Template usage:
+```twig
+{{ article.body |> excerpt(150) }}
+```
+
+**Built-in filters:**
+- Text: `upper`, `lower`, `trim`, `truncate`, `escape`, `raw`, `slug`
+- Numbers: `number`, `abs`, `round`, `ceil`, `floor`
+- Arrays: `join`, `length`, `first`, `last`, `keys`, `values`, `map`, `filter`, `reduce`
+- Dates: `date`, `date_modify`, `format_datetime`
+- Other: `json`, `default`
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$name` | string | - | Filter name used in templates (e.g. 'currency'). |
+| `$fn` | callable | - | Callable with signature: fn($value, ...$args): mixed |
+
+**Return value**
+
+- Type: `static`
+- Description: Fluent interface
+
+
+---
+
+### addFunction() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L584)</small>
+
+`public function addFunction(string $name, callable $fn): static`
+
+Register a custom function callable.
+
+Functions are called directly in templates, e.g. `{{ name(arg) }}`.
+This is distinct from filters, which transform a piped value.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$name` | string | - | Function name used in templates (e.g. 'formatDate'). |
+| `$fn` | callable | - | fn(...$args): mixed |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### setCachePath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L648)</small>
+
+`public function setCachePath(string $path): static`
+
+Set the directory where compiled templates should be cached.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$path` | string | - | Absolute path to the cache directory. |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### getCachePath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L659)</small>
+
+`public function getCachePath(): string`
+
+Get the currently configured cache directory.
+
+**Return value**
+
+- Type: `string`
+- Description: Absolute path to the cache directory.
+
+
+---
+
+### flushCache() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L702)</small>
+
+`public function flushCache(): static`
+
+Flush all cached compiled templates.
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
 ### setDebugMode() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L81)</small>
 
 `public function setDebugMode(Clarity\Debug\DumpOptions|bool|null $debug = true): static`
@@ -249,108 +589,6 @@ next `dd()` or `dump()`.
 **Return value**
 
 - Type: `Clarity\Debug\DumpOptions`|`null`
-
-
----
-
-### setViewPath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L254)</small>
-
-`public function setViewPath(string $path): static`
-
-Set the base path for resolving relative template names.
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$path` | string | - | Base directory for templates. |
-
-**Return value**
-
-- Type: `static`
-
-
----
-
-### getViewPath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L280)</small>
-
-`public function getViewPath(): string`
-
-Get the currently configured base path for view resolution.
-
-**Return value**
-
-- Type: `string`
-- Description: Base directory for views.
-
-
----
-
-### setExtension() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L291)</small>
-
-`public function setExtension(string $ext): static`
-
-Set the view file extension for this instance.
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$ext` | string | - | Extension with or without a leading dot. |
-
-**Return value**
-
-- Type: `static`
-
-
----
-
-### getExtension() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L308)</small>
-
-`public function getExtension(): string`
-
-Get the file extension used when resolving templates.
-
-**Return value**
-
-- Type: `string`
-- Description: Extension including leading dot, or empty string for no extension.
-
-
----
-
-### addNamespace() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L322)</small>
-
-`public function addNamespace(string $name, string $path): static`
-
-Add a namespace for view resolution.
-
-Views can be referenced using the syntax "namespace::view.name".
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$name` | string | - | Namespace name to register. |
-| `$path` | string | - | Filesystem path corresponding to the namespace. |
-
-**Return value**
-
-- Type: `static`
-
-
----
-
-### getNamespaces() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L349)</small>
-
-`public function getNamespaces(): array`
-
-Get the currently registered view namespaces.
-
-**Return value**
-
-- Type: `array`
-- Description: Associative array of namespace => path mappings.
 
 
 ---
@@ -579,92 +817,6 @@ Retrieve a previously registered service.
 
 ---
 
-### addFilter() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L568)</small>
-
-`public function addFilter(string $name, callable $fn): static`
-
-Register a custom filter callable.
-
-Filters transform a piped value and are invoked in templates using pipe syntax:
-- Simple filter: `{{ value |> filterName }}`
-- Filter with arguments: `{{ value |> filterName(arg1, arg2) }}`
-- Chained filters: `{{ value |> filter1 |> filter2 |> filter3 }}`
-
-Filters receive the piped value as the first parameter, followed by any arguments
-specified in the template.
-
-**Example: Currency filter**
-```php
-$engine->addFilter('currency', function($amount, string $symbol = '€') {
-    return $symbol . ' ' . number_format($amount, 2);
-});
-```
-
-Template usage:
-```twig
-{{ price |> currency }}       {# Output: € 99.99 #}
-{{ price |> currency('$') }}  {# Output: $ 99.99 #}
-```
-
-**Example: Excerpt filter**
-```php
-$engine->addFilter('excerpt', function($text, int $length = 100) {
-    return mb_strlen($text) > $length
-        ? mb_substr($text, 0, $length) . '…'
-        : $text;
-});
-```
-
-Template usage:
-```twig
-{{ article.body |> excerpt(150) }}
-```
-
-**Built-in filters:**
-- Text: `upper`, `lower`, `trim`, `truncate`, `escape`, `raw`, `slug`
-- Numbers: `number`, `abs`, `round`, `ceil`, `floor`
-- Arrays: `join`, `length`, `first`, `last`, `keys`, `values`, `map`, `filter`, `reduce`
-- Dates: `date`, `date_modify`, `format_datetime`
-- Other: `json`, `default`
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$name` | string | - | Filter name used in templates (e.g. 'currency'). |
-| `$fn` | callable | - | Callable with signature: fn($value, ...$args): mixed |
-
-**Return value**
-
-- Type: `static`
-- Description: Fluent interface
-
-
----
-
-### addFunction() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L584)</small>
-
-`public function addFunction(string $name, callable $fn): static`
-
-Register a custom function callable.
-
-Functions are called directly in templates, e.g. `{{ name(arg) }}`.
-This is distinct from filters, which transform a piped value.
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$name` | string | - | Function name used in templates (e.g. 'formatDate'). |
-| `$fn` | callable | - | fn(...$args): mixed |
-
-**Return value**
-
-- Type: `static`
-
-
----
-
 ### setLoader() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L596)</small>
 
 `public function setLoader(Clarity\Template\TemplateLoader $loader): static`
@@ -698,17 +850,28 @@ has been set explicitly.
 
 ---
 
-### setCachePath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L648)</small>
+### setRevalidateFreq() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L681)</small>
 
-`public function setCachePath(string $path): static`
+`public function setRevalidateFreq(int $seconds): static`
 
-Set the directory where compiled templates should be cached.
+Set how many seconds to reuse a template's freshness verdict.
+
+The default, 2, mirrors OPcache. Set 0 to check every render; a positive
+value bounds how long an edit may remain unseen while reducing filesystem
+checks.
+
+```php
+$engine->setRevalidateFreq(0);   // check on every render
+$engine->setRevalidateFreq(60);  // a minute of tolerance
+```
+
+Applies per process. `clearCache()` and `invalidate()` take effect immediately.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$path` | string | - | Absolute path to the cache directory. |
+| `$seconds` | int | - | Seconds to trust a verdict for; 0 checks every render. |
 
 **Return value**
 
@@ -717,135 +880,16 @@ Set the directory where compiled templates should be cached.
 
 ---
 
-### getCachePath() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L659)</small>
+### getRevalidateFreq() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L692)</small>
 
-`public function getCachePath(): string`
+`public function getRevalidateFreq(): int`
 
-Get the currently configured cache directory.
-
-**Return value**
-
-- Type: `string`
-- Description: Absolute path to the cache directory.
-
-
----
-
-### flushCache() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L669)</small>
-
-`public function flushCache(): static`
-
-Flush all cached compiled templates.
+How long a freshness verdict is reused for, in seconds.
 
 **Return value**
 
-- Type: `static`
-
-
----
-
-### render() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L720)</small>
-
-`public function render(string $view, array $vars = []): string`
-
-Render a view template and return the result as a string.
-
-If a layout is configured via setLayout(), the view is first rendered and then
-wrapped in the layout. The layout receives the rendered content in the `content`
-variable.
-
-Templates are automatically compiled to cached PHP classes. The cache is
-automatically invalidated when source files change.
-
-**Basic rendering:**
-```php
-$html = $engine->render('welcome', [
-    'user' => ['name' => 'John', 'email' => 'john@example.com'],
-    'title' => 'Welcome Page'
-]);
-```
-
-**With layout:**
-```php
-$engine->setLayout('layouts/main');
-$html = $engine->render('pages/dashboard', [
-    'stats' => $dashboardStats
-]);
-// The layout receives 'content' variable with rendered 'pages/dashboard'
-```
-
-**Without layout (override):**
-```php
-$engine->setLayout(null); // Subsequent renders use no layout
-$partial = $engine->render('partials/widget', ['data' => $widgetData]);
-```
-
-**Namespaced templates:**
-```php
-$engine->addNamespace('admin', __DIR__ . '/admin_templates');
-$html = $engine->render('admin::dashboard', $data);
-```
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$view` | string | - | View name to render. Can include namespace prefix (e.g. 'admin::dashboard'). |
-| `$vars` | array | `[]` | Variables to pass to the template. Objects stay objects: `a.b`<br>reads a public property while `a:b` reads an array key. |
-
-**Return value**
-
-- Type: `string`
-- Description: Rendered HTML/output, with the debug panel HTML appended when the panel is enabled.
-
-**Throws**
-
-- ClarityException  If the template is not found, fails to compile, or throws at runtime.
-
-
----
-
-### renderPartial() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L742)</small>
-
-`public function renderPartial(string $view, array $vars = []): string`
-
-Render a partial view (without applying a layout) and return the output.
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$view` | string | - | View name to resolve and render. |
-| `$vars` | array | `[]` | Variables for this render call. |
-
-**Return value**
-
-- Type: `string`
-- Description: Rendered HTML/output.
-
-
----
-
-### renderLayout() · <small>[🗎](../../vendor/sailantis/clarity-engine/src/ClarityEngineTrait.php#L768)</small>
-
-`public function renderLayout(string $layout, string $content, array $vars = []): string`
-
-Render a layout template wrapping provided content.
-
-The layout receives the rendered view in the `content` variable.
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$layout` | string | - | Layout view name. |
-| `$content` | string | - | Previously rendered content. |
-| `$vars` | array | `[]` | Additional variables to pass to the layout. |
-
-**Return value**
-
-- Type: `string`
-- Description: Rendered layout output.
+- Type: `int`
+- Description: Seconds; 0 means every render re-checks the filesystem.
 
 
 

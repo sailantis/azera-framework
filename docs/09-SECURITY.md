@@ -172,7 +172,8 @@ $cookie = Cookie::create('auth')
     ->key($secretKey)           // REQUIRED: explicit, random key (no default exists)
     ->expires(time() + 3_600)
     ->secure(true)              // HTTPS only – enable in production
-    ->httpOnly(true);           // not accessible from JavaScript (default)
+    ->httpOnly(true)            // not accessible from JavaScript (default)
+    ->sameSite('Strict');       // 'Lax', 'Strict' or 'None' (see below)
 
 // Reading (decryption is transparent)
 $value = $ctx->cookies()->get('auth');
@@ -180,6 +181,18 @@ $value = $ctx->cookies()->get('auth');
 // Deleting
 $ctx->cookies()->delete('auth');
 ```
+
+### `SameSite`
+
+`sameSite('Lax' | 'Strict' | 'None')` emits the attribute; the value is
+case-insensitive and is normalised to the canonical spelling. `Lax` is the
+browser default for cookies that do not set it, and is what a first-party session
+cookie usually wants — `Strict` withholds the cookie on *any* cross-site
+navigation, including a link from an email or chat client.
+
+`SameSite=None` requires `Secure`; `toHeader()` throws rather than emitting a
+combination browsers silently discard. Pass `''` (or omit the argument) to stop
+emitting the attribute. `getSameSite()` reports the value in effect.
 
 ### How `Set-Cookie` reaches the response
 
@@ -345,16 +358,28 @@ $dispatcher->addMiddleware(new SessionMiddleware());
 Then apply these practices:
 
 ```php
+$session = $this->session();
+
 // Regenerate the session ID on login or privilege change (prevents session fixation)
-session_regenerate_id(true);
+$session->regenerateId();
 
 // Store only what you need
 $session->set('user_id', $user->id);  // not the whole model object
 
 // Clear everything on logout
-$session->clear();
-session_destroy();
+$session->destroy();
 ```
+
+`regenerateId()` and `destroy()` wrap `session_regenerate_id()` and
+`session_destroy()`, and both are safe to call when no session is running (a
+CLI task, a unit test): they return `false` / do nothing rather than warning.
+`destroy()` additionally empties the session store, because PHP's
+`session_destroy()` drops the server-side data but leaves `$_SESSION`
+populated — a read later in the same request would otherwise still see the
+logged-out user.
+
+`isActive()` and `id()` report the PHP session state without touching the
+`$_SESSION` superglobal directly.
 
 Configure session cookie attributes in your bootstrap **before** `SessionMiddleware` runs:
 

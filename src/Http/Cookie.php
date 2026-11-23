@@ -16,6 +16,15 @@ use Azera\Security\Crypt\CipherRegistry;
  */
 class Cookie
 {
+    /**
+     * Accepted `SameSite` values, keyed by their lowercase spelling.
+     *
+     * Browsers compare the attribute case-insensitively, but they all echo a
+     * canonical spelling, so normalising here keeps two cookies that differ only
+     * in case from looking different in a captured response.
+     */
+    private const SAMESITE = ['lax' => 'Lax', 'strict' => 'Strict', 'none' => 'None'];
+
     protected string $name;
     protected mixed $value = null;
     protected bool $loaded = false;
@@ -39,6 +48,11 @@ class Cookie
     protected bool $secure = false;
     protected bool $httpOnly = true;
 
+    /**
+     * Canonical `SameSite` value, or `''` when the attribute is not emitted.
+     */
+    protected string $sameSite = '';
+
     protected bool $encrypted = false;
     protected ?string $cipher = null;
     protected ?string $key = null;
@@ -58,6 +72,7 @@ class Cookie
      * @param string $domain Domain for which the cookie is valid (optional).
      * @param bool $secure Whether the cookie should only be sent over HTTPS (optional).
      * @param bool $httpOnly Whether the cookie should be inaccessible to JavaScript (optional).
+     * @param string $sameSite `SameSite` attribute: 'Lax', 'Strict' or 'None' (optional).
      * @return static A new Cookie instance.
      */
     public static function create(
@@ -67,9 +82,10 @@ class Cookie
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httpOnly = true
+        bool $httpOnly = true,
+        string $sameSite = ''
     ): static {
-        return new static($name, $value, $expires, $path, $domain, $secure, $httpOnly);
+        return new static($name, $value, $expires, $path, $domain, $secure, $httpOnly, $sameSite);
     }
 
     // --- Constructor ---------------------------------------------------------
@@ -84,6 +100,7 @@ class Cookie
      * @param string $domain   Domain scope.
      * @param bool   $secure   Send over HTTPS only.
      * @param bool   $httpOnly Inaccessible to JavaScript.
+     * @param string $sameSite `SameSite` attribute: 'Lax', 'Strict' or 'None'.
      */
     public function __construct(
         string $name,
@@ -92,7 +109,8 @@ class Cookie
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httpOnly = true
+        bool $httpOnly = true,
+        string $sameSite = ''
     ) {
         $this->name = $name;
 
@@ -106,6 +124,13 @@ class Cookie
         $this->domain   = $domain;
         $this->secure   = $secure;
         $this->httpOnly = $httpOnly;
+
+        // Normalised directly instead of through sameSite(): a cookie built by the
+        // factory is not yet queued, and sameSite() marks it dirty as an attribute
+        // change.
+        if ($sameSite !== '') {
+            $this->sameSite = self::normalizeSameSite($sameSite);
+        }
     }
 
     // --- Value Handling ------------------------------------------------------
@@ -260,6 +285,10 @@ class Cookie
             $header .= '; HttpOnly';
         }
 
+        if ($this->sameSite !== '') {
+            $header .= '; SameSite=' . $this->sameSite;
+        }
+
         return $header;
     }
 
@@ -275,6 +304,15 @@ class Cookie
                     sprintf('Cookie %s must not contain control characters or semicolons.', $attribute)
                 );
             }
+        }
+
+        // SameSite=None is only accepted by browsers on a Secure cookie. Emitting
+        // the pair without it produces a Set-Cookie the client silently discards,
+        // which then looks like "the login did not stick" much later.
+        if ($this->sameSite === 'None' && !$this->secure) {
+            throw new \InvalidArgumentException(
+                "Cookie '{$this->name}' sets SameSite=None without Secure; browsers reject that combination."
+            );
         }
     }
 
@@ -399,6 +437,54 @@ class Cookie
         $this->httpOnly = $state;
         $this->dirty    = true;
         return $this;
+    }
+
+    /**
+     * Set the `SameSite` attribute, or clear it.
+     *
+     * `Lax` is the browser default in current releases and what you want for a
+     * first-party session cookie; `Strict` withholds the cookie on *any*
+     * cross-site navigation (including a link from a chat client), and `None`
+     * requires `Secure` — a `SameSite=None` cookie without it is rejected
+     * outright, so {@see toHeader()} refuses to emit that combination.
+     *
+     * Pass `''` (or `null`) to stop emitting the attribute and fall back to the
+     * browser's default.
+     *
+     * @param string|null $sameSite 'Lax', 'Strict', 'None' (case-insensitive), or
+     *   '' / null to omit the attribute.
+     * @return $this
+     * @throws \InvalidArgumentException When the value is not one of the three.
+     */
+    public function sameSite(?string $sameSite): static
+    {
+        $this->sameSite = $sameSite === null || $sameSite === ''
+            ? ''
+            : self::normalizeSameSite($sameSite);
+        $this->dirty    = true;
+
+        return $this;
+    }
+
+    /**
+     * Validate and canonicalise a `SameSite` value.
+     *
+     * @throws \InvalidArgumentException When it is not Lax, Strict or None.
+     */
+    private static function normalizeSameSite(string $sameSite): string
+    {
+        return self::SAMESITE[strtolower($sameSite)]
+            ?? throw new \InvalidArgumentException(
+                sprintf("SameSite must be 'Lax', 'Strict', 'None' or empty, got '%s'.", $sameSite)
+            );
+    }
+
+    /**
+     * The `SameSite` attribute in effect, or `''` when it is not emitted.
+     */
+    public function getSameSite(): string
+    {
+        return $this->sameSite;
     }
 
     /**

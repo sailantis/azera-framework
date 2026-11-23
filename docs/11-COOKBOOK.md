@@ -329,14 +329,14 @@ class AuthController extends Controller
         }
 
         $this->session()->set('user_id', $user->id);
-        session_regenerate_id(true); // prevent session fixation
+        $this->session()->regenerateId(); // prevent session fixation
 
         return ['ok' => true];
     }
 
     public function logoutAction(): Response
     {
-        $this->session()->clear();
+        $this->session()->destroy();
         return Response::redirect('/login');
     }
 }

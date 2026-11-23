@@ -4,7 +4,6 @@ namespace Azera\Aop;
 
 use ReflectionClass;
 use ReflectionMethod;
-use Swoole\Server\Task;
 
 /**
  * Creates proxy classes that wrap advised methods with interceptor chains.
