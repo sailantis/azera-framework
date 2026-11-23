@@ -65,6 +65,24 @@ All helpers delegate to `AppContext` and are available anywhere inside the contr
 | `$this->view()`    | `Azera\Core\ViewEngine`                                     |
 | `$this->session()` | `Azera\Http\Session` or `null`                              |
 | `$this->cookies()` | `Azera\Http\Cookies` — set cookies; emitted on the response |
+| `$this->translator()` | `Azera\Localization\Translator` — translation service    |
+| `$this->intl()`    | `Azera\Localization\Intl` — locale-aware formatting          |
+| `$this->t()`       | Translated message for a key                                |
+
+`$this->t()` is sugar for `$this->translator()->get()` and reads the same
+catalogue as templates bound with `$translator->bind($view)`:
+
+```php
+return ['heading' => $this->t('order.heading', ['id' => $order->id])];
+```
+
+`$this->intl()` formats numbers, currency and dates with the same locale:
+
+```php
+return ['total' => $this->intl()->formatCurrency($order->total, 'EUR')];
+```
+
+See [Localization](12-LOCALIZATION.md).
 
 ---
 
@@ -401,6 +419,7 @@ See [Validation](07-VALIDATION.md) for the complete rule reference.
 ## Related
 
 - [Clarity Engine](03b-CLARITY-ENGINE.md)
+- [Localization](12-LOCALIZATION.md)
 - [MVC Routing](02-CORE-ROUTING.md)
 - [HTTP Request](06-HTTP-REQUEST.md)
 - [API Reference](api/README.md)

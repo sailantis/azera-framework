@@ -90,7 +90,58 @@ Get the Session from the context. May return null if no session is available.
 
 ---
 
-### cookies() · <small>[🗎](../../src/Core/Controller.php#L103)</small>
+### translator() · <small>[🗎](../../src/Core/Controller.php#L102)</small>
+
+`public function translator(): Azera\Localization\Translator`
+
+Get the application-wide translation service.
+
+**Return value**
+
+- Type: [Translator](Localization_Translator.md)
+
+
+---
+
+### t() · <small>[🗎](../../src/Core/Controller.php#L118)</small>
+
+`public function t(string $key, array $vars = [], string|null $domain = null, string|null $locale = null): string`
+
+Translate a key for this controller's output.
+
+Sugar over `translator()`; templates bound through
+`$ctx->translator()->bind($ctx->view())` resolve the same catalogue.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$key` | string | - | Message key (e.g. "nav.home"). |
+| `$vars` | array | `[]` | Placeholder values for `{name}` substitution. |
+| `$domain` | string\|null | `null` | Domain override for this call. |
+| `$locale` | string\|null | `null` | Locale override for this call. |
+
+**Return value**
+
+- Type: `string`
+
+
+---
+
+### intl() · <small>[🗎](../../src/Core/Controller.php#L126)</small>
+
+`public function intl(): Azera\Localization\Intl`
+
+Get the application-wide locale-aware formatting service.
+
+**Return value**
+
+- Type: [Intl](Localization_Intl.md)
+
+
+---
+
+### cookies() · <small>[🗎](../../src/Core/Controller.php#L135)</small>
 
 `public function cookies(): Azera\Http\Cookies`
 
@@ -103,7 +154,7 @@ Get the Cookies service from the context for managing cookies.
 
 ---
 
-### resolve() · <small>[🗎](../../src/Core/Controller.php#L115)</small>
+### resolve() · <small>[🗎](../../src/Core/Controller.php#L147)</small>
 
 `public function resolve(string $id): object`
 
@@ -122,7 +173,7 @@ Get a service from the context by class name.
 
 ---
 
-### db() · <small>[🗎](../../src/Core/Controller.php#L123)</small>
+### db() · <small>[🗎](../../src/Core/Controller.php#L155)</small>
 
 `public function db(): Azera\Db\DatabaseManager`
 
@@ -135,7 +186,7 @@ Get the database manager for persistence access.
 
 ---
 
-### cache() · <small>[🗎](../../src/Core/Controller.php#L131)</small>
+### cache() · <small>[🗎](../../src/Core/Controller.php#L163)</small>
 
 `public function cache(): Psr\SimpleCache\CacheInterface`
 
@@ -148,7 +199,7 @@ Get the cache service.
 
 ---
 
-### logger() · <small>[🗎](../../src/Core/Controller.php#L139)</small>
+### logger() · <small>[🗎](../../src/Core/Controller.php#L171)</small>
 
 `public function logger(): Psr\Log\LoggerInterface`
 
@@ -161,7 +212,7 @@ Get the logger.
 
 ---
 
-### events() · <small>[🗎](../../src/Core/Controller.php#L147)</small>
+### events() · <small>[🗎](../../src/Core/Controller.php#L179)</small>
 
 `public function events(): Psr\EventDispatcher\EventDispatcherInterface`
 

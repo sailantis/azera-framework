@@ -50,7 +50,8 @@ $ctx->view()->setViewPath(__DIR__ . '/../views');
 | `setDebugMode(bool $debug)` / `isDebugMode()`      | Runtime safety checks plus context-aware `dump()`/`dd()`                                              |
 | `addInlineFilter(string $name, array $definition)` | Zero-overhead filter compiled straight into the generated PHP                                         |
 | `addDirective(string $keyword, callable $handler)` | Custom `{% keyword %}` directive (emits PHP at compile time)                                          |
-| `use(ModuleInterface $module)`                     | Bundle filters/functions/directives into a self-registering module                                    |
+| `addModule(ModuleInterface $module)`               | Bundle filters/functions/directives into a self-registering module                                    |
+| `addService(string $name, mixed $service)`         | Expose an object to compiled templates as `$__c_sv['name']`                                           |
 
 ---
 
@@ -1062,6 +1063,24 @@ The harness lives in `azera-competition` (not in this repository): run
 | Filter pipeline       | 40+ built-in filters, one call model, lambdas, named arguments | Not built-in                             |
 | Reusable fragments    | `{% macro %}` / `{% call name() %}`, compile-time inlining     | require/include                          |
 | Suitable for          | User-facing views, team projects, untrusted template authors   | Full PHP control, existing PHP templates |
+
+### Modules and translation
+
+Modules are opt-in bundles registered with `addModule()`. Azera's engine only
+*uses* Clarity's trait, so Clarity's `ModuleInterface` implementations
+(`TranslationModule`, `IntlFormatModule`, `LocaleService`) cannot be registered
+here — they are typed against `Clarity\ClarityEngine`.
+
+Use the framework's services instead, which register the same filters and blocks
+against shared locale state:
+
+```php
+$ctx->translator()->bind($ctx->view());   // t filter, with_locale, with_t_domain
+$ctx->intl()->bind($ctx->view());         // format_* filters, locale info functions
+```
+
+See [Localization](12-LOCALIZATION.md) for configuration, locale precedence,
+formatting and the Clarity ↔ controller shared locale stack.
 
 ---
 

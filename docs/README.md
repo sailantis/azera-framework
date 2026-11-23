@@ -36,6 +36,9 @@ area you need.
   uploaded files in a controller.
 - [Validation](07-VALIDATION.md) — Fluent field rules, type coercion and
   error collection.
+- [Localization](12-LOCALIZATION.md) — One translation service for
+  controllers, validators and every view engine; locale negotiation, domains
+  and translation files.
 
 ## Operations
 

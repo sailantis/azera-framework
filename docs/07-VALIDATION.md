@@ -198,9 +198,46 @@ A typical JSON error response:
 
 ## Translation
 
-By default `errors()` returns English messages. Use `setTranslator()` to provide translated messages or custom formatting.
+By default `errors()` returns English messages. Two ways to change that:
+`setTranslations()` for the framework's translation service, or
+`setTranslator()` for a plain callback.
+
+### Using the framework translator
+
+`setTranslations()` reads messages from an
+[`Azera\Localization\Translator`](12-LOCALIZATION.md) catalogue. Error codes are
+the catalogue keys, so no English strings are duplicated, and the built-in
+template stays the fallback when a code is missing from the catalogue:
+
+```php
+$v->setTranslations($ctx->translator());                  // domain: "validation"
+$v->setTranslations($ctx->translator(), 'signup');
+```
+
+```php
+<?php // locales/validation.de_DE.php
+return [
+    'required'   => 'Pflichtfeld',
+    'email'      => 'muss eine gültige E-Mail-Adresse sein',
+    'min.string' => 'muss mindestens {min} Zeichen haben',
+];
+```
+
+`{min}`, `{max}` and `{allowed}` are filled from the error's `$params`, so a
+translation never formats values itself. The result follows the active locale,
+including a controller's `withLocale()` scope:
+
+```php
+$de = $translator->withLocale('de_DE', fn () => $v->errors());
+```
+
+See [Localization](12-LOCALIZATION.md) for the locale precedence, domains and how
+to reach the same catalogue from templates.
 
 ### Translator callback
+
+For anything the catalogue cannot express, `setTranslator()` receives the field
+path, code, params and English template, and returns whatever string it likes.
 
 ```php
 $v->setTranslator(function (string $field, string $code, array $params, string $template): string {

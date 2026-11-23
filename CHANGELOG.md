@@ -41,6 +41,57 @@ new rules.
   `AppContext`. One policy now serves every entry point instead of each transport
   carrying its own copy. They are separate interfaces so a 404 policy cannot answer a
   `TypeError`.
+- **`Azera\Localization\Translator`** — one translation service for the whole
+  application, resolved as `$ctx->translator()` and independent of the view engine.
+  It owns locale precedence (per call → `withLocale()` scope → negotiated request
+  locale → configured → `LocaleService` default → detected), the domain stack,
+  fallback-locale lookup and `{placeholder}` substitution. A missing key echoes
+  instead of producing a blank, and `getOrDefault()` distinguishes the two.
+  `bind($view)` registers translation on the active engine: the `t` filter and both
+  blocks for Clarity, a `t()` function for `NativeEngine`, a filter for adapters.
+  `resetState()` clears the request scopes in resident workers, wired through the
+  existing `RequestScoped` hook in `AppContext::clearRequestScope()`.
+- **`Azera\Localization\LoaderInterface`** and **`TranslationLoaderBridge`** — a
+  loader seam identical to Clarity's single-method contract, so Clarity's
+  `FileTranslationLoader`, `ArrayTranslationLoader`, `ChainTranslationLoader` and
+  `RedisCachingLoader` are reused rather than reimplemented. The bridge satisfies both
+  interfaces, so one loader serves either side.
+- **`Azera\Localization\LocaleNegotiator`** — pure `Accept-Language` matching with
+  exact, primary-subtag and `*` handling. `Translator::negotiate($request, …)` adopts
+  the result.
+- **`Azera\Core\Engines\LocalizationModule`** — the Clarity bridge. It registers the
+  `t` filter and the `{% with_locale %}` / `{% with_t_domain %}` blocks through the
+  trait API and points them at the framework translator, so `{{ "k" |> t }}` and
+  `$translator->get('k')` share one catalogue. The locale stack is shared in both
+  directions: an existing `'locale'` service is adopted, otherwise the translator's
+  is installed.
+- **`Validator::setTranslations(Translator $translator, string $domain = 'validation')`** —
+  error codes become catalogue keys, with the built-in English template as the
+  fallback for codes a catalogue omits. `setTranslator()` remains and still wins when
+  registered last.
+- **`Controller::translator()`** and **`Controller::t()`** — the translation service
+  and a one-call shortcut next to `view()` and `session()`.
+- **`Azera\Localization\Intl`** — locale-aware formatting for the whole
+  application, resolved as `$ctx->intl()`: numbers, currency, percentages,
+  scientific notation, spellout, ordinals, dates, times, relative time,
+  transliteration, ICU messages and locale information. It delegates to
+  clarity-engine's new `IntlFormatter`, so a controller's
+  `$intl->formatCurrency()` and a template's `|> format_currency` are one call —
+  no ICU logic is duplicated, and both degrade identically without `ext-intl`.
+  `bind($view)` registers the fourteen `format_*` filters and four `locale_*`
+  functions. It shares the translator's `LocaleService`, so a locale scope moves
+  formatting and messages together.
+- **`Clarity\Localization\IntlFormatter`** (clarity-engine) — the engine-free
+  formatting layer `IntlFormatModule` is now built on. The module keeps its
+  filters, signatures and output; it delegates instead of owning the code, which
+  is what lets a framework expose the same formatting outside templates.
+- **`Azera\Core\Engines\IntlModule`** and **`LocaleBlocks`** — the Clarity bridge
+  for formatting, and the shared installer for the locale stack and the
+  `{% with_locale %}` block. `LocaleBlocks` declares the block at most once per
+  engine, so binding both the translator and the intl service is safe.
+- Documentation: new [Localization](docs/12-LOCALIZATION.md) guide, plus sections in
+  the validation, controller and Clarity guides. The Clarity guide's method table
+  listed a non-existent `use(ModuleInterface)`; it is now `addModule()`.
 
 ### Changed
 

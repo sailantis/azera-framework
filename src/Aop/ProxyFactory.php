@@ -16,8 +16,14 @@ use Swoole\Server\Task;
  * Methods without advice attributes are NOT overridden — they call the
  * parent implementation directly with zero overhead.
  *
- * Proxy class names are cached in an array keyed by class name, so repeated
- * `build()` calls for the same class reuse the same proxy class.
+ * In-process caching: `buildProxyClass()` memoises per target class, and the
+ * proxy class is looked up with `class_exists(..., false)` before any file I/O.
+ *
+ * On-disk caching (when a cache dir is set): the proxy is written once per
+ * (target class, generated body, generator version) and `require`d thereafter.
+ * The class name is DETERMINISTIC, which is what lets OPcache serve the file
+ * instead of recompiling it on every cold request — see `loadProxyClass()` for
+ * why a stable name is safe here and how a planted file is rejected.
  *
  * Cost when no interceptors are registered: zero (AppContext::build() never
  * calls ProxyFactory).
@@ -28,6 +34,18 @@ use Swoole\Server\Task;
  */
 class ProxyFactory
 {
+    /**
+     * Bumped whenever the generated code changes shape.
+     *
+     * It is folded into the proxy class name, so an upgrade that alters the
+     * emitted overrides produces a DIFFERENT class name. Long-running processes
+     * that already loaded the old proxy therefore cannot collide with the new
+     * one, and stale files on disk are simply never matched again.
+     *
+     * v2: the class name became deterministic (it used to be randomised).
+     */
+    private const GENERATOR_VERSION = 2;
+
     /** @var array<class-string<Advice>, InterceptorInterface> */
     private array $interceptors = [];
 
@@ -69,6 +87,32 @@ class ProxyFactory
     }
 
     /**
+     * The cache file this factory would use for $ref, or null when nothing would
+     * be written (no cache dir, or the class has no advised methods).
+     *
+     * Public so deployment tooling can warm or prune the proxy cache without
+     * re-deriving the naming scheme, and so tests can plant a file at the exact
+     * path the loader will look at.
+     *
+     * @return string|null Absolute path, or null.
+     */
+    public function proxyPath(ReflectionClass $ref): ?string
+    {
+        if ($this->cacheDir === null) {
+            return null;
+        }
+
+        $advisedMethods = $this->collectAdvisedMethods($ref);
+
+        if ($advisedMethods === []) {
+            return null;
+        }
+
+        return $this->cacheDir . DIRECTORY_SEPARATOR
+            . 'Proxy_' . $this->proxyDigest($ref->getName(), $this->generateProxyCode($ref, $advisedMethods)) . '.php';
+    }
+
+    /**
      * Build the proxy class for a target class.
      *
      * Returns the proxy class name (a class extending the target), or null
@@ -100,8 +144,9 @@ class ProxyFactory
         $methodsCode = $this->generateProxyCode($ref, $advisedMethods);
 
         if ($this->cacheDir !== null) {
-            // File-based: write to disk, require, OPcache caches it.
-            $proxyClass = $this->writeAndLoadProxyFile($className, $methodsCode);
+            // File-based: reuse the cached file when it already describes this
+            // proxy, otherwise write it atomically and load it.
+            $proxyClass = $this->loadProxyClass($className, $methodsCode);
         } else {
             // Eval-based: development mode, anonymous class, no cache dir.
             $evalCode   = $this->buildEvalCode($className, $methodsCode);
@@ -114,33 +159,122 @@ class ProxyFactory
     }
 
     /**
-     * Write a generated proxy class to the cache directory and load it.
+     * Load the generated proxy class for a target class, reusing the cache file
+     * when it already describes exactly this proxy.
      *
-     * Follows the Clarity Engine pattern: write to a temp file, rename
-     * atomically, clearstatcache + opcache_invalidate, then require.
-     * The file returns the class name as its last statement.
+     * WHY THE FILE IS KEYED ON THE GENERATED SOURCE, NOT THE CLASS NAME.
+     * This used to write `Proxy_<md5(class)>.php` with a class named
+     * `..._<random_bytes(8)>` and `require` it unconditionally, every process.
+     * Because the declared class name changed on every write, OPcache could
+     * never serve the file, so each cold process recompiled it instead of
+     * loading it.
+     *
+     * The measured size depends on the platform, and it is easy to overstate:
+     *
+     *   NTFS (Windows dev box)   rewrite ~18-31 ms, reuse ~0.5-1.0 ms
+     *   Linux (bench VM)         rewrite ~0.28-0.46 ms, reuse ~0.14-0.18 ms
+     *
+     * On Linux the write is a small fraction of a millisecond, so this change is
+     * NOT what makes a request slow there — the ~12 ms first-touch class-autoload
+     * floor dominates any per-request proxy work, and in a 1000-iteration mean
+     * either variant is under 0.5 us per request. The fix removes a real defect
+     * (an uncacheable file) without changing any published benchmark row.
+     *
+     * The class name is now derived from (target class, generated body,
+     * generator version), so it is stable for a given proxy and changes
+     * automatically when the generated code does. The filename carries the
+     * same digest, which makes the reuse check cheap and exact.
+     *
+     * The class name is now derived from (target class, generated body,
+     * generator version), so it is stable for a given proxy and changes
+     * automatically when the generated code does. The filename carries the
+     * same digest, which makes the reuse check cheap and exact.
+     *
+     * WHY THE CONTENT IS STILL VERIFIED. A stable, predictable filename means
+     * another local user could plant a file there (`/tmp` is world-writable).
+     * Trusting the name alone would turn that into arbitrary code execution, so
+     * every reuse compares a digest of the stored body against the body we would
+     * generate, and any mismatch falls through to the (atomic, overwriting)
+     * write path. A planted file is therefore never required: it is replaced.
      *
      * @param string $className   The target class FQCN.
      * @param string $methodsCode Generated method overrides (class body only).
      * @return class-string The loaded proxy class name.
      */
-    private function writeAndLoadProxyFile(string $className, string $methodsCode): string
+    private function loadProxyClass(string $className, string $methodsCode): string
     {
-        $cacheFile = $this->proxyFilePath($className);
-        $dir       = dirname($cacheFile);
+        $shortName      = str_replace('\\', '_', $className);
+        $proxyClassName = "AzeraAopProxy_{$shortName}_" . $this->proxyDigest($className, $methodsCode);
+
+        $fileContents = $this->buildFileCode($proxyClassName, $className, $methodsCode);
+
+        // Already declared in this process (another factory instance, or a
+        // caller that required the file itself): nothing to read or write.
+        if (class_exists($proxyClassName, false)) {
+            return $proxyClassName;
+        }
+
+        $dir = $this->cacheDir;
+        \assert($dir !== null);
 
         if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
             throw new \RuntimeException("Unable to create AOP proxy cache directory: {$dir}");
         }
 
-        // Generate a versioned class name so recompilations don't collide
-        // with previously loaded classes in long-running processes.
-        $shortName      = str_replace('\\', '_', $className);
-        $proxyClassName = "AzeraAopProxy_{$shortName}_" . bin2hex(random_bytes(8));
+        $this->assertSafeCacheDir($dir);
 
-        // Build the full PHP file: named class extending the target.
-        $fileContents = $this->buildFileCode($proxyClassName, $className, $methodsCode);
+        $cacheFile = $dir . DIRECTORY_SEPARATOR . 'Proxy_' . $this->proxyDigest($className, $methodsCode) . '.php';
 
+        if ($this->isReusableProxyFile($cacheFile, $fileContents)) {
+            /** @var class-string $loaded */
+            $loaded = require $cacheFile;
+
+            if ($loaded === $proxyClassName) {
+                return $proxyClassName;
+            }
+
+            // The file verified but returned something else (corrupt tail, or a
+            // race with a concurrent rewrite). Fall through and write ours.
+        }
+
+        return $this->writeAndLoadProxyFile($cacheFile, $dir, $fileContents, $proxyClassName);
+    }
+
+    /**
+     * True when $cacheFile already holds exactly $expected and can be required.
+     *
+     * Compares the WHOLE body rather than just its shape: the file declares the
+     * class we are about to `require`, so anything else living at that path is
+     * executable code we must not run.
+     */
+    private function isReusableProxyFile(string $cacheFile, string $expected): bool
+    {
+        if (!is_file($cacheFile)) {
+            return false;
+        }
+
+        // clearstatcache first: a long-running process that already stat()ed a
+        // path (including a failed is_file) would otherwise answer from cache.
+        clearstatcache(true, $cacheFile);
+
+        $stored = @file_get_contents($cacheFile);
+
+        return $stored !== false && $stored === $expected;
+    }
+
+    /**
+     * Write the proxy file atomically and load it.
+     *
+     * Follows the Clarity Engine pattern: write to a temp file, rename
+     * atomically, clearstatcache + opcache_invalidate, then require.
+     * The file returns the class name as its last statement.
+     */
+    private function writeAndLoadProxyFile(
+        string $cacheFile,
+        string $dir,
+        string $fileContents,
+        string $proxyClassName,
+    ): string {
         // Atomic write: unique temp file in the same directory + rename, so a
         // partially written file is never required and concurrent writers do
         // not clobber each other.
@@ -167,7 +301,27 @@ class ProxyFactory
         }
 
         // Only ever load the file we just wrote successfully.
-        return require $cacheFile;
+        /** @var class-string $loaded */
+        $loaded = require $cacheFile;
+
+        return $loaded;
+    }
+
+    /**
+     * Stable identity for one generated proxy.
+     *
+     * Folds in the generator version so a code-shape change produces a new name,
+     * and the source digest so an edited attribute set does too. `sha256` rather
+     * than `md5` because a collision here would make one proxy stand in for
+     * another.
+     */
+    private function proxyDigest(string $className, string $methodsCode): string
+    {
+        return substr(
+            hash('sha256', self::GENERATOR_VERSION . "\0" . $className . "\0" . $methodsCode),
+            0,
+            16,
+        );
     }
 
     /**
@@ -193,15 +347,6 @@ class ProxyFactory
                 "AOP proxy cache directory is group/world writable, refusing to load executable code from it: {$dir}"
             );
         }
-    }
-
-    /**
-     * Get the cache file path for a proxy class.
-     */
-    private function proxyFilePath(string $className): string
-    {
-        return $this->cacheDir . DIRECTORY_SEPARATOR
-            . 'Proxy_' . md5($className) . '.php';
     }
 
     /**

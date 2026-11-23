@@ -57,6 +57,14 @@ final class Kernel
      */
     public function handle(Request $request): Response
     {
+        // Publish the request the caller handed us. Controllers, middleware and the
+        // view layer all reach the current request through the context
+        // (`AppContext::request()`, `Controller::request()`), so a transport that
+        // built a Request and passed it here would otherwise leave every one of them
+        // resolving a different — usually empty — instance. Done once, at the single
+        // entry point, so no transport has to remember to do it.
+        $this->context->set(Request::class, $request);
+
         try {
             // The router and dispatcher are taken from the constructor when given:
             // a worker may be handed its own instances instead of the context's,
@@ -75,7 +83,7 @@ final class Kernel
             return $this->finalize(
                 $allowed === null
                     ? $this->notFound($request)
-                    : Response::status(405)->addHeader('Allow', implode(', ', $allowed)),
+                    : Response::text("405 Method Not Allowed\n", 405)->addHeader('Allow', implode(', ', $allowed)),
             );
         } catch (Throwable $error) {
             // `dd()` in halt mode is a control-flow signal, not a failure: the

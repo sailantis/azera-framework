@@ -60,6 +60,7 @@ A lightweight, fast PHP framework for building modern Web applications and CLI t
 ### Additional Features
 
 - **Validation** - Fluent field rules with type coercion, nested list/object validation, and error collection
+- **Localization** - One translation service for controllers, validators and templates, with a shared locale stack and `Accept-Language` negotiation
 - **Security** - CSRF middleware, rate limiting, password hashing, encryption (Sodium/OpenSSL)
 - **Logging** - PSR-3 logging, typed PSR-14 database events
 - **Pagination, AOP and queues** - Built-in pagination, attribute-driven interceptors, task queues

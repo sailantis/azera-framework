@@ -90,6 +90,9 @@
 ### `Azera\Core\Engines`
 
 - [ClarityEngine](Core_Engines_ClarityEngine.md) `Azera\Core\Engines\ClarityEngine`
+- [IntlModule](Core_Engines_IntlModule.md) `Azera\Core\Engines\IntlModule`
+- [LocaleBlocks](Core_Engines_LocaleBlocks.md) `Azera\Core\Engines\LocaleBlocks`
+- [LocalizationModule](Core_Engines_LocalizationModule.md) `Azera\Core\Engines\LocalizationModule`
 - [NativeEngine](Core_Engines_NativeEngine.md) `Azera\Core\Engines\NativeEngine`
 
 ### `Azera\Core\Exceptions`
@@ -164,6 +167,15 @@
 ### `Azera\Lifecycle`
 
 - [RequestScoped](Lifecycle_RequestScoped.md) `Azera\Lifecycle\RequestScoped`
+
+### `Azera\Localization`
+
+- [Intl](Localization_Intl.md) `Azera\Localization\Intl`
+- [LoaderInterface](Localization_LoaderInterface.md) `Azera\Localization\LoaderInterface`
+- [LocaleNegotiator](Localization_LocaleNegotiator.md) `Azera\Localization\LocaleNegotiator`
+- [NullLoader](Localization_NullLoader.md) `Azera\Localization\NullLoader`
+- [TranslationLoaderBridge](Localization_TranslationLoaderBridge.md) `Azera\Localization\TranslationLoaderBridge`
+- [Translator](Localization_Translator.md) `Azera\Localization\Translator`
 
 ### `Azera\Log`
 

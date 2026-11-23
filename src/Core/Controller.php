@@ -97,6 +97,38 @@ abstract class Controller
 	}
 
 	/**
+	 * Get the application-wide translation service.
+	 */
+	public function translator(): \Azera\Localization\Translator
+	{
+		return $this->context()->translator();
+	}
+
+	/**
+	 * Translate a key for this controller's output.
+	 *
+	 * Sugar over {@see translator()}; templates bound through
+	 * `$ctx->translator()->bind($ctx->view())` resolve the same catalogue.
+	 *
+	 * @param string              $key    Message key (e.g. "nav.home").
+	 * @param array<string,mixed> $vars   Placeholder values for `{name}` substitution.
+	 * @param string|null         $domain Domain override for this call.
+	 * @param string|null         $locale Locale override for this call.
+	 */
+	public function t(string $key, array $vars = [], ?string $domain = null, ?string $locale = null): string
+	{
+		return $this->translator()->get($key, $vars, $domain, $locale);
+	}
+
+	/**
+	 * Get the application-wide locale-aware formatting service.
+	 */
+	public function intl(): \Azera\Localization\Intl
+	{
+		return $this->context()->intl();
+	}
+
+	/**
 	 * Get the Cookies service from the context for managing cookies.
 	 * @return Cookies
 	 */

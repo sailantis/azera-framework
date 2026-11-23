@@ -32,7 +32,7 @@ Or in a single call (throws ValidationException on failure):
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Validation/Validator.php#L53)</small>
+### __construct() · <small>[🗎](../../src/Validation/Validator.php#L55)</small>
 
 `public function __construct(array $data): mixed`
 
@@ -49,7 +49,7 @@ Or in a single call (throws ValidationException on failure):
 
 ---
 
-### setTranslator() · <small>[🗎](../../src/Validation/Validator.php#L125)</small>
+### setTranslator() · <small>[🗎](../../src/Validation/Validator.php#L127)</small>
 
 `public function setTranslator(callable $fn): static`
 
@@ -133,7 +133,52 @@ to the wrong values.
 
 ---
 
-### field() · <small>[🗎](../../src/Validation/Validator.php#L137)</small>
+### setTranslations() · <small>[🗎](../../src/Validation/Validator.php#L161)</small>
+
+`public function setTranslations(Azera\Localization\Translator $translator, string $domain = 'validation'): static`
+
+Translate error messages through the framework's [`Translator`](Localization_Translator.md).
+
+Sugar over `setTranslator()`: each error's code becomes a catalogue
+key, and the English template stays as the fallback when the catalogue has
+no entry. Error codes are stable identifiers, so a catalogue needs exactly
+these keys:
+
+```php
+// locales/validation.de_DE.php
+return [
+    'required'   => 'Pflichtfeld',
+    'email'      => 'muss eine gültige E-Mail-Adresse sein',
+    'min.string' => 'muss mindestens {min} Zeichen haben',
+    'in'         => 'muss einer der folgenden Werte sein: {allowed}',
+];
+```
+
+`{placeholder}` markers in the translated message are filled with the same
+`$params` the English template uses, so a translation never has to format
+values itself.
+
+```php
+$v->setTranslations($ctx->translator(), 'validation');
+```
+
+Registered last wins, like any other translator.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$translator` | [Translator](Localization_Translator.md) | - |  |
+| `$domain` | string | `'validation'` |  |
+
+**Return value**
+
+- Type: `static`
+
+
+---
+
+### field() · <small>[🗎](../../src/Validation/Validator.php#L175)</small>
 
 `public function field(string $name): Azera\Validation\FieldValidator`
 
@@ -155,7 +200,7 @@ to make the field optional.
 
 ---
 
-### fails() · <small>[🗎](../../src/Validation/Validator.php#L148)</small>
+### fails() · <small>[🗎](../../src/Validation/Validator.php#L186)</small>
 
 `public function fails(): bool`
 
@@ -168,7 +213,7 @@ Run all rules. Returns true when at least one rule failed.
 
 ---
 
-### errors() · <small>[🗎](../../src/Validation/Validator.php#L160)</small>
+### errors() · <small>[🗎](../../src/Validation/Validator.php#L198)</small>
 
 `public function errors(): array`
 
@@ -183,7 +228,7 @@ Empty when validation has not been run yet or all rules passed.
 
 ---
 
-### validated() · <small>[🗎](../../src/Validation/Validator.php#L191)</small>
+### validated() · <small>[🗎](../../src/Validation/Validator.php#L229)</small>
 
 `public function validated(): array`
 
@@ -197,7 +242,7 @@ their declared types. Fields that failed are excluded.
 
 ---
 
-### validate() · <small>[🗎](../../src/Validation/Validator.php#L203)</small>
+### validate() · <small>[🗎](../../src/Validation/Validator.php#L241)</small>
 
 `public function validate(): array`
 

@@ -10,6 +10,7 @@ use Azera\Config\Config;
 use Azera\Core\Dispatcher;
 use Azera\Core\Engines\ClarityEngine;
 use Azera\Core\ErrorHandlerInterface;
+use Azera\Core\Kernel;
 use Azera\Core\NotFoundHandlerInterface;
 use Azera\Core\PlainErrorHandler;
 use Azera\Core\PlainNotFoundHandler;
@@ -24,6 +25,8 @@ use Azera\Http\Cookies;
 use Azera\Http\Request as HttpRequest;
 use Azera\Http\Session;
 use Azera\Lifecycle\RequestScoped;
+use Azera\Localization\Intl;
+use Azera\Localization\Translator;
 use Azera\Log\NullLogger;
 use Azera\Orm\EntityManager;
 use Azera\Orm\Heap;
@@ -63,6 +66,14 @@ class AppContext
             Session::class       => fn() => null,
             Stores::class        => fn() => new Stores(),
             TableResolver::class => fn() => new ModelResolver(),
+            // No catalogue until configure() is called: keys echo back, so
+            // controllers and validators can translate before translations exist.
+            Translator::class    => fn() => new Translator(),
+            // Formatting shares the translator's locale stack, so a locale scope
+            // moves numbers, dates and messages together. Resolved after the
+            // translator, which is why the factory takes the instance rather
+            // than building its own LocaleService.
+            Intl::class          => fn() => (new Intl())->useTranslator($this->translator()),
             ViewEngine::class    => fn() => new ClarityEngine(),
         ];
     }
@@ -167,6 +178,55 @@ class AppContext
     }
 
     /**
+     * Get the application-wide translation service.
+     *
+     * Engine-independent: the same instance serves controllers, CLI tasks,
+     * validators and templates. Configure it once in bootstrap and, for template
+     * use, bind it to the active view engine:
+     *
+     * ```php
+     * $ctx->translator()->configure([
+     *     'locale' => 'de_DE',
+     *     'loader' => new TranslationLoaderBridge(
+     *         new \Clarity\Localization\FileTranslationLoader(__DIR__ . '/locales')
+     *     ),
+     * ]);
+     * $ctx->translator()->bind($ctx->view());
+     * ```
+     *
+     * The service is request-scoped: {@see clearRequestScope()} resets its locale
+     * and domain scopes after every request in a resident worker.
+     */
+    public function translator(): Translator
+    {
+        return $this->serviceInstances[Translator::class]
+            ?? $this->get(Translator::class);
+    }
+
+    /**
+     * Get the application-wide locale-aware formatting service.
+     *
+     * Engine-independent, like {@see translator()}, and it shares the
+     * translator's locale stack: `{% with_locale %}`, `$translator->withLocale()`
+     * and `$intl->withLocale()` all move the same stack, so formatting and
+     * translations cannot disagree.
+     *
+     * ```php
+     * $ctx->intl()->configure(['timezone' => 'Europe/Berlin']);
+     * $ctx->intl()->formatCurrency(1234.5, 'EUR');   // "1.234,50 €" in de_DE
+     * $ctx->intl()->bind($ctx->view());              // format_* filters in templates
+     * ```
+     *
+     * Every method has a native fallback when `ext-intl` is absent, so output
+     * degrades (fewer locale conventions) but never fails.
+     */
+    public function intl(): Intl
+    {
+        return $this->serviceInstances[Intl::class]
+            ?? $this->get(Intl::class);
+    }
+
+    /**
      * Get the Cookies instance, resolved through the DI container.
      *
      * @return Cookies The Cookies instance.
@@ -237,6 +297,26 @@ class AppContext
     {
         return $this->serviceInstances[Dispatcher::class]
             ?? $this->get(Dispatcher::class);
+    }
+
+    /**
+     * Get the HTTP front controller — request in, response out.
+     *
+     * The counterpart of `HttpKernel::handle()`, `Application::handle()` and
+     * `Server::run()` in the frameworks that have one, and the object a transport
+     * should call: it owns the 404 and 405 decisions, the error boundary and the
+     * queued-cookie flush, none of which belong in each entry point separately.
+     *
+     * Built on demand and cached, because it holds no request state of its own —
+     * it resolves the router, the dispatcher and the handlers from this context on
+     * every call, so a request-scoped reset is visible to it without a rebuild.
+     *
+     * @return Kernel The front controller.
+     */
+    public function kernel(): Kernel
+    {
+        return $this->serviceInstances[Kernel::class]
+            ??= new Kernel($this);
     }
 
     /**

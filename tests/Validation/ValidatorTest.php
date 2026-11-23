@@ -654,7 +654,7 @@ class ValidatorTest extends TestCase
     {
         $v = new Validator(['name' => 'Al']);
         $v->field('name')->string()->min(3);
-        $v->setTranslator(fn($code, $params, $template) => 'mindestens {min} Zeichen erforderlich');
+        $v->setTranslator(fn($field, $code, $params, $template) => 'mindestens {min} Zeichen erforderlich');
 
         $this->assertSame('mindestens 3 Zeichen erforderlich', $v->errors()['name']);
     }

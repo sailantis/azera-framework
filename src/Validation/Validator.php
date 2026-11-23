@@ -2,6 +2,8 @@
 
 namespace Azera\Validation;
 
+use Azera\Localization\Translator;
+
 /**
  * Validates and coerces an associative input array against a set of field rules.
  *
@@ -126,6 +128,42 @@ class Validator
     {
         $this->translator = $fn;
         return $this;
+    }
+
+    /**
+     * Translate error messages through the framework's {@see Translator}.
+     *
+     * Sugar over {@see setTranslator()}: each error's code becomes a catalogue
+     * key, and the English template stays as the fallback when the catalogue has
+     * no entry. Error codes are stable identifiers, so a catalogue needs exactly
+     * these keys:
+     *
+     * ```php
+     * // locales/validation.de_DE.php
+     * return [
+     *     'required'   => 'Pflichtfeld',
+     *     'email'      => 'muss eine gültige E-Mail-Adresse sein',
+     *     'min.string' => 'muss mindestens {min} Zeichen haben',
+     *     'in'         => 'muss einer der folgenden Werte sein: {allowed}',
+     * ];
+     * ```
+     *
+     * `{placeholder}` markers in the translated message are filled with the same
+     * `$params` the English template uses, so a translation never has to format
+     * values itself.
+     *
+     * ```php
+     * $v->setTranslations($ctx->translator(), 'validation');
+     * ```
+     *
+     * Registered last wins, like any other translator.
+     */
+    public function setTranslations(Translator $translator, string $domain = 'validation'): static
+    {
+        return $this->setTranslator(
+            static fn (string $field, string $code, array $params, string $template): string
+                => $translator->getOrDefault($code, $template, $params, $domain)
+        );
     }
 
     /**
