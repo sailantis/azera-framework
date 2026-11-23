@@ -8,6 +8,7 @@ use Azera\Http\Request;
 use Azera\Localization\Intl;
 use Azera\Localization\Translator;
 use Clarity\Localization\ArrayTranslationLoader;
+use Clarity\Localization\LocaleService;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -144,7 +145,15 @@ class IntlTest extends TestCase
         $intl->useLocaleService($translator->localeService());
 
         $this->assertSame($translator->localeService(), $intl->localeService());
-        $this->assertSame('de_DE', $intl->locale());
+
+        // Formatting must follow the adopted stack, not the machine's locale.
+        $this->assertSame(
+            $translator->localeService()?->defaultLocale() ?? LocaleService::detectLocale(),
+            $intl->locale()
+        );
+
+        $intl->pushLocale('fr_FR');
+        $this->assertSame('fr_FR', $intl->locale());
     }
 
     // ---- Configuration ------------------------------------------------------
@@ -175,6 +184,40 @@ class IntlTest extends TestCase
         $request = new Request(server: ['HTTP_ACCEPT_LANGUAGE' => 'fr-FR,fr;q=0.9']);
 
         $this->assertSame('fr_FR', $intl->negotiate($request, ['en_US', 'de_DE', 'fr_FR']));
+        $this->assertSame('fr_FR', $intl->locale());
+
+        // A scope still outranks the negotiated locale.
+        $intl->withLocale('en_US', function () use ($intl): void {
+            $this->assertSame('en_US', $intl->locale());
+        });
+
+        $this->assertSame('fr_FR', $intl->locale());
+    }
+
+    /**
+     * Formatting must follow the translator configured after the service exists.
+     *
+     * `AppContext` builds `intl()` from `translator()`, and an application
+     * configures the translator afterwards. Resolving the locale from the
+     * formatter alone left formatting on the machine's detected locale — which
+     * is `de_DE` on a German workstation and `en_US_POSIX` in CI, so the tests
+     * passed locally and failed in CI.
+     */
+    public function testFollowsATranslatorConfiguredAfterConstruction(): void
+    {
+        $intl = new Intl();
+        $intl->useTranslator(new Translator());
+
+        $intl->useTranslator($translator = $this->translator());
+
+        $this->assertSame('de_DE', $intl->locale());
+        $this->assertSame('1.234,50', $intl->formatNumber(1234.5, 2));
+        $this->assertSame('de_DE', $intl->formatter()->locale());
+
+        $translator->configure(['locale' => 'en_US']);
+
+        $this->assertSame('en_US', $intl->locale());
+        $this->assertSame('1,234.50', $intl->formatNumber(1234.5, 2));
     }
 
     // ---- Lifecycle ----------------------------------------------------------

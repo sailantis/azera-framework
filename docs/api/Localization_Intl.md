@@ -6,9 +6,9 @@ Application-wide locale-aware formatting.
 
 Numbers, currency, percentages, dates, relative time, ICU messages and locale
 names — for controllers, mailers, CLI tasks and templates. The formatting
-logic itself lives in Clarity's `IntlFormatter`, which has no engine
-dependency; this service owns only what a framework must own: which locale is
-active, which timezone is the default, and how the formatter is shared.
+logic itself lives in Clarity's `IntlFormatter`, independently of view
+engines. This service manages the active locale, default timezone, and shared
+formatter.
 
 ```php
 $ctx->intl()->configure(['timezone' => 'Europe/Berlin']);
@@ -20,10 +20,9 @@ $ctx->intl()->formatMessage('{count, plural, one{# item} other{# items}}', ['cou
 
 One locale stack
 ----------------
-The formatter is given the same `LocaleService` the [`Translator`](Localization_Translator.md)
-uses, so `{% with_locale %}`, `$translator->withLocale()` and
-`$intl->withLocale()` all move the same stack — formatting and translations
-cannot disagree about the locale.
+The formatter and [`Translator`](Localization_Translator.md) use the same `LocaleService`, so
+`{% with_locale %}`, `$translator->withLocale()` and `$intl->withLocale()`
+share one locale stack for formatting and translations.
 
 Templates
 ---------
@@ -31,14 +30,14 @@ Templates
 [`IntlModule`](Core_Engines_IntlModule.md) equivalent on a Clarity engine, or as plain filters on any
 other engine that supports them.
 
-Without `ext-intl`
+Native formatting
 ------------------
-Every method has a native fallback (see `IntlFormatter`), so the service
-works on a stock PHP build; output degrades but never fails.
+Each method has a native fallback in `IntlFormatter`, allowing the
+service to format values on PHP builds without `ext-intl`.
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Localization/Intl.php#L61)</small>
+### __construct() · <small>[🗎](../../src/Localization/Intl.php#L69)</small>
 
 `public function __construct(array $config = []): mixed`
 
@@ -55,14 +54,14 @@ works on a stock PHP build; output degrades but never fails.
 
 ---
 
-### configure() · <small>[🗎](../../src/Localization/Intl.php#L82)</small>
+### configure() · <small>[🗎](../../src/Localization/Intl.php#L91)</small>
 
 `public function configure(array $config): static`
 
 Apply configuration options.
 
-Only the keys present are changed, so the timezone can be set later
-without restating the locale.
+Updates the options present in `$config`, so the timezone can be set or
+changed independently of the locale.
 
 **Parameters**
 
@@ -77,7 +76,7 @@ without restating the locale.
 
 ---
 
-### formatter() · <small>[🗎](../../src/Localization/Intl.php#L106)</small>
+### formatter() · <small>[🗎](../../src/Localization/Intl.php#L116)</small>
 
 `public function formatter(): Clarity\Localization\IntlFormatter`
 
@@ -90,7 +89,7 @@ Return the formatter this service delegates to.
 
 ---
 
-### localeService() · <small>[🗎](../../src/Localization/Intl.php#L112)</small>
+### localeService() · <small>[🗎](../../src/Localization/Intl.php#L122)</small>
 
 `public function localeService(): Clarity\Localization\LocaleService`
 
@@ -103,7 +102,7 @@ Return the shared locale stack.
 
 ---
 
-### useLocaleService() · <small>[🗎](../../src/Localization/Intl.php#L123)</small>
+### useLocaleService() · <small>[🗎](../../src/Localization/Intl.php#L133)</small>
 
 `public function useLocaleService(Clarity\Localization\LocaleService $service): static`
 
@@ -125,7 +124,7 @@ This is what makes formatting follow translation: after this call,
 
 ---
 
-### useTranslator() · <small>[🗎](../../src/Localization/Intl.php#L138)</small>
+### useTranslator() · <small>[🗎](../../src/Localization/Intl.php#L152)</small>
 
 `public function useTranslator(Azera\Localization\Translator $translator): static`
 
@@ -134,6 +133,10 @@ Adopt the locale stack of a translator.
 ```php
 $ctx->intl()->useTranslator($ctx->translator());
 ```
+
+The translator is also consulted for its configured locale on every call,
+so configuring it later still moves formatting. The formatter's own
+fallback is seeded from it for callers that use `formatter()` directly.
 
 **Parameters**
 
@@ -148,11 +151,11 @@ $ctx->intl()->useTranslator($ctx->translator());
 
 ---
 
-### hasIntl() · <small>[🗎](../../src/Localization/Intl.php#L150)</small>
+### hasIntl() · <small>[🗎](../../src/Localization/Intl.php#L172)</small>
 
 `public function hasIntl(): bool`
 
-Whether ICU formatting is active (false means the native fallbacks run).
+Whether formatting uses ICU support.
 
 **Return value**
 
@@ -161,11 +164,16 @@ Whether ICU formatting is active (false means the native fallbacks run).
 
 ---
 
-### locale() · <small>[🗎](../../src/Localization/Intl.php#L160)</small>
+### locale() · <small>[🗎](../../src/Localization/Intl.php#L189)</small>
 
 `public function locale(string|null $locale = null): string`
 
 Resolve the active locale using the translator's precedence.
+
+The translator is consulted live, so configuring it after the service was
+built (`$ctx->translator()->configure(['locale' => 'de_DE'])`) still moves
+formatting. Without that, formatting would fall back to the machine's
+detected locale, which differs between a developer machine and CI.
 
 **Parameters**
 
@@ -180,7 +188,7 @@ Resolve the active locale using the translator's precedence.
 
 ---
 
-### setLocale() · <small>[🗎](../../src/Localization/Intl.php#L166)</small>
+### setLocale() · <small>[🗎](../../src/Localization/Intl.php#L212)</small>
 
 `public function setLocale(string|null $locale): static`
 
@@ -199,7 +207,7 @@ Set the locale used below an active scope.
 
 ---
 
-### currentLocale() · <small>[🗎](../../src/Localization/Intl.php#L173)</small>
+### currentLocale() · <small>[🗎](../../src/Localization/Intl.php#L220)</small>
 
 `public function currentLocale(): string|null`
 
@@ -212,7 +220,7 @@ Return the locale an enclosing `withLocale()` scope applies, if any.
 
 ---
 
-### pushLocale() · <small>[🗎](../../src/Localization/Intl.php#L179)</small>
+### pushLocale() · <small>[🗎](../../src/Localization/Intl.php#L226)</small>
 
 `public function pushLocale(string|null $locale): void`
 
@@ -231,7 +239,7 @@ Push a locale onto the shared stack.
 
 ---
 
-### popLocale() · <small>[🗎](../../src/Localization/Intl.php#L185)</small>
+### popLocale() · <small>[🗎](../../src/Localization/Intl.php#L232)</small>
 
 `public function popLocale(): void`
 
@@ -244,14 +252,15 @@ Pop the most recently pushed locale.
 
 ---
 
-### withLocale() · <small>[🗎](../../src/Localization/Intl.php#L200)</small>
+### withLocale() · <small>[🗎](../../src/Localization/Intl.php#L248)</small>
 
 `public function withLocale(string $locale, callable $fn): mixed`
 
 Run a callback inside a locale scope.
 
-The same stack as `$translator->withLocale()` and `{% with_locale %}`; the
-scope is popped even when the callback throws.
+Uses the same stack as `$translator->withLocale()` and `{% with_locale %}`.
+A `finally` block restores the prior scope when the callback completes or
+throws.
 
 **Parameters**
 
@@ -267,14 +276,14 @@ scope is popped even when the callback throws.
 
 ---
 
-### negotiate() · <small>[🗎](../../src/Localization/Intl.php#L217)</small>
+### negotiate() · <small>[🗎](../../src/Localization/Intl.php#L265)</small>
 
 `public function negotiate(Azera\Http\Request $request, array $available, string|null $fallback = null): string|null`
 
 Set the locale negotiated from a request, used before the configured one.
 
-`Translator::negotiate()` already does this on the shared stack; this
-method exists for an app that negotiates without a translator.
+`Translator::negotiate()` also sets the negotiated locale. This method
+supports applications that perform locale negotiation through `Intl`.
 
 **Parameters**
 
@@ -291,7 +300,7 @@ method exists for an app that negotiates without a translator.
 
 ---
 
-### formatNumber() · <small>[🗎](../../src/Localization/Intl.php#L240)</small>
+### formatNumber() · <small>[🗎](../../src/Localization/Intl.php#L288)</small>
 
 `public function formatNumber(mixed $value, int $decimals = 2, string|null $locale = null): string`
 
@@ -312,7 +321,7 @@ Locale-aware decimal number, e.g. `1.234,50`.
 
 ---
 
-### formatCurrency() · <small>[🗎](../../src/Localization/Intl.php#L246)</small>
+### formatCurrency() · <small>[🗎](../../src/Localization/Intl.php#L294)</small>
 
 `public function formatCurrency(mixed $value, string $currency = 'EUR', string|null $locale = null): string`
 
@@ -333,7 +342,7 @@ Locale-aware currency amount, e.g. `1.234,50 €`.
 
 ---
 
-### currencyName() · <small>[🗎](../../src/Localization/Intl.php#L252)</small>
+### currencyName() · <small>[🗎](../../src/Localization/Intl.php#L300)</small>
 
 `public function currencyName(string $code, string|null $locale = null): string`
 
@@ -353,7 +362,7 @@ Display name for a currency code, e.g. "US-Dollar".
 
 ---
 
-### currencySymbol() · <small>[🗎](../../src/Localization/Intl.php#L258)</small>
+### currencySymbol() · <small>[🗎](../../src/Localization/Intl.php#L306)</small>
 
 `public function currencySymbol(string $code, string|null $locale = null): string`
 
@@ -373,7 +382,7 @@ Symbol for a currency code, e.g. "€".
 
 ---
 
-### percent() · <small>[🗎](../../src/Localization/Intl.php#L264)</small>
+### percent() · <small>[🗎](../../src/Localization/Intl.php#L312)</small>
 
 `public function percent(mixed $value, int $decimals = 0, string|null $locale = null): string`
 
@@ -394,7 +403,7 @@ Locale-aware percentage, e.g. `25 %`.
 
 ---
 
-### scientific() · <small>[🗎](../../src/Localization/Intl.php#L270)</small>
+### scientific() · <small>[🗎](../../src/Localization/Intl.php#L318)</small>
 
 `public function scientific(mixed $value, string|null $locale = null): string`
 
@@ -414,7 +423,7 @@ Scientific notation.
 
 ---
 
-### spellout() · <small>[🗎](../../src/Localization/Intl.php#L276)</small>
+### spellout() · <small>[🗎](../../src/Localization/Intl.php#L324)</small>
 
 `public function spellout(mixed $value, string|null $locale = null): string`
 
@@ -434,7 +443,7 @@ Number in words, e.g. "forty-two".
 
 ---
 
-### ordinal() · <small>[🗎](../../src/Localization/Intl.php#L282)</small>
+### ordinal() · <small>[🗎](../../src/Localization/Intl.php#L330)</small>
 
 `public function ordinal(mixed $value, string|null $locale = null): string`
 
@@ -454,7 +463,7 @@ Ordinal number, e.g. "1st".
 
 ---
 
-### formatDate() · <small>[🗎](../../src/Localization/Intl.php#L288)</small>
+### formatDate() · <small>[🗎](../../src/Localization/Intl.php#L336)</small>
 
 `public function formatDate(mixed $value, string $style = 'medium', string|null $locale = null, string|null $timezone = null): string`
 
@@ -476,7 +485,7 @@ Locale-aware date, e.g. `14. November 2023`.
 
 ---
 
-### formatTime() · <small>[🗎](../../src/Localization/Intl.php#L298)</small>
+### formatTime() · <small>[🗎](../../src/Localization/Intl.php#L346)</small>
 
 `public function formatTime(mixed $value, string $style = 'medium', string|null $locale = null, string|null $timezone = null): string`
 
@@ -498,7 +507,7 @@ Locale-aware time.
 
 ---
 
-### formatDateTime() · <small>[🗎](../../src/Localization/Intl.php#L308)</small>
+### formatDateTime() · <small>[🗎](../../src/Localization/Intl.php#L356)</small>
 
 `public function formatDateTime(mixed $value, string $dateStyle = 'medium', string $timeStyle = 'medium', string|null $locale = null, string|null $timezone = null): string`
 
@@ -521,7 +530,7 @@ Locale-aware date and time.
 
 ---
 
-### formatRelative() · <small>[🗎](../../src/Localization/Intl.php#L319)</small>
+### formatRelative() · <small>[🗎](../../src/Localization/Intl.php#L367)</small>
 
 `public function formatRelative(mixed $value, string|null $locale = null): string`
 
@@ -541,7 +550,7 @@ Relative time, e.g. "3 minutes ago".
 
 ---
 
-### transliterate() · <small>[🗎](../../src/Localization/Intl.php#L325)</small>
+### transliterate() · <small>[🗎](../../src/Localization/Intl.php#L373)</small>
 
 `public function transliterate(mixed $value, string $rules = 'Any-Latin; Latin-ASCII'): string`
 
@@ -561,7 +570,7 @@ Transliterate text, e.g. "Hëllo" -> "Hello".
 
 ---
 
-### formatMessage() · <small>[🗎](../../src/Localization/Intl.php#L335)</small>
+### formatMessage() · <small>[🗎](../../src/Localization/Intl.php#L383)</small>
 
 `public function formatMessage(string $pattern, array|null $vars = null, string|null $locale = null): string`
 
@@ -582,7 +591,7 @@ Format an ICU MessageFormat pattern.
 
 ---
 
-### countryName() · <small>[🗎](../../src/Localization/Intl.php#L341)</small>
+### countryName() · <small>[🗎](../../src/Localization/Intl.php#L389)</small>
 
 `public function countryName(string $code, string|null $displayLocale = null, string|null $locale = null): string`
 
@@ -603,7 +612,7 @@ ISO country code to display name.
 
 ---
 
-### languageName() · <small>[🗎](../../src/Localization/Intl.php#L347)</small>
+### languageName() · <small>[🗎](../../src/Localization/Intl.php#L395)</small>
 
 `public function languageName(string $code, string|null $displayLocale = null, string|null $locale = null): string`
 
@@ -624,7 +633,7 @@ Language code to display name.
 
 ---
 
-### localeName() · <small>[🗎](../../src/Localization/Intl.php#L353)</small>
+### localeName() · <small>[🗎](../../src/Localization/Intl.php#L401)</small>
 
 `public function localeName(string $id, string|null $displayLocale = null, string|null $locale = null): string`
 
@@ -645,7 +654,7 @@ Locale identifier to display name.
 
 ---
 
-### timezoneName() · <small>[🗎](../../src/Localization/Intl.php#L359)</small>
+### timezoneName() · <small>[🗎](../../src/Localization/Intl.php#L407)</small>
 
 `public function timezoneName(string $timezone, string|null $displayLocale = null): string`
 
@@ -665,15 +674,15 @@ Timezone identifier to display name.
 
 ---
 
-### bind() · <small>[🗎](../../src/Localization/Intl.php#L377)</small>
+### bind() · <small>[🗎](../../src/Localization/Intl.php#L425)</small>
 
 `public function bind(Azera\Core\ViewEngine $engine): static`
 
 Register the formatting filters on a view engine.
 
-On a Clarity engine the `format_*` filters and the `with_locale` block are
-registered through the trait API, sharing this service's locale stack. On
-any other engine each formatter method is exposed as a filter.
+On a Clarity engine, the `format_*` filters and `with_locale` block are
+registered through the trait API and share this service's locale stack.
+On other engines, each formatter method is exposed as a filter.
 
 **Parameters**
 
@@ -688,14 +697,14 @@ any other engine each formatter method is exposed as a filter.
 
 ---
 
-### resetState() · <small>[🗎](../../src/Localization/Intl.php#L436)</small>
+### resetState() · <small>[🗎](../../src/Localization/Intl.php#L484)</small>
 
 `public function resetState(): void`
 
-Drop the locale scope left by the finished request.
+Reset the locale scope at the end of a request.
 
 Called by `AppContext::clearRequestScope()` in a resident worker. The
-formatter, its caches and the configuration survive.
+formatter, its caches, and the configuration persist across requests.
 
 **Return value**
 

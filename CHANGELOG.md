@@ -144,6 +144,13 @@ new rules.
   segment boundary the client never sent.
 - A wildcard followed by a non-static segment is rejected at registration instead of
   leaving the split between parameters ambiguous at match time.
+- **`$ctx->intl()` now formats in the translator's configured locale.** It resolved the
+  locale from its own formatter, which only saw a `LocaleService` default; the
+  translator's `locale` option was invisible, so formatting fell through to the
+  machine-detected environment locale. A workstation whose locale happened to match
+  (`de_DE`) hid it, while CI (`en_US_POSIX`) formatted `1234.50` where `1.234,50` was
+  expected. Formatting now follows the translator live, so configuring it after
+  `intl()` was resolved — the normal bootstrap order — still moves formatting.
 
 ### Performance
 

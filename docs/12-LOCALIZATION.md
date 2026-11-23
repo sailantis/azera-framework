@@ -128,7 +128,10 @@ The first available source wins:
 | 6   | Detected environment locale                | —                                            |
 
 Formatting (see [Formatting](#formatting)) uses the same list, minus row 3, because
-it reads the same stack.
+it reads the same stack. Row 4 is the translator's configured locale, so
+`$ctx->intl()` formats in the locale the translator was configured with rather
+than in the machine's detected locale — a difference that does not appear on a
+workstation whose environment locale already matches.
 
 ### Scopes
 
@@ -200,6 +203,11 @@ $ctx->translator()->withLocale('en_US', function () use ($ctx) {
 The same holds for `{% with_locale %}` in a template and `$ctx->intl()->withLocale()`.
 If the two were built separately, call `$ctx->intl()->useTranslator($ctx->translator())`
 once in bootstrap.
+
+Formatting follows the translator's *configured* locale even when that locale is
+set after `intl()` was resolved, which is the normal order in bootstrap. Until a
+locale is configured, both services fall back to the `LocaleService` default and
+then to the detected environment locale.
 
 ### The logic lives in Clarity
 
