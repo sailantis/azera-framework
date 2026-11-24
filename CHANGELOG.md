@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-24
+
 This **minor** release adds compiled route matching, request handling, localization,
 session and response features, alongside routing and locale fixes.
+
+It requires `sailantis/clarity-engine` **0.6.0**, whose `escape`/`esc`/`e` output
+markers now escape once instead of twice. Templates that compensated for the old
+double escaping must drop the workaround; compiled caches recompile on upgrade.
 
 ### Added
 
@@ -64,9 +70,9 @@ session and response features, alongside routing and locale fixes.
 - **`getAllowedMethods()`** includes synthesized `OPTIONS` when auto-OPTIONS is
   enabled and returns registered methods beyond the standard list, ordered after
   standard methods.
-- `sailantis/clarity-engine` is now required at `^0.5` or `dev-main` for
-  `IntlFormatter`. Run `composer update sailantis/clarity-engine` to update a
-  conflicting lock file.
+- `sailantis/clarity-engine` is now required at `^0.6` or `dev-main` for
+  `IntlFormatter` and the escaping markers. Run `composer update
+  sailantis/clarity-engine` to update a conflicting lock file.
 
 ### Fixed
 
