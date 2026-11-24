@@ -73,14 +73,19 @@ $ctx->view()->setViewPath(__DIR__ . '/../views');
 <p>Hello, {{ user.name }}!</p>
 ```
 
-**Auto-escaping** is always applied: every output tag calls `htmlspecialchars()` automatically. To print raw HTML, pipe through `raw`:
+**Auto-escaping** is applied to every output tag: it uses `htmlspecialchars()` in HTML context and `json_encode()` inside `<script>`. Use `raw` to output raw HTML, or `esc` to explicitly escape a value (`esc` is also spelled `escape` and `e`):
 
 ```html
 {# trusted HTML stored in a variable #}
 <div>{{ body |> raw }}</div>
+
+{# explicit escaping #}
+<div>{{ body |> esc }}</div>
 ```
 
-`raw` is a special compile-time marker handled by the Clarity engine. It acts as an identity within the filter pipeline and, when present anywhere in the chain, disables the automatic `htmlspecialchars()` wrap for the whole expression.
+`raw` and `esc` are special compile-time markers handled by the Clarity engine. Each acts as an identity within the filter pipeline and, wherever it appears in the chain, controls automatic wrapping for the whole expression: `raw` disables it, while `esc` performs escaping itself. Both cancel the automatic wrapper, so a value is escaped once. When a chain contains both markers, the first one takes precedence.
+
+When `escapeHtml` is granted, as in every preset, bare output and `esc` both produce escaped output. When a policy does not grant it, `{{ body }}` emits the value verbatim, while `{{ body |> esc }}` still escapes it. See [Escaping contexts](#escaping-contexts) and the Clarity [policy reference](../../clarity-engine/docs/09-policy-api.md#escapehtml).
 
 ---
 
@@ -1057,7 +1062,7 @@ The harness lives in `azera-competition` (not in this repository): run
 | --------------------- | -------------------------------------------------------------- | ---------------------------------------- |
 | Template syntax       | Clarity DSL (`{{ }}`, `{% %}`, `{# #}`)                        | Plain PHP (`<?= ?>`, `<?php ?>`)         |
 | Sandboxed             | Yes (opt-in grants via [policies](#policies))                  | No                                       |
-| Auto-escaping         | Always on by default, context-aware (`html`/`js`/`css`)        | Manual                                   |
+| Auto-escaping         | On by default, context-aware (`html`/`js`/`css`); per-expression via `escape` / `raw`, policy-wide via `escapeHtml` | Manual                                   |
 | Compilation & caching | Yes                                                            | No                                       |
 | Template inheritance  | `{% extends %}` / `{% block %}` (+ `{% parent %}`)             | require/include                          |
 | Filter pipeline       | 40+ built-in filters, one call model, lambdas, named arguments | Not built-in                             |

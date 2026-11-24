@@ -1,6 +1,6 @@
 ﻿# Security
 
-Building blocks for secure applications: parameterised queries, authenticated cookie encryption, and safe cookie handling. The remaining measures — output escaping, CSRF, password hashing — are documented per feature; Clarity templates auto-escape (see [Clarity Engine](03b-CLARITY-ENGINE.md#the-default-policy-refuses)), plain PHP templates do not.
+Building blocks for secure applications: parameterised queries, authenticated cookie encryption, and safe cookie handling. The remaining measures — output escaping, CSRF, password hashing — are documented per feature; Clarity templates auto-escape by default (see [Clarity Engine](03b-CLARITY-ENGINE.md#the-default-policy-refuses)), plain PHP templates do not.
 
 ## SQL Injection Protection
 
@@ -58,7 +58,7 @@ User::query()->orderBy($col);
 
 ## XSS – Output Escaping
 
-The default `ClarityEngine` auto-escapes every `{{ }}` output. `NativeEngine` renders plain PHP templates and does **not** escape — you are responsible for escaping every dynamic value before printing it:
+The default `ClarityEngine` auto-escapes every `{{ }}` output. That is guaranteed by the `escapeHtml` policy rule, which every preset enables; denying it makes escaping the template's job, so treat that as a deliberate security decision. `NativeEngine` renders plain PHP templates and does **not** escape — you are responsible for escaping every dynamic value before printing it:
 
 ```php
 <!-- views/profile/show.php -->
