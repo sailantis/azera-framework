@@ -4,7 +4,7 @@
     "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
     "This file is @generated automatically"
   ],
-  "content-hash": "9981d296365a092bd51bcfb1097f7d33",
+  "content-hash": "5ef53a0d5b295f0520424a75e8ff36d5",
   "packages": [
     {
       "name": "psr/event-dispatcher",
@@ -159,16 +159,16 @@
     },
     {
       "name": "sailantis/clarity-engine",
-      "version": "v0.5.0",
+      "version": "v0.6.0",
       "source": {
         "type": "git",
         "url": "https://github.com/sailantis/clarity-engine.git",
-        "reference": "afefc7cb46e1998e68e18e1facf001f9bdd13025"
+        "reference": "46da0d6ff8f207fc501c65d5aed5d8c54c720c00"
       },
       "dist": {
         "type": "zip",
-        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/afefc7cb46e1998e68e18e1facf001f9bdd13025",
-        "reference": "afefc7cb46e1998e68e18e1facf001f9bdd13025",
+        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/46da0d6ff8f207fc501c65d5aed5d8c54c720c00",
+        "reference": "46da0d6ff8f207fc501c65d5aed5d8c54c720c00",
         "shasum": ""
       },
       "require": {
@@ -212,7 +212,7 @@
         "issues": "https://github.com/sailantis/clarity-engine/issues",
         "source": "https://github.com/sailantis/clarity-engine"
       },
-      "time": "2026-11-23T17:12:58+00:00"
+      "time": "2026-11-24T13:54:55+00:00"
     }
   ],
   "packages-dev": [
