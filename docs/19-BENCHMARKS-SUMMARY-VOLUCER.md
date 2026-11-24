@@ -4,9 +4,9 @@ The headline numbers from the measured Volucer deployment. Volucer runs the app 
 
 **Environment** — PHP 8.5.11 · Linux 6.8.0-139-generic · JIT: tracing (buffer 64M) · 1000 iterations per run over 10 runs, lower is better.
 
-**Frameworks** — Azera v0.5.1-3-g978135e · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6 (RC) 6.0.0RC4.
+**Frameworks** — Azera v0.6.0 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6 (RC) 6.0.0RC4.
 
-_Measured 2026-11-23T16:58:40+00:00_
+_Measured 2026-11-24T18:27:42+00:00_
 
 ## Total response times
 
@@ -19,7 +19,7 @@ Total time to serve one pass over every benchmarked endpoint — each framework'
 One race per framework feature, each run as a real request against a real database. Each feature states the request it measures under its own heading. Every figure — the winner of each race and the margin over the runner-up — is in that feature's own chart below, which anchors each endpoint at its fastest framework.
 
 ### Routing
- `GET /api/routing/1` — matches a typed route and dispatches it to a constant handler — no template and no database access — so the band measures route matching and dispatch and nothing else. The endpoint sits in a deep bucket of the route table, which is where a compiled index actually saves work. `/echo` is drawn beside it: the same constant handler behind a STATIC route, i.e. the floor that route matching is measured against.
+ `GET /api/routing/1` — matches a typed route and dispatches it to a constant handler — no template and no database access — so the band measures route matching and dispatch and nothing else. The endpoint sits in a deep bucket of the route table, which is where a compiled index actually saves work. `/echo` is drawn beside it: the same constant handler behind a STATIC route, i.e. the floor that route matching is measured against — and, like any floor, it is mostly the SERVER rather than the framework. Measured 2026-11-24 with `temp/echo-ab.php` on the bench VM, the entire framework layer on `/echo` costs single-digit microseconds, inside rows that print two to three orders of magnitude more. A difference of a few microseconds there is below the run-to-run spread, so read `/echo` as the common floor and NOT as a comparison between entrants; the charts that separate frameworks are the ones with real work in them.
 
 ![Routing](images/benchmarks/summary-volucer/feature-routing.svg)
 
@@ -51,36 +51,36 @@ Trimmed mean in milliseconds, lower is better. **Bold** = fastest for that endpo
 
 These rows are end-to-end for a resident worker with a pool that never recycles it (one long-lived worker): the worker booted once before the first request and serves the whole run, so a cell is the measured request itself and carries no boot. The one-time recycle cost is measured in the full report linked at the foot of this page — read that when sizing a pool that is recycled or restarted, or when requests queue behind one worker.
 
-**Server floor** — none measured for this server: the resident floor in this dataset (`floor-rr`) was measured through RoadRunner, whose process model differs from Volucer attach's, so its number is not this server's overhead and does not appear in these rows. Read the figures here as end-to-end; differences larger than the floor in the other resident summaries are framework differences.
+**Server floor** — a resident worker that boots NOTHING (`floor-volucer-attach`) measures this server's own overhead: a bare request round trip with no framework, no routing and no template, stated as that floor's `GET /` row in the dataset. Every row below stands on it, so only differences larger than it are framework differences — and a row BELOW it is a measurement that describes a different server than its floor, which is what FloorCoverageTest and bench-lib.php::assertRowsNotBelowFloor() now refuse.
 
 | Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP | Phalcon 6 (RC) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| `GET /api/routing/1` | no DB — typed route + constant body (routing only) | **0.168** | 0.408 | 0.253 | 0.650 | 0.526 | 0.282 | 0.169 |
-| `GET /` | no DB — routing + template only | 0.197 | 0.383 | 0.257 | 0.668 | 0.668 | 0.307 | **0.174** |
-| `GET /echo` | no DB — static route, constant body (throughput floor) | 0.176 | 0.356 | 0.232 | 0.593 | 0.565 | 0.257 | **0.149** |
-| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **0.334** | 0.934 | 0.851 | 0.944 | 1.08 | 0.750 | 0.578 |
-| `GET /items-fast` | 20 of 1000 items (page 1, + COUNT), hydrated rows not built | **0.287** | 0.737 | 0.811 | 0.873 | 0.991 | 0.694 | 0.569 |
-| `GET /items/1` | 1 item by id | **0.235** | 0.700 | 0.507 | 0.837 | 0.926 | 0.590 | 0.405 |
-| `POST /items` | 1 row upserted (sentinel #999999) | **0.354** | 0.883 | 0.605 | 0.999 | 1.05 | 0.758 | 0.535 |
-| `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **0.283** | 0.713 | 0.556 | 0.805 | 0.972 | 0.555 | 0.346 |
-| `GET /items-qb/1` | 1 item by id | **0.228** | 0.579 | 0.461 | 0.763 | 0.934 | 0.490 | 0.254 |
-| `POST /items-qb` | 1 row upserted (sentinel #999997) | **0.309** | 0.726 | 0.519 | 0.851 | 1.11 | 0.643 | 0.315 |
-| `GET /api/items` | 20 of 1000 items as JSON | **0.257** | 0.801 | 0.559 | 0.835 | 0.890 | 0.532 | 0.369 |
-| `GET /api/items-fast` | 20 of 1000 items as JSON, rows not hydrated | **0.228** | 0.591 | 0.497 | 0.766 | 0.779 | 0.539 | 0.379 |
-| `GET /api/items/1` | 1 item by id as JSON | **0.210** | 0.667 | 0.460 | 0.806 | 0.790 | 0.546 | 0.330 |
-| `POST /api/items` | 1 row upserted (sentinel #999998) | **0.266** | 0.852 | 0.505 | 0.968 | 0.928 | 0.677 | 0.463 |
-| `GET /features/aop` | 1 row upserted (sentinel #888800) | **0.238** | 0.626 | 0.350 | 0.876 | 0.953 | 0.413 | — |
-| `GET /features/aop-direct` | 1 row upserted (sentinel #888800) | **0.233** | 0.609 | 0.335 | 0.859 | 0.934 | 0.419 | — |
-| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **0.176** | 0.408 | 0.250 | 0.728 | 0.581 | 0.247 | 0.183 |
-| `GET /features/log` | no DB — buffered log handlers | **0.176** | 0.375 | 0.255 | 0.720 | 0.595 | 0.241 | 0.186 |
-| `GET /features/retry` | no DB — retry policy | **0.172** | 0.391 | 0.291 | 0.730 | 0.619 | 0.282 | 0.173 |
-| `GET /features/pipeline` | no DB — middleware pipeline | **0.175** | 0.392 | 0.285 | 0.714 | 0.658 | 0.289 | 0.191 |
-| `GET /features/db-events` | 1 row upserted (sentinel #888800) + COUNT(*), events collected | **0.266** | 0.680 | 0.549 | 0.972 | 1.00 | 0.629 | 0.270 |
-| `GET /features/events` | no DB — in-process listeners | **0.243** | 0.577 | 0.340 | 0.857 | 0.971 | 0.517 | 1.93 |
-| `GET /features/validation` | no DB — validator run | **0.183** | 1.12 | 0.447 | 0.784 | 0.886 | 0.461 | 0.220 |
-| `GET /features/config` | no DB — config lookup | **0.170** | 0.362 | 0.250 | 0.696 | 0.639 | 0.278 | 0.182 |
-| `GET /features/request-scoped` | no DB — scoped service resolve | **0.171** | 0.370 | 0.248 | 0.713 | 0.650 | 0.273 | 0.173 |
-| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.171** | 0.467 | 0.258 | 0.722 | 0.665 | 0.261 | 0.179 |
+| `GET /api/routing/1` | no DB — typed route + constant body (routing only) | **0.169** | 0.393 | 0.260 | 0.617 | 0.513 | 0.301 | 0.179 |
+| `GET /` | no DB — routing + template only | **0.198** | 0.372 | 0.289 | 0.609 | 0.639 | 0.312 | 0.206 |
+| `GET /echo` | no DB — static route, constant body (throughput floor) | 0.177 | 0.314 | 0.246 | 0.639 | 0.507 | 0.249 | **0.157** |
+| `GET /items` | 20 of 1000 items (page 1, + COUNT) | **0.341** | 0.951 | 0.847 | 0.939 | 1.04 | 0.799 | 0.636 |
+| `GET /items-fast` | 20 of 1000 items (page 1, + COUNT), hydrated rows not built | **0.296** | 0.770 | 0.810 | 0.881 | 0.973 | 0.746 | 0.566 |
+| `GET /items/1` | 1 item by id | **0.240** | 0.693 | 0.511 | 0.768 | 0.911 | 0.644 | 0.336 |
+| `POST /items` | 1 row upserted (sentinel #999999) | **0.364** | 0.857 | 0.617 | 0.981 | 1.07 | 0.773 | 0.480 |
+| `GET /items-qb` | 20 of 1000 items (page 1, + COUNT) | **0.290** | 0.715 | 0.524 | 0.784 | 0.972 | 0.559 | 0.318 |
+| `GET /items-qb/1` | 1 item by id | **0.229** | 0.632 | 0.375 | 0.754 | 0.882 | 0.496 | 0.231 |
+| `POST /items-qb` | 1 row upserted (sentinel #999997) | 0.303 | 0.697 | 0.450 | 0.832 | 1.10 | 0.624 | **0.277** |
+| `GET /api/items` | 20 of 1000 items as JSON | **0.263** | 0.823 | 0.504 | 0.780 | 0.860 | 0.521 | 0.320 |
+| `GET /api/items-fast` | 20 of 1000 items as JSON, rows not hydrated | **0.231** | 0.647 | 0.492 | 0.702 | 0.818 | 0.482 | 0.341 |
+| `GET /api/items/1` | 1 item by id as JSON | **0.210** | 0.706 | 0.437 | 0.722 | 0.842 | 0.530 | 0.345 |
+| `POST /api/items` | 1 row upserted (sentinel #999998) | **0.260** | 0.836 | 0.536 | 0.918 | 0.867 | 0.693 | 0.459 |
+| `GET /features/aop` | 1 row upserted (sentinel #888800) | **0.238** | 0.610 | 0.400 | 0.804 | 0.941 | 0.422 | — |
+| `GET /features/aop-direct` | 1 row upserted (sentinel #888800) | **0.234** | 0.594 | 0.338 | 0.779 | 0.953 | 0.416 | — |
+| `GET /features/cache` | COUNT(*) of 1000 rows, cached 10s (miss = query) | **0.174** | 0.447 | 0.251 | 0.639 | 0.626 | 0.261 | 0.177 |
+| `GET /features/log` | no DB — buffered log handlers | **0.174** | 0.417 | 0.245 | 0.687 | 0.661 | 0.255 | 0.178 |
+| `GET /features/retry` | no DB — retry policy | 0.173 | 0.458 | 0.312 | 0.707 | 0.635 | 0.257 | **0.173** |
+| `GET /features/pipeline` | no DB — middleware pipeline | **0.176** | 0.432 | 0.295 | 0.701 | 0.648 | 0.269 | 0.181 |
+| `GET /features/db-events` | 1 row upserted (sentinel #888800) + COUNT(*), events collected | 0.266 | 0.705 | 0.574 | 0.950 | 1.02 | 0.612 | **0.249** |
+| `GET /features/events` | no DB — in-process listeners | **0.243** | 0.622 | 0.369 | 0.788 | 0.929 | 0.504 | 1.93 |
+| `GET /features/validation` | no DB — validator run | **0.184** | 1.15 | 0.459 | 0.682 | 0.901 | 0.390 | 0.236 |
+| `GET /features/config` | no DB — config lookup | **0.170** | 0.432 | 0.263 | 0.689 | 0.596 | 0.256 | 0.185 |
+| `GET /features/request-scoped` | no DB — scoped service resolve | **0.170** | 0.412 | 0.289 | 0.691 | 0.613 | 0.275 | 0.178 |
+| `GET /features/rate-limit` | no DB — cache-backed limiter | **0.172** | 0.487 | 0.302 | 0.650 | 0.624 | 0.292 | 0.184 |
 
 **Full comparison** — this page is a summary. The complete report, with every feature chart and the endpoint table for all six frameworks, is published at:
 
