@@ -158,6 +158,7 @@
 
 - [Cookie](Http_Cookie.md) `Azera\Http\Cookie`
 - [Cookies](Http_Cookies.md) `Azera\Http\Cookies`
+- [Flash](Http_Flash.md) `Azera\Http\Flash`
 - [Request](Http_Request.md) `Azera\Http\Request`
 - [Response](Http_Response.md) `Azera\Http\Response`
 - [Session](Http_Session.md) `Azera\Http\Session`

@@ -9,7 +9,7 @@ request-scoped services, critical services, and the service container.
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/AppContext.php#L48)</small>
+### __construct() · <small>[🗎](../../src/AppContext.php#L49)</small>
 
 `public function __construct(): mixed`
 
@@ -20,7 +20,7 @@ request-scoped services, critical services, and the service container.
 
 ---
 
-### instance() · <small>[🗎](../../src/AppContext.php#L101)</small>
+### instance() · <small>[🗎](../../src/AppContext.php#L110)</small>
 
 `public static function instance(): static`
 
@@ -33,7 +33,7 @@ Get/create shared singleton instance
 
 ---
 
-### setInstance() · <small>[🗎](../../src/AppContext.php#L110)</small>
+### setInstance() · <small>[🗎](../../src/AppContext.php#L119)</small>
 
 `public static function setInstance(self $instance): void`
 
@@ -52,7 +52,7 @@ Set the shared singleton instance (e.g. for testing or multi-context scenarios).
 
 ---
 
-### reset() · <small>[🗎](../../src/AppContext.php#L123)</small>
+### reset() · <small>[🗎](../../src/AppContext.php#L132)</small>
 
 `public static function reset(): void`
 
@@ -70,7 +70,7 @@ a previous test having called `setInstance()`. After this, the next
 
 ---
 
-### request() · <small>[🗎](../../src/AppContext.php#L135)</small>
+### request() · <small>[🗎](../../src/AppContext.php#L144)</small>
 
 `public function request(): Azera\Http\Request`
 
@@ -84,7 +84,7 @@ Get the HttpRequest instance, resolved through the DI container.
 
 ---
 
-### view() · <small>[🗎](../../src/AppContext.php#L156)</small>
+### view() · <small>[🗎](../../src/AppContext.php#L165)</small>
 
 `public function view(): Azera\Core\ViewEngine`
 
@@ -108,7 +108,7 @@ is what triggers the engine build and its class autoload cost.
 
 ---
 
-### setView() · <small>[🗎](../../src/AppContext.php#L174)</small>
+### setView() · <small>[🗎](../../src/AppContext.php#L183)</small>
 
 `public function setView(Azera\Core\ViewEngine $engine): static`
 
@@ -133,7 +133,7 @@ cached instance, so the factory applies on the next resolution.
 
 ---
 
-### translator() · <small>[🗎](../../src/AppContext.php#L200)</small>
+### translator() · <small>[🗎](../../src/AppContext.php#L209)</small>
 
 `public function translator(): Azera\Localization\Translator`
 
@@ -163,7 +163,7 @@ and domain scopes after every request in a resident worker.
 
 ---
 
-### intl() · <small>[🗎](../../src/AppContext.php#L223)</small>
+### intl() · <small>[🗎](../../src/AppContext.php#L232)</small>
 
 `public function intl(): Azera\Localization\Intl`
 
@@ -190,7 +190,7 @@ degrades (fewer locale conventions) but never fails.
 
 ---
 
-### cookies() · <small>[🗎](../../src/AppContext.php#L234)</small>
+### cookies() · <small>[🗎](../../src/AppContext.php#L243)</small>
 
 `public function cookies(): Azera\Http\Cookies`
 
@@ -204,7 +204,7 @@ Get the Cookies instance, resolved through the DI container.
 
 ---
 
-### heap() · <small>[🗎](../../src/AppContext.php#L251)</small>
+### heap() · <small>[🗎](../../src/AppContext.php#L260)</small>
 
 `public function heap(): Azera\Orm\Heap`
 
@@ -225,7 +225,7 @@ across requests/tenants).
 
 ---
 
-### entityManager() · <small>[🗎](../../src/AppContext.php#L265)</small>
+### entityManager() · <small>[🗎](../../src/AppContext.php#L274)</small>
 
 `public function entityManager(): Azera\Orm\EntityManager`
 
@@ -243,7 +243,7 @@ persist() schedules, flush() executes in one transaction. Wiped by
 
 ---
 
-### dbManager() · <small>[🗎](../../src/AppContext.php#L274)</small>
+### dbManager() · <small>[🗎](../../src/AppContext.php#L283)</small>
 
 `public function dbManager(): Azera\Db\DatabaseManager`
 
@@ -256,7 +256,7 @@ Get the DatabaseManager instance, resolved through the DI container.
 
 ---
 
-### router() · <small>[🗎](../../src/AppContext.php#L285)</small>
+### router() · <small>[🗎](../../src/AppContext.php#L294)</small>
 
 `public function router(): Azera\Core\Router`
 
@@ -270,7 +270,7 @@ Get the Router instance, resolved through the DI container.
 
 ---
 
-### dispatcher() · <small>[🗎](../../src/AppContext.php#L296)</small>
+### dispatcher() · <small>[🗎](../../src/AppContext.php#L305)</small>
 
 `public function dispatcher(): Azera\Core\Dispatcher`
 
@@ -284,7 +284,7 @@ Get the Dispatcher instance, resolved through the DI container.
 
 ---
 
-### kernel() · <small>[🗎](../../src/AppContext.php#L316)</small>
+### kernel() · <small>[🗎](../../src/AppContext.php#L325)</small>
 
 `public function kernel(): Azera\Core\Kernel`
 
@@ -307,7 +307,7 @@ every call, so a request-scoped reset is visible to it without a rebuild.
 
 ---
 
-### logger() · <small>[🗎](../../src/AppContext.php#L329)</small>
+### logger() · <small>[🗎](../../src/AppContext.php#L338)</small>
 
 `public function logger(): Psr\Log\LoggerInterface`
 
@@ -322,7 +322,7 @@ null-checks. Register a real logger via `set(LoggerInterface::class, ...)`.
 
 ---
 
-### events() · <small>[🗎](../../src/AppContext.php#L342)</small>
+### events() · <small>[🗎](../../src/AppContext.php#L351)</small>
 
 `public function events(): Psr\EventDispatcher\EventDispatcherInterface`
 
@@ -337,7 +337,7 @@ a real dispatcher via `set(EventDispatcherInterface::class, ...)`.
 
 ---
 
-### cache() · <small>[🗎](../../src/AppContext.php#L355)</small>
+### cache() · <small>[🗎](../../src/AppContext.php#L364)</small>
 
 `public function cache(): Psr\SimpleCache\CacheInterface`
 
@@ -352,7 +352,7 @@ registered (always reports a miss). Register a real cache via
 
 ---
 
-### queue() · <small>[🗎](../../src/AppContext.php#L372)</small>
+### queue() · <small>[🗎](../../src/AppContext.php#L381)</small>
 
 `public function queue(): Azera\Queue\QueueInterface`
 
@@ -374,7 +374,7 @@ Register a queue via `set(QueueInterface::class, ...)`.
 
 ---
 
-### config() · <small>[🗎](../../src/AppContext.php#L388)</small>
+### config() · <small>[🗎](../../src/AppContext.php#L397)</small>
 
 `public function config(): Azera\Config\Config`
 
@@ -388,7 +388,7 @@ if none has been registered.
 
 ---
 
-### pipeline() · <small>[🗎](../../src/AppContext.php#L412)</small>
+### pipeline() · <small>[🗎](../../src/AppContext.php#L421)</small>
 
 `public function pipeline(array $interceptors = []): Azera\Aop\Pipeline`
 
@@ -419,7 +419,7 @@ $result = $ctx->pipeline()
 
 ---
 
-### registerInterceptor() · <small>[🗎](../../src/AppContext.php#L434)</small>
+### registerInterceptor() · <small>[🗎](../../src/AppContext.php#L443)</small>
 
 `public function registerInterceptor(string $adviceClass, Azera\Aop\InterceptorInterface|callable $interceptor): void`
 
@@ -449,7 +449,7 @@ without constructing anything during bootstrap.
 
 ---
 
-### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L475)</small>
+### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L484)</small>
 
 `public function setAopCacheDir(string|null $dir): void`
 
@@ -471,7 +471,7 @@ Pass null to use eval() (development, no cache files).
 
 ---
 
-### session() · <small>[🗎](../../src/AppContext.php#L534)</small>
+### session() · <small>[🗎](../../src/AppContext.php#L543)</small>
 
 `public function session(): Azera\Http\Session|null`
 
@@ -484,7 +484,7 @@ Get the Session instance, or null until `setSession()` binds one.
 
 ---
 
-### setSession() · <small>[🗎](../../src/AppContext.php#L545)</small>
+### setSession() · <small>[🗎](../../src/AppContext.php#L554)</small>
 
 `public function setSession(Azera\Http\Session $session): void`
 
@@ -503,7 +503,32 @@ Set the Session instance.
 
 ---
 
-### route() · <small>[🗎](../../src/AppContext.php#L553)</small>
+### flash() · <small>[🗎](../../src/AppContext.php#L574)</small>
+
+`public function flash(): Azera\Http\Flash`
+
+Get the session-backed one-request message bag.
+
+The bag ages itself the first time a session is available, so its position
+relative to `SessionMiddleware` does not matter:
+
+```php
+$this->flash()->success('Saved.');          // POST, then redirect
+$messages = $this->flash()->consume();      // the page after the redirect
+```
+
+In a controller the accessor is [`Controller::flash()`](Core_Controller.md#flash).
+Without a session the bag falls back to memory, so the same calls work in a
+CLI task or a unit test.
+
+**Return value**
+
+- Type: [Flash](Http_Flash.md)
+
+
+---
+
+### route() · <small>[🗎](../../src/AppContext.php#L583)</small>
 
 `public function route(): Azera\Core\ResolvedRoute|null`
 
@@ -516,7 +541,7 @@ Get the current resolved route information.
 
 ---
 
-### setRoute() · <small>[🗎](../../src/AppContext.php#L563)</small>
+### setRoute() · <small>[🗎](../../src/AppContext.php#L593)</small>
 
 `public function setRoute(Azera\Core\ResolvedRoute $route): void`
 
@@ -535,7 +560,7 @@ Set the current resolved route information.
 
 ---
 
-### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L590)</small>
+### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L620)</small>
 
 `public function clearRequestScope(): void`
 
@@ -545,7 +570,7 @@ Under a persistent application server (RoadRunner, Swoole, FrankenPHP,
 Octane, …) the AppContext survives across many requests. This method
 resets the per-request services so the next request starts clean:
 
- - the request-scoped container entries (Request, Session, Cookies)
+ - the request-scoped container entries (Request, Session, Cookies, Flash)
    are removed so their accessors resolve fresh instances on demand;
  - the current [`ResolvedRoute`](Core_ResolvedRoute.md) value is cleared;
  - every service registered on the container that implements
@@ -567,7 +592,7 @@ Safe to call repeatedly; a no-op when no request has been processed yet.
 
 ---
 
-### set() · <small>[🗎](../../src/AppContext.php#L622)</small>
+### set() · <small>[🗎](../../src/AppContext.php#L653)</small>
 
 `public function set(string $id, callable|object|null $service = null): void`
 
@@ -590,7 +615,7 @@ first resolution and their returned object is cached for subsequent lookups.
 
 ---
 
-### has() · <small>[🗎](../../src/AppContext.php#L640)</small>
+### has() · <small>[🗎](../../src/AppContext.php#L671)</small>
 
 `public function has(string $id): bool`
 
@@ -610,7 +635,7 @@ Check if a service is registered in the context.
 
 ---
 
-### get() · <small>[🗎](../../src/AppContext.php#L658)</small>
+### get() · <small>[🗎](../../src/AppContext.php#L689)</small>
 
 `public function get(string $id): object`
 
@@ -639,7 +664,7 @@ auto-wire and instantiate it.
 
 ---
 
-### tryGet() · <small>[🗎](../../src/AppContext.php#L687)</small>
+### tryGet() · <small>[🗎](../../src/AppContext.php#L718)</small>
 
 `public function tryGet(string $id): object|null`
 
@@ -665,7 +690,7 @@ or if a registered factory currently resolves to null.
 
 ---
 
-### getOrNull() · <small>[🗎](../../src/AppContext.php#L715)</small>
+### getOrNull() · <small>[🗎](../../src/AppContext.php#L746)</small>
 
 `public function getOrNull(string $id): object|null`
 
@@ -689,7 +714,7 @@ explicitly.
 
 ---
 
-### resolved() · <small>[🗎](../../src/AppContext.php#L726)</small>
+### resolved() · <small>[🗎](../../src/AppContext.php#L757)</small>
 
 `public function resolved(string $id): object|null`
 

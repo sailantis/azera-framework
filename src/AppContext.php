@@ -22,6 +22,7 @@ use Azera\Db\Resolver\ModelResolver;
 use Azera\Db\Resolver\TableResolver;
 use Azera\Event\NullEventDispatcher;
 use Azera\Http\Cookies;
+use Azera\Http\Flash;
 use Azera\Http\Request as HttpRequest;
 use Azera\Http\Session;
 use Azera\Lifecycle\RequestScoped;
@@ -57,6 +58,14 @@ class AppContext
             ErrorHandlerInterface::class    => fn() => new PlainErrorHandler(),
             EventDispatcherInterface::class => fn() => new NullEventDispatcher(),
             EntityManager::class            => fn() => new EntityManager($this->heap()),
+            // Built per request. The session is resolved lazily: a middleware that
+            // touches the bag before SessionMiddleware binds one would otherwise pin
+            // a session-less bag for the whole request, and the one-shot age() would
+            // never run. Flash::age() therefore happens the first time a session is
+            // actually available, not at construction.
+            Flash::class                    => function () {
+                return (new Flash())->useSessionResolver(fn(): ?Session => $this->session());
+            },
             Heap::class                     => fn() => new Heap(),
             HttpRequest::class              => fn() => new HttpRequest(),
             LoggerInterface::class          => fn() => new NullLogger(),
@@ -548,6 +557,27 @@ class AppContext
     }
 
     /**
+     * Get the session-backed one-request message bag.
+     *
+     * The bag ages itself the first time a session is available, so its position
+     * relative to `SessionMiddleware` does not matter:
+     *
+     * ```php
+     * $this->flash()->success('Saved.');          // POST, then redirect
+     * $messages = $this->flash()->consume();      // the page after the redirect
+     * ```
+     *
+     * In a controller the accessor is {@see \Azera\Core\Controller::flash()}.
+     * Without a session the bag falls back to memory, so the same calls work in a
+     * CLI task or a unit test.
+     */
+    public function flash(): Flash
+    {
+        return $this->serviceInstances[Flash::class]
+            ?? $this->get(Flash::class);
+    }
+
+    /**
      * Get the current resolved route information.
      */
     public function route(): ?ResolvedRoute
@@ -572,7 +602,7 @@ class AppContext
      * Octane, …) the AppContext survives across many requests. This method
      * resets the per-request services so the next request starts clean:
      *
-     *  - the request-scoped container entries (Request, Session, Cookies)
+     *  - the request-scoped container entries (Request, Session, Cookies, Flash)
      *    are removed so their accessors resolve fresh instances on demand;
      *  - the current {@see ResolvedRoute} value is cleared;
      *  - every service registered on the container that implements
@@ -596,6 +626,7 @@ class AppContext
         unset($this->serviceInstances[HttpRequest::class]);
         unset($this->serviceInstances[Session::class]);
         unset($this->serviceInstances[Cookies::class]);
+        unset($this->serviceInstances[Flash::class]);
         unset($this->serviceInstances[ResolvedRoute::class]);
 
         // Drop any service that must be re-instantiated per request by calling

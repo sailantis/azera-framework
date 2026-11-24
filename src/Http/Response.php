@@ -112,6 +112,32 @@ class Response
     protected static bool $strict = false;
 
     /**
+     * Whether `send()` delegates a file body to the web server instead of
+     * streaming it itself (nginx `X-Sendfile`, Apache `X-Sendfile`).
+     *
+     * Process-wide, like {@see $strict}, and opt-in: the header is only honoured
+     * by a server configured to honour it, and an unconfigured one would answer
+     * with an empty body while the application believes it sent the file. Set it
+     * once at boot from the deployment's own configuration.
+     */
+    protected static bool $xSendfile = false;
+
+    /**
+     * Absolute path of a file body, or `null` when the body is {@see $body}.
+     *
+     * Only {@see setFileToSend()} sets this; {@see getBody()} and {@see send()}
+     * are the two places that read it, so every transport keeps working without
+     * knowing the difference.
+     */
+    protected ?string $file = null;
+
+    /** Client-facing name for a file body; `null` uses the file's basename. */
+    protected ?string $fileDownloadName = null;
+
+    /** Whether a file body is served as an attachment or inline (`Content-Disposition`). */
+    protected bool $fileAttachment = true;
+
+    /**
      * Enable or disable header validation, or read the current setting.
      *
      * Enable it in development so a malformed header fails loudly and names the
@@ -128,6 +154,28 @@ class Response
         }
 
         return self::$strict;
+    }
+
+    /**
+     * Enable or disable `X-Sendfile` delegation for file bodies, or read it.
+     *
+     * With it on, `send()` emits `X-Sendfile: <path>` for a response built by
+     * {@see setFileToSend()} and sends no body, leaving the transfer to the web
+     * server. That is the cheap path for large downloads: PHP returns after
+     * reading the file's size instead of streaming every byte. Persistent
+     * workers ignore it — there is no web server to delegate to — and stream the
+     * file themselves.
+     *
+     * @param bool|null $on `true`/`false` to set, `null` (default) to read.
+     * @return bool The setting in effect after the call.
+     */
+    public static function xSendfile(?bool $on = null): bool
+    {
+        if ($on !== null) {
+            self::$xSendfile = $on;
+        }
+
+        return self::$xSendfile;
     }
 
     /**
@@ -154,10 +202,28 @@ class Response
 
     /**
      * Get the response body.
+     *
+     * For a response built by {@see setFileToSend()} this reads the file and
+     * returns its bytes, so a transport that only knows how to send a string (the
+     * RoadRunner and Volucer workers) still transmits it. A caller that wants the
+     * efficient path should use `send()` under PHP-FPM or check {@see getFile()}
+     * and stream it itself.
+     *
+     * @throws \RuntimeException When the file has disappeared since it was set.
      */
     public function getBody(): string
     {
-        return $this->body;
+        if ($this->file === null) {
+            return $this->body;
+        }
+
+        $contents = @file_get_contents($this->file);
+
+        if ($contents === false) {
+            throw new \RuntimeException("Cannot read response file: {$this->file}");
+        }
+
+        return $contents;
     }
 
     /**
@@ -389,11 +455,271 @@ class Response
         return $this;
     }
 
+    // --- Conditional GET (validators) ----------------------------------------
+
+    /**
+     * Set the `ETag` validator.
+     *
+     * The value is a quoted string per RFC 9110. Pass an unquoted value (a hash,
+     * a revision, a version) and it is quoted for you; a value that is already
+     * quoted is kept as-is, and the weak form (`W/"..."`) is preserved.
+     *
+     * Pair this with {@see isNotModified()} for the actual 304 decision.
+     *
+     * @param string $etag Strong or weak entity tag.
+     * @return $this
+     */
+    public function setEtag(string $etag): static
+    {
+        return $this->setHeader('ETag', self::quoteEtag($etag));
+    }
+
+    /**
+     * Set the `Last-Modified` validator.
+     *
+     * Truncated to whole seconds: the header has second resolution, so a value
+     * with microseconds would never compare equal to what the client sends back
+     * in `If-Modified-Since`.
+     *
+     * @param \DateTimeInterface|int $lastModified Timestamp or date object.
+     * @return $this
+     */
+    public function setLastModified(\DateTimeInterface | int $lastModified): static
+    {
+        return $this->setHeader(
+            'Last-Modified',
+            self::httpDate($lastModified instanceof \DateTimeInterface ? $lastModified->getTimestamp() : $lastModified)
+        );
+    }
+
+    /**
+     * Set the `Expires` header.
+     *
+     * @param \DateTimeInterface|int $expires Timestamp or date object.
+     * @return $this
+     */
+    public function setExpires(\DateTimeInterface | int $expires): static
+    {
+        return $this->setHeader(
+            'Expires',
+            self::httpDate($expires instanceof \DateTimeInterface ? $expires->getTimestamp() : $expires)
+        );
+    }
+
+    /**
+     * Mark the response cacheable for a number of seconds.
+     *
+     * Sets both `Cache-Control: max-age=N` and `Expires`, because an HTTP/1.0
+     * cache only understands the latter while an HTTP/1.1 one ignores it in
+     * favour of the former. `Cache-Control` wins where both are present, which is
+     * what makes the pair safe.
+     *
+     * `$shared` adds `public` (a shared cache such as a CDN may store it); without
+     * it the response is `private`, which keeps a personalised page out of a CDN
+     * and in the browser. `$immutable` marks the body as never changing under that
+     * URL — correct for a fingerprinted asset, wrong for anything else.
+     *
+     * @param int  $seconds   Freshness lifetime in seconds (0 = must revalidate).
+     * @param bool $shared    Whether a shared cache may store the response.
+     * @param bool $immutable Whether the body never changes under this URL.
+     * @return $this
+     */
+    public function setCache(int $seconds, bool $shared = false, bool $immutable = false): static
+    {
+        $seconds = max(0, $seconds);
+        $parts   = [$shared ? 'public' : 'private', 'max-age=' . $seconds];
+
+        if ($immutable) {
+            $parts[] = 'immutable';
+        }
+
+        $this->setHeader('Cache-Control', implode(', ', $parts));
+
+        return $this->setExpires(self::now() + $seconds);
+    }
+
+    /**
+     * Mark the response as non-storable.
+     *
+     * `no-store` is the directive a sensitive page needs: it forbids writing the
+     * response to any cache, which `no-cache` does not (that one allows storing,
+     * only requiring revalidation). Also emits the two headers an HTTP/1.0 cache
+     * understands.
+     *
+     * @return $this
+     */
+    public function setNoCache(): static
+    {
+        $this->setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $this->setHeader('Pragma', 'no-cache');
+
+        return $this->setExpires(0);
+    }
+
+    /**
+     * Whether the request's validators match this response's, i.e. answer 304.
+     *
+     * `If-None-Match` is checked first and, when present, wins outright: RFC 9110
+     * says a server that receives both validators MUST use the entity tag and
+     * ignore `If-Modified-Since` — otherwise a cache holding a stale ETag but a
+     * fresh date could be served a body it does not need. `*` matches any existing
+     * representation.
+     *
+     * Comparison is weak for this direction: `W/"x"` and `"x"` are the same
+     * representation, so weakening both sides is correct.
+     *
+     * Only GET and HEAD are eligible, and only when this response carries at least
+     * one validator (an unconditional 304 would be a lie).
+     */
+    public function isNotModified(Request $request): bool
+    {
+        $method = strtoupper($request->method());
+        if ($method !== 'GET' && $method !== 'HEAD') {
+            return false;
+        }
+
+        $etag = $this->getHeader('ETag');
+
+        $inm = $request->header('If-None-Match');
+        if (is_string($inm) && $inm !== '') {
+            if ($etag === null || $etag === '') {
+                return false;
+            }
+
+            foreach (self::parseEtagList($inm) as $candidate) {
+                if ($candidate === '*' || self::weakenEtag($candidate) === self::weakenEtag($etag)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        $ims = $request->header('If-Modified-Since');
+        $lastModified = $this->getHeader('Last-Modified');
+        if (!is_string($ims) || $ims === '' || $lastModified === null || $lastModified === '') {
+            return false;
+        }
+
+        $since = strtotime($ims);
+        $mtime = strtotime($lastModified);
+
+        if ($since === false || $mtime === false) {
+            return false;
+        }
+
+        // Second resolution only: a Last-Modified carrying a fractional second is
+        // "not modified" for a client that sent the truncated date.
+        return $mtime <= $since;
+    }
+
+    /**
+     * Turn this into a `304 Not Modified` when the request's validators match.
+     *
+     * The one-call form of the conditional-GET dance:
+     *
+     * ```php
+     * $response = Response::html($rendered)
+     *     ->setEtag($revision)
+     *     ->setLastModified($mtime)
+     *     ->setCache(3600, shared: true);
+     *
+     * return $response->notModifiedIfMatches($request);
+     * ```
+     *
+     * On a match the status becomes 304 and the body is dropped, while the
+     * validators and `Cache-Control` stay — a cache needs them to refresh its own
+     * copy. Per RFC 9110 the remaining representation headers (such as
+     * `Content-Type`) are dropped, because a 304 has no body for them to describe.
+     */
+    public function notModifiedIfMatches(Request $request): static
+    {
+        if (!$this->isNotModified($request)) {
+            return $this;
+        }
+
+        $this->status = 304;
+        $this->body   = '';
+        $this->file   = null;
+
+        foreach (array_keys($this->headers) as $name) {
+            $lower = strtolower($name);
+            if ($lower === 'etag' || $lower === 'last-modified' || $lower === 'cache-control' || $lower === 'expires') {
+                continue;
+            }
+
+            unset($this->headers[$name], $this->headerIndex[$lower]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Replace the body with the given file and describe it as a download.
+     *
+     * The file is not read here. `getBody()` streams it into the response string
+     * (which is what the RoadRunner and Volucer workers send), and `send()`
+     * streams it directly under PHP-FPM — or delegates to the web server when
+     * {@see xSendfile()} is on.
+     *
+     * `Content-Type`, `Content-Length` and `Content-Disposition` are filled in from
+     * the file itself; `Last-Modified` is set to its mtime so the download also
+     * participates in conditional GET, and `ETag` is derived from size + mtime
+     * unless one is already set.
+     *
+     * @param string      $path           Absolute path to an existing, readable file.
+     * @param string|null $downloadName   Name the client should save it as (default: basename).
+     * @param bool        $attachment     `true` downloads, `false` renders inline.
+     * @return $this
+     * @throws \InvalidArgumentException When the path is not a readable file.
+     */
+    public function setFileToSend(string $path, ?string $downloadName = null, bool $attachment = true): static
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            throw new \InvalidArgumentException("File to send is not a readable file: {$path}");
+        }
+
+        $this->file             = $path;
+        $this->fileDownloadName = $downloadName;
+        $this->fileAttachment   = $attachment;
+        $this->body             = '';
+
+        $size = filesize($path);
+        $mtime = filemtime($path);
+
+        $this->setHeader('Content-Type', self::fileMediaType($path));
+        $this->setHeader('Content-Length', (string) (int) $size);
+        $this->setHeader('Content-Disposition', self::disposition($downloadName ?? basename($path), $attachment));
+
+        if ($mtime !== false) {
+            $this->setLastModified($mtime);
+
+            if ($this->getHeader('ETag') === null) {
+                $this->setEtag(dechex((int) $size) . '-' . dechex($mtime));
+            }
+        }
+
+        return $this;
+    }
+
+    /** The path of a file body, or `null` when the body is a string. */
+    public function getFile(): ?string
+    {
+        return $this->file;
+    }
+
     /**
      * Send the response: emit the status code, headers, and body.
+     *
+     * A file body is delegated to the web server when {@see xSendfile()} is on
+     * (one `X-Sendfile` header, no body) and streamed otherwise, so a large
+     * download never becomes a PHP string in the second case and never costs PHP
+     * a copy in the first.
      */
     public function send(): void
     {
+        $delegate = $this->file !== null && self::$xSendfile;
+
         if (!headers_sent()) {
             http_response_code($this->status);
 
@@ -404,9 +730,169 @@ class Response
                     header("{$name}: {$value}", $index === 0);
                 }
             }
+
+            if ($delegate) {
+                header('X-Sendfile: ' . $this->file);
+            }
+        }
+
+        if ($delegate) {
+            return;
+        }
+
+        if ($this->file !== null) {
+            // readfile() streams in chunks; a resident worker never reaches this
+            // branch (it takes getBody()), so only a SAPI pays for it, and even
+            // then no full copy of the file is held in memory.
+            if (@readfile($this->file) === false) {
+                throw new \RuntimeException("Cannot read response file: {$this->file}");
+            }
+
+            return;
         }
 
         echo $this->body;
+    }
+
+    // --- Header value helpers ------------------------------------------------
+
+    /** A `DateTime`-style timestamp as an RFC 9110 IMF-fixdate, always GMT. */
+    private static function httpDate(int $timestamp): string
+    {
+        return gmdate('D, d M Y H:i:s', $timestamp) . ' GMT';
+    }
+
+    /** The current time, in one place so tests can reason about `setCache()`. */
+    private static function now(): int
+    {
+        return time();
+    }
+
+    /**
+     * Quote an entity tag per RFC 9110.
+     *
+     * An already-quoted value is passed through untouched, so a caller can hand in
+     * a weak tag (`W/"abc"`) without it being re-quoted into garbage.
+     */
+    private static function quoteEtag(string $etag): string
+    {
+        $etag = trim($etag);
+
+        if ($etag === '') {
+            return '""';
+        }
+
+        if (preg_match('/^(W\/)?"[^"]*"$/D', $etag) === 1) {
+            return $etag;
+        }
+
+        return '"' . str_replace('"', '', $etag) . '"';
+    }
+
+    /**
+     * Strip the weak marker and surrounding quotes from an entity tag.
+     *
+     * `If-None-Match` uses weak comparison: `W/"x"` and `"x"` denote the same
+     * representation for this direction, so both sides are normalised before they
+     * are compared.
+     */
+    private static function weakenEtag(string $etag): string
+    {
+        $etag = trim($etag);
+
+        if (str_starts_with($etag, 'W/')) {
+            $etag = substr($etag, 2);
+        }
+
+        return trim($etag, '"');
+    }
+
+    /**
+     * Split an `If-None-Match` field into its tags.
+     *
+     * The grammar allows a comma-separated list and `*`; a tag itself cannot
+     * legally contain a comma, so a plain split is exact here.
+     *
+     * @return list<string>
+     */
+    private static function parseEtagList(string $header): array
+    {
+        $tags = [];
+
+        foreach (explode(',', $header) as $tag) {
+            $tag = trim($tag);
+
+            if ($tag !== '') {
+                $tags[] = $tag;
+            }
+        }
+
+        return $tags;
+    }
+
+    /**
+     * `Content-Disposition` for a file body.
+     *
+     * Both the plain `filename=` and the RFC 5987 `filename*=` forms are emitted
+     * when the name has non-ASCII characters: older clients read the former, and
+     * the latter is what the grammar requires for anything outside ASCII.
+     */
+    private static function disposition(string $name, bool $attachment): string
+    {
+        $type = $attachment ? 'attachment' : 'inline';
+
+        // Strip CR/LF/quote so a crafted name cannot inject a header or break the
+        // quoting. Non-ASCII runs collapse to one placeholder per run: replacing
+        // per byte would turn "ä" (two UTF-8 bytes) into two underscores. The path
+        // never reaches this method — only its basename does.
+        $ascii = preg_replace('/[^\x20-\x7E]+|["\\\\]/u', '_', $name);
+
+        if ($ascii === null) {
+            // Invalid UTF-8: the /u pattern cannot match at all, so fall back to a
+            // byte-wise pass that at least keeps the header well-formed.
+            $ascii = preg_replace('/[^\x20-\x7E]|["\\\\]/', '_', $name) ?? 'download';
+        }
+
+        if ($ascii === $name) {
+            return "{$type}; filename=\"{$ascii}\"";
+        }
+
+        return "{$type}; filename=\"{$ascii}\"; filename*=UTF-8''" . rawurlencode($name);
+    }
+
+    /**
+     * Media type from the file extension.
+     *
+     * A small fixed map rather than `finfo`, because the decision is "what will
+     * the browser do with this download" and the extension is what it acts on; a
+     * sniffed type for a `.zip` is no more correct than the extension. Anything
+     * unknown falls back to `application/octet-stream`, which forces a download.
+     */
+    private static function fileMediaType(string $path): string
+    {
+        $map = [
+            'css'   => 'text/css; charset=utf-8',
+            'csv'   => 'text/csv; charset=utf-8',
+            'gif'   => 'image/gif',
+            'htm'   => 'text/html; charset=utf-8',
+            'html'  => 'text/html; charset=utf-8',
+            'ico'   => 'image/x-icon',
+            'jpeg'  => 'image/jpeg',
+            'jpg'   => 'image/jpeg',
+            'js'    => 'text/javascript; charset=utf-8',
+            'json'  => 'application/json',
+            'md'    => 'text/markdown; charset=utf-8',
+            'pdf'   => 'application/pdf',
+            'png'   => 'image/png',
+            'svg'   => 'image/svg+xml',
+            'tar'   => 'application/x-tar',
+            'txt'   => 'text/plain; charset=utf-8',
+            'webp'  => 'image/webp',
+            'xml'   => 'application/xml; charset=utf-8',
+            'zip'   => 'application/zip',
+        ];
+
+        return $map[strtolower(pathinfo($path, PATHINFO_EXTENSION))] ?? 'application/octet-stream';
     }
 
     /**

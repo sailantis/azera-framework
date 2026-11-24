@@ -97,6 +97,25 @@ abstract class Controller
 	}
 
 	/**
+	 * Get the one-request message bag.
+	 *
+	 * Sugar over `AppContext::flash()`:
+	 *
+	 * ```php
+	 * // POST /account — queue for the page after the redirect
+	 * $this->flash()->success('Account settings updated.');
+	 * return Response::redirect('/account');
+	 *
+	 * // GET /account — show once
+	 * $messages = $this->flash()->consume();
+	 * ```
+	 */
+	public function flash(): \Azera\Http\Flash
+	{
+		return $this->context()->flash();
+	}
+
+	/**
 	 * Get the application-wide translation service.
 	 */
 	public function translator(): \Azera\Localization\Translator

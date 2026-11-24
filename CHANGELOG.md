@@ -7,182 +7,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-A **minor** release with two themes: the router now uses a compiled index instead of
-scanning routes one at a time, and several long-standing bugs are fixed. The behavior
-corrections are listed under *Changed*; they fix unintended behavior rather than add
-new rules.
+This **minor** release adds compiled route matching, request handling, localization,
+session and response features, alongside routing and locale fixes.
 
 ### Added
 
-- `Router::match()` now uses a compiled index for each method bucket. Routes that can
-  be expressed as PCRE are combined into patterns of up to 128 alternatives. Matching
-  200 such routes takes two `preg_match` calls instead of 200 token walks. Matching
-  the last route in a 60-route bucket improved from **277 µs to 8.1 µs**. Routes that
-  cannot be combined—such as optional segments, `regex(…)` types, and custom
-  validators—keep their behavior and are interleaved by specificity, so they do not
-  slow the fast path for other routes.
-- `benchmarks/router-match.php` reports cost per candidate, the named real-world cases,
-  and the initial compile cost. Run it with `-d xdebug.mode=off`.
-- **`Router::allowedMethods()`** returns the methods that would match a URI, or `null`
-  when the URI matches no route at all. It is how a caller distinguishes a 404 from a
-  405 without adding a status field to the router: `null` is a 404, a non-empty list is
-  a 405 whose `Allow` header is that list. The result is never `[]`, so one branch
-  covers both. `match()` keeps its `?array` return and its signature — asking for the
-  distinction is opt-in and costs nothing for callers that do not ask.
-- **`Azera\Core\Kernel`** (optional) coordinates `Router` and `Dispatcher` for one
-  request: it dispatches a match, answers a miss through `NotFoundHandlerInterface`,
-  answers a known path with the wrong method as `405` + `Allow`, and answers an
-  exception through `ErrorHandlerInterface`. `Kernel::handle()` never writes output, so
-  the same call serves FPM and a resident worker. `Router::match()` and
-  `Dispatcher::dispatch()` remain public and independently callable — the Kernel adds a
-  boundary, it does not become the only way in.
-- **`NotFoundHandlerInterface`** / **`ErrorHandlerInterface`**, with
-  `PlainNotFoundHandler` and `PlainErrorHandler` as defaults registered on
-  `AppContext`. One policy now serves every entry point instead of each transport
-  carrying its own copy. They are separate interfaces so a 404 policy cannot answer a
-  `TypeError`.
-- **`Azera\Localization\Translator`** — one translation service for the whole
-  application, resolved as `$ctx->translator()` and independent of the view engine.
-  It owns locale precedence (per call → `withLocale()` scope → negotiated request
-  locale → configured → `LocaleService` default → detected), the domain stack,
-  fallback-locale lookup and `{placeholder}` substitution. A missing key echoes
-  instead of producing a blank, and `getOrDefault()` distinguishes the two.
-  `bind($view)` registers translation on the active engine: the `t` filter and both
-  blocks for Clarity, a `t()` function for `NativeEngine`, a filter for adapters.
-  `resetState()` clears the request scopes in resident workers, wired through the
-  existing `RequestScoped` hook in `AppContext::clearRequestScope()`.
-- **`Azera\Localization\LoaderInterface`** and **`TranslationLoaderBridge`** — a
-  loader seam identical to Clarity's single-method contract, so Clarity's
-  `FileTranslationLoader`, `ArrayTranslationLoader`, `ChainTranslationLoader` and
-  `RedisCachingLoader` are reused rather than reimplemented. The bridge satisfies both
-  interfaces, so one loader serves either side.
-- **`Azera\Localization\LocaleNegotiator`** — pure `Accept-Language` matching with
-  exact, primary-subtag and `*` handling. `Translator::negotiate($request, …)` adopts
-  the result.
-- **`Azera\Core\Engines\LocalizationModule`** — the Clarity bridge. It registers the
-  `t` filter and the `{% with_locale %}` / `{% with_t_domain %}` blocks through the
-  trait API and points them at the framework translator, so `{{ "k" |> t }}` and
-  `$translator->get('k')` share one catalogue. The locale stack is shared in both
-  directions: an existing `'locale'` service is adopted, otherwise the translator's
-  is installed.
-- **`Validator::setTranslations(Translator $translator, string $domain = 'validation')`** —
-  error codes become catalogue keys, with the built-in English template as the
-  fallback for codes a catalogue omits. `setTranslator()` remains and still wins when
-  registered last.
-- **`Controller::translator()`** and **`Controller::t()`** — the translation service
-  and a one-call shortcut next to `view()` and `session()`.
-- **`Azera\Localization\Intl`** — locale-aware formatting for the whole
-  application, resolved as `$ctx->intl()`: numbers, currency, percentages,
-  scientific notation, spellout, ordinals, dates, times, relative time,
-  transliteration, ICU messages and locale information. It delegates to
-  clarity-engine's new `IntlFormatter`, so a controller's
-  `$intl->formatCurrency()` and a template's `|> format_currency` are one call —
-  no ICU logic is duplicated, and both degrade identically without `ext-intl`.
-  `bind($view)` registers the fourteen `format_*` filters and four `locale_*`
-  functions. It shares the translator's `LocaleService`, so a locale scope moves
-  formatting and messages together.
-- **`Clarity\Localization\IntlFormatter`** (clarity-engine) — the engine-free
-  formatting layer `IntlFormatModule` is now built on. The module keeps its
-  filters, signatures and output; it delegates instead of owning the code, which
-  is what lets a framework expose the same formatting outside templates.
-- **`Azera\Core\Engines\IntlModule`** and **`LocaleBlocks`** — the Clarity bridge
-  for formatting, and the shared installer for the locale stack and the
-  `{% with_locale %}` block. `LocaleBlocks` declares the block at most once per
-  engine, so binding both the translator and the intl service is safe.
-- Documentation: new [Localization](docs/12-LOCALIZATION.md) guide, plus sections in
-  the validation, controller and Clarity guides. The Clarity guide's method table
-  listed a non-existent `use(ModuleInterface)`; it is now `addModule()`.
+- **Compiled router index.** `Router::match()` combines compatible routes into
+  per-method PCRE groups of up to 128 alternatives; other routes retain
+  specificity-ordered matching. In a 60-route bucket, matching the last route
+  measured **277 µs → 8.1 µs**. `benchmarks/router-match.php` reports candidate and
+  compilation costs (`-d xdebug.mode=off`).
+- **`Router::allowedMethods()`** returns matching methods or `null` when the URI has
+  no route, distinguishing 405 from 404 without changing `match()`'s return type.
+- **Request kernel and handlers.** Optional `Azera\Core\Kernel` coordinates routing,
+  dispatch, 404/405 responses, and exception handling without writing output.
+  `NotFoundHandlerInterface` and `ErrorHandlerInterface` provide customizable
+  policies, with plain handlers registered by default on `AppContext`.
+- **Localization.** `AppContext::translator()` provides shared translation with
+  locale precedence, domain scopes, fallback lookup, placeholders, and engine
+  binding. `LoaderInterface`, `TranslationLoaderBridge`, and `LocaleNegotiator`
+  integrate Clarity loaders and `Accept-Language`; request scopes reset between
+  worker requests. `Validator::setTranslations()`, `Controller::translator()` and
+  `Controller::t()` provide framework integration. See the new
+  [Localization guide](docs/12-LOCALIZATION.md).
+- **Locale-aware formatting.** `AppContext::intl()` delegates to Clarity's
+  `IntlFormatter` for number, currency, date, time, text and ICU message
+  formatting. The framework and template filters share the locale stack;
+  formatting is also available outside templates. Clarity bridge modules register
+  the filters and locale block. See the [Localization guide](docs/12-LOCALIZATION.md)
+  and updated validation, controller and Clarity documentation.
 - **`Cookie::sameSite()`**, plus a `$sameSite` argument on `Cookie::create()` and
-  `Cookies::set()`, emits the `Set-Cookie` `SameSite` attribute. The value is
-  case-insensitive and normalised to the canonical `Lax` / `Strict` / `None`
-  spelling; `getSameSite()` reports it, and passing `''` stops emitting it.
-  `toHeader()` validates that `SameSite=None` is paired with `Secure`, as
-  required by browsers. The API also supports setting the attribute alongside
-  the existing cookie name and path validation.
-- **`Session::regenerateId()`**, **`Session::destroy()`**, **`Session::isActive()`**
-  and **`Session::id()`** — session lifecycle methods available through the
-  wrapper, including session ID regeneration, destruction, activity checks and
-  ID retrieval. The mutators report whether the operation was performed and
-  return without changing state when no session is active. `destroy()` also
-  clears the store after `session_destroy()`, so subsequent reads in the same
-  request reflect the destroyed session.
+  `Cookies::set()` adds the `SameSite` cookie attribute with canonical casing and
+  validates that `SameSite=None` is paired with `Secure`.
+- **Session lifecycle methods:** `Session::regenerateId()`, `Session::destroy()`,
+  `Session::isActive()` and `Session::id()`.
+- **`Azera\Http\Flash`** and **`AppContext::flash()`** / **`Controller::flash()`** —
+  provide queued and immediate messages, consumption and escaped rendering. Storage
+  uses the session when available and request-scoped memory otherwise.
+- **Response caching and file delivery.** `Response` adds conditional GET support
+  (ETag and modification-time validators) and file responses with metadata,
+  streaming, and optional `X-Sendfile` support.
 
 ### Changed
 
-- **`{param:uuid}` now matches only the canonical `8-4-4-4-12` hexadecimal form.**
-  The previous validator checked four hyphen positions, then called `ctype_xdigit()`
-  on the remaining characters. It therefore accepted malformed values such as
-  `123e4567-e89b-12d3-a456-42661417400-`. Routes relying on that behavior no longer match.
-- **Static segments after a wildcard are a required suffix.** `/docs/{path:*}/edit` used
-  to ignore `/edit`, matching `/docs/a/b/wrong` with `path = [a, b, wrong]`. It now
-  matches `/docs/a/b/edit` with `path = [a, b]` and rejects paths without the `/edit`
-  suffix. A wildcard at the end of a route still matches zero or more segments.
-- **Unknown parameter types now throw when a route is added.** Previously, `{id:int?}`
-  (the `?` belongs on the name) registered successfully, then raised
-  `Unknown validator: int?` during a matching request.
-- The compiled index is derived state and is not stored in the route cache. Existing
-  cached route tables remain valid; the router rebuilds each needed index bucket on
-  the first match after restoring the cache.
-- **`getAllowedMethods()` now reports `OPTIONS`** when `autoOptions()` is enabled, the
-  path exists, and no explicit `OPTIONS` route is registered. Previously only `match()`'s
-  auto-OPTIONS branch added it, so the same URI produced two different `Allow` values
-  depending on which method was asked. Both now share one synthesis point.
-- **`getAllowedMethods()` reports methods registered outside its known list.** It
-  iterated a fixed set of seven methods, so a route registered as `PROPFIND` was matched
-  by `match()` but never appeared in `Allow`. The list is now derived from the table:
-  known methods in their documented order, then anything else alphabetically.
-- **`sailantis/clarity-engine` is now required at `^0.5` (or `dev-main`).** The new
-  `Azera\Localization\Intl` delegates to Clarity's `IntlFormatter`, which first ships in
-  0.5.0. The previous `^0.4` range allowed a stable install of 0.4.x, where the class
-  does not exist, so `$ctx->intl()` failed with `Class "Clarity\Localization\IntlFormatter"
-  not found`. Composer will not resolve a conflicting lock: run `composer update
-  sailantis/clarity-engine`.
+- **`Controller::flash()`** is public and returns `Azera\Http\Flash`. Existing
+  controller methods with the same name must be renamed or adapted; use
+  `$this->flash()->error($message)` to queue a message or
+  `$this->flash()->now($type, $message)` for immediate display.
+- **Route definition and matching rules:** UUID parameters require the canonical
+  hexadecimal `8-4-4-4-12` form; static segments after a wildcard are required
+  suffixes, and non-static segments cannot follow a wildcard; unknown parameter
+  types raise an error when the route is added. A trailing wildcard continues to
+  match zero or more segments.
+- The compiled index is derived at runtime and excluded from route caches; needed
+  buckets are rebuilt on the first match after cache restoration.
+- **`getAllowedMethods()`** includes synthesized `OPTIONS` when auto-OPTIONS is
+  enabled and returns registered methods beyond the standard list, ordered after
+  standard methods.
+- `sailantis/clarity-engine` is now required at `^0.5` or `dev-main` for
+  `IntlFormatter`. Run `composer update sailantis/clarity-engine` to update a
+  conflicting lock file.
 
 ### Fixed
 
-- **`setRevalidateFreq()` without `cached()` emptied the route table.**
-  `ensureFlushed()` cleared the table but had no declared units to rebuild. As a result,
-  the first request matched and the second returned 404.
-- **`autoOptions(true)` with an `OPTIONS` request recursed until memory ran out.**
-  `match()` delegated unmatched `OPTIONS` requests to `getAllowedMethods()`, which
-  called `match()` for `OPTIONS` again. `getAllowedMethods()` no longer calls `match()`.
-- **`getAllowedMethods()` no longer runs seven full matches.** It walks the compiled
-  index once to find every matching method, reducing the measured time from 197 µs to
-  under 15 µs.
-- **A percent-encoded URI matched inconsistently.** Whether `/a%20b/7` matched
-  `/a b/{id:int}` depended on whether the route happened to be inlinable: the combined
-  regex matched the raw subject, while the token scan used the decoded segments. Route
-  matching, `allowedMethods()` and `getAllowedMethods()` now share one URI-preparation
-  step, so they cannot disagree, and a static route registered as `/a b` is reachable as
-  `/a%20b`. A decoded `%2F` falls back to walking the candidates rather than inventing a
-  segment boundary the client never sent.
-- A wildcard followed by a non-static segment is rejected at registration instead of
-  leaving the split between parameters ambiguous at match time.
-- **`$ctx->intl()` now formats in the translator's configured locale.** It resolved the
-  locale from its own formatter, which only saw a `LocaleService` default; the
-  translator's `locale` option was invisible, so formatting fell through to the
-  machine-detected environment locale. A workstation whose locale happened to match
-  (`de_DE`) hid it, while CI (`en_US_POSIX`) formatted `1234.50` where `1.234,50` was
-  expected. Formatting now follows the translator live, so configuring it after
-  `intl()` was resolved — the normal bootstrap order — still moves formatting.
+- `setRevalidateFreq()` without `cached()` now retains the route table.
+- Auto-OPTIONS no longer recurses through `getAllowedMethods()`, which walks the
+  compiled index once to find matching methods.
+- Route matching and method lookup share URI decoding for percent-encoded static
+  segments; encoded slashes retain their segment boundaries.
+- `$ctx->intl()` follows the translator's configured locale, including when set
+  after the formatter is resolved.
 
 ### Performance
 
 | Case | Before | After |
-| --- | --- | --- |
-| typed match, 20-route bucket (last candidate) | 94.7 µs | 5.5 µs |
-| typed match, 60-route bucket (last candidate) | 277 µs | 8.1 µs |
-| typed match, 200-route bucket (last candidate) | 740 µs | 12.7 µs |
+| --- | ---: | ---: |
+| typed match, 20-route bucket | 94.7 µs | 5.5 µs |
+| typed match, 60-route bucket | 277 µs | 8.1 µs |
+| typed match, 200-route bucket | 740 µs | 12.7 µs |
 | static match | 1.6 µs | 1.8 µs |
 | 404 | 17.6 µs | 2.3 µs |
 | 405 / `getAllowedMethods()` | 197 µs | 8.5 µs |
-| `allowedMethods()` on an unknown path (guarded) | — | 3.7 µs |
-| compile a 300-bucket table on first match | 32 µs | 46 µs |
+| first match, 300-bucket table | 32 µs | 46 µs |
 
-The last row shows the trade-off: the first match pays to compile the buckets it needs.
-Buckets are compiled on demand, so the cost depends on the routes a request looks at,
-not the entire table. An earlier revision compiled every bucket eagerly and took 2.8 ms
-for the same table.
+Indexes compile on demand, so the first match compiles only the buckets it uses.
 
 ## [0.5.1] - 2026-11-18
 

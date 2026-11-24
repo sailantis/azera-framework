@@ -65,6 +65,7 @@ All helpers delegate to `AppContext` and are available anywhere inside the contr
 | `$this->view()`    | `Azera\Core\ViewEngine`                                     |
 | `$this->session()` | `Azera\Http\Session` or `null`                              |
 | `$this->cookies()` | `Azera\Http\Cookies` — set cookies; emitted on the response |
+| `$this->flash()` | `Azera\Http\Flash` — one-request messages                  |
 | `$this->translator()` | `Azera\Localization\Translator` — translation service    |
 | `$this->intl()`    | `Azera\Localization\Intl` — locale-aware formatting          |
 | `$this->t()`       | Translated message for a key                                |
@@ -119,6 +120,150 @@ class HealthController extends Controller
     }
 }
 ```
+
+---
+
+## One-request Messages (Flash)
+
+Flash messages support the POST-redirect-GET pattern. An action can queue a
+message before redirecting, and the destination request can display it once.
+
+```php
+// POST /account
+public function updateAction(): Response
+{
+    // … save …
+    $this->flash()->success('Account settings updated.');
+
+    return Response::redirect('/account');
+}
+
+// GET /account
+public function accountAction(): string
+{
+    return $this->view()->render('account', [
+        'messages' => $this->flash()->consume(),   // [['type' => 'success', 'message' => '…']]
+    ]);
+}
+```
+
+A message is queued for the **next** request. Use `now()` when rendering the
+response in the current request, such as when redisplaying a form with a
+validation error:
+
+```php
+$this->flash()->now('error', 'Enter a valid email address.');
+return $this->view()->render('account', ['messages' => $this->flash()->consume()]);
+```
+
+| Method | Purpose |
+| --- | --- |
+| `success()`, `error()`, `warning()`, `notice()`, `info()` | Queue a typed message for the next request |
+| `add(string $type, string $message)` | Queue any type; an unknown type uses its own name as the CSS class |
+| `now(string $type, string $message)` | Show it on this request too |
+| `consume(?string $type = null, bool $consume = true)` | Read (and by default remove) the visible messages |
+| `first(?string $type = null)` | The first visible message, or `null` |
+| `has(?string $type = null)` | Whether anything is visible |
+| `pending()` | Messages queued for the next request |
+| `reflash()` | Carry the visible messages over one more request |
+| `render()` | Escape the visible messages into HTML blocks |
+| `clear()` | Drop everything |
+
+When a session is available, messages are stored there rather than in the URL.
+In contexts without a session, such as CLI tasks and tests, the bag stores
+messages in memory and exposes the same API.
+
+The bag resolves the session lazily and promotes queued messages once a session
+becomes available. This supports middleware orders where the bag is accessed
+before `SessionMiddleware` initializes the session.
+
+`render()` provides HTML markup for applications that do not use a template
+partial. The message type determines the CSS class:
+
+```php
+echo $this->flash()->render();
+// <div class="success" role="alert">Account settings updated.</div>
+```
+
+By default, `error` maps to `danger` and `notice` to `info`, following Bootstrap's
+alert class names. Messages are HTML-escaped by default. CSS classes and the
+template can be configured on the instance:
+
+```php
+$ctx->flash()
+    ->setCssClasses(['success' => 'alert alert-success', 'error' => 'alert alert-danger'])
+    ->setTemplate('<div class="%class%" role="alert">%message%</div>');
+```
+
+---
+
+## HTTP Caching and Conditional GET
+
+Conditional requests let a client reuse a cached response when its validator
+matches. Set a validator, then use `notModifiedIfMatches()` to evaluate the
+request:
+
+```php
+use Azera\Http\Response;
+
+public function showAction(string $slug): Response
+{
+    $page = $this->docs()->page($slug);          // ['html' => …, 'mtime' => …, 'revision' => …]
+
+    return Response::html($page['html'])
+        ->setEtag($page['revision'])
+        ->setLastModified($page['mtime'])
+        ->setCache(3600, shared: true)
+        ->notModifiedIfMatches($this->request());
+}
+```
+
+On a match, the response becomes `304 Not Modified` with an empty body. The
+validators and `Cache-Control` headers are retained, and headers describing the
+response body, including `Content-Type`, are removed.
+
+| Method | Effect |
+| --- | --- |
+| `setEtag(string)` | `ETag`, quoted for you; a weak tag (`W/"…"`) is preserved |
+| `setLastModified(int\|DateTimeInterface)` | `Last-Modified` in IMF-fixdate, always GMT |
+| `setExpires(int\|DateTimeInterface)` | `Expires` |
+| `setCache(int $seconds, bool $shared, bool $immutable)` | `Cache-Control: …max-age=…` + `Expires` |
+| `setNoCache()` | `no-store, no-cache, must-revalidate, max-age=0` + `Pragma` + past `Expires` |
+| `isNotModified(Request)` | Whether the request's validators match |
+| `notModifiedIfMatches(Request)` | Turn into a `304` on a match |
+
+When both are present, `If-None-Match` takes precedence over `If-Modified-Since`,
+as specified by RFC 9110. Comparison is weak (`W/"x"` matches `"x"`). Conditional
+handling applies to `GET` and `HEAD` requests when a validator is set.
+
+Set `$shared: true` for responses suitable for CDN storage. Personalized
+responses should use private caching. Set `$immutable: true` for a fingerprinted
+asset whose content does not change under its URL.
+
+### Sending a file
+
+```php
+// Download (Content-Disposition: attachment)
+return (new Response())->setFileToSend($path, 'invoice-' . $id . '.pdf');
+
+// Display inline in the browser
+return (new Response())->setFileToSend($path, 'logo.svg', attachment: false);
+```
+
+The response derives `Content-Type`, `Content-Length`, `Content-Disposition`,
+`Last-Modified` and a size-and-mtime `ETag` from the file, and supports
+conditional GET:
+
+```php
+return (new Response())
+    ->setFileToSend($path, 'archive.zip')
+    ->notModifiedIfMatches($this->request());
+```
+
+`send()` streams the file. `Response::xSendfile(true)`, configured at startup,
+delegates file delivery to a web server with `X-Sendfile` enabled. In RoadRunner
+and Volucer workers, `getBody()` reads the file, allowing the same response to be
+used across deployment models.
 
 ---
 
