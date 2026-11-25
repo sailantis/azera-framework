@@ -63,9 +63,8 @@ class AppContext
             // a session-less bag for the whole request, and the one-shot age() would
             // never run. Flash::age() therefore happens the first time a session is
             // actually available, not at construction.
-            Flash::class                    => function () {
-                return (new Flash())->useSessionResolver(fn(): ?Session => $this->session());
-            },
+            Flash::class                    => fn () =>
+                (new Flash())->useSessionResolver(fn(): ?Session => $this->session()),
             Heap::class                     => fn() => new Heap(),
             HttpRequest::class              => fn() => new HttpRequest(),
             LoggerInterface::class          => fn() => new NullLogger(),
