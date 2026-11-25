@@ -87,7 +87,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### updateOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L137)</small>
+### updateOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L143)</small>
 
 `public function updateOne(string $class, array $data, array $id): array`
 
@@ -106,7 +106,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### upsertOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L148)</small>
+### upsertOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L154)</small>
 
 `public function upsertOne(string $class, array $data): array`
 
@@ -124,7 +124,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### deleteOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L182)</small>
+### deleteOne() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L188)</small>
 
 `public function deleteOne(string $class, array $id): void`
 
@@ -142,7 +142,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### findBy() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L190)</small>
+### findBy() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L196)</small>
 
 `public function findBy(string $class, array $where): array`
 
@@ -160,7 +160,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### findByPk() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L199)</small>
+### findByPk() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L205)</small>
 
 `public function findByPk(string $class, array $id): array|null`
 
@@ -178,7 +178,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### count() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L205)</small>
+### count() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L211)</small>
 
 `public function count(string $class, array $where = []): int`
 
@@ -196,7 +196,7 @@ two classes sharing a write role share one transaction target.
 
 ---
 
-### begin() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L223)</small>
+### begin() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L229)</small>
 
 `public function begin(array|null $meta = null): void`
 
@@ -221,7 +221,7 @@ implicitly by routing and never committed/rolled back by this store.
 
 ---
 
-### commit() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L240)</small>
+### commit() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L246)</small>
 
 `public function commit(array|null $meta = null): void`
 
@@ -238,7 +238,7 @@ implicitly by routing and never committed/rolled back by this store.
 
 ---
 
-### rollback() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L248)</small>
+### rollback() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L254)</small>
 
 `public function rollback(array|null $meta = null): void`
 
@@ -255,7 +255,7 @@ implicitly by routing and never committed/rolled back by this store.
 
 ---
 
-### inTransaction() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L262)</small>
+### inTransaction() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L268)</small>
 
 `public function inTransaction(array|null $meta = null): bool`
 
@@ -277,7 +277,7 @@ store began, else the constructor-default write connection.
 
 ---
 
-### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L509)</small>
+### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/PdoStore.php#L531)</small>
 
 `public function enrichMetadata(array $meta, ReflectionClass $class): array`
 

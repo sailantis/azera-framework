@@ -922,7 +922,12 @@ Guidance:
   `$em->persist()/flush()` works with or without the `Document` base class.
 - PK resolution differs slightly: explicit `#[Column(pk: true)]` marks work
   on any class; on plain classes the `id` / `*_id` naming convention also
-  contributes the key, while `Model` classes default to `['id']`.
+  contributes the key, while `Model` classes default to the `id` column.
+- **A class with no key has `pkFields === []`** — the framework never invents
+  one. Inserts still work (some tables have no key, or the database owns
+  identity), but any operation that must address a row — `find()`,
+  `adopt()`, `remove()`, `delete()`, `upsert()` — throws with the class named.
+  Declare a key with `#[Column(pk: true)]` or an `idFields()` override.
 
 > **Note:** facade-style and EM-direct use share ONE identity map — an
 > entity loaded via `Session::find()` and the same row loaded via

@@ -455,6 +455,15 @@ final class EntityManager implements RequestScoped
     {
         $meta = Metadata::for($entity::class);
 
+        if ($meta['pkFields'] === []) {
+            throw new \LogicException(
+                "Cannot adopt {$meta['class']}: no primary key is defined. "
+                . 'adopt() asserts the row already exists, which requires a key — '
+                . 'declare one with #[Column(pk: true)] or an idFields() override, '
+                . 'or use persist() for an entity that is not in storage yet.'
+            );
+        }
+
         $data = $this->extractData($entity, $meta);
 
         $id = [];
@@ -462,12 +471,10 @@ final class EntityManager implements RequestScoped
             $column = $meta['columns'][$field] ?? null;
 
             if ($column === null) {
-                // pkFields falls back to ['id'] for a class with NO key
-                // metadata at all, so this field may not be a real column.
+                // Defensive: Metadata guarantees pkFields ⊆ columns, so this
+                // only trips on a hand-built/deserialized metadata array.
                 throw new \LogicException(
-                    "Cannot adopt {$meta['class']}: no primary key is defined. "
-                    . 'adopt() asserts the row already exists, which requires a key — '
-                    . 'declare one with #[Column(pk: true)] or an idFields() override.'
+                    "Cannot adopt {$meta['class']}: key field '{$field}' is not a mapped column."
                 );
             }
 

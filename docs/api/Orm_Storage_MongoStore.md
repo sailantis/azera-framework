@@ -109,7 +109,7 @@ deployments.
 
 ---
 
-### deleteOne() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L159)</small>
+### deleteOne() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L167)</small>
 
 `public function deleteOne(string $class, array $id): void`
 
@@ -127,7 +127,7 @@ deployments.
 
 ---
 
-### findBy() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L165)</small>
+### findBy() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L173)</small>
 
 `public function findBy(string $class, array $where): array`
 
@@ -145,7 +145,7 @@ deployments.
 
 ---
 
-### findByPk() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L173)</small>
+### findByPk() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L181)</small>
 
 `public function findByPk(string $class, array $id): array|null`
 
@@ -163,7 +163,7 @@ deployments.
 
 ---
 
-### count() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L181)</small>
+### count() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L189)</small>
 
 `public function count(string $class, array $where = []): int`
 
@@ -181,7 +181,7 @@ deployments.
 
 ---
 
-### begin() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L195)</small>
+### begin() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L203)</small>
 
 `public function begin(array|null $meta = null): void`
 
@@ -204,7 +204,7 @@ so there is nothing to address per class.
 
 ---
 
-### commit() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L197)</small>
+### commit() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L205)</small>
 
 `public function commit(array|null $meta = null): void`
 
@@ -221,7 +221,7 @@ so there is nothing to address per class.
 
 ---
 
-### rollback() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L199)</small>
+### rollback() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L207)</small>
 
 `public function rollback(array|null $meta = null): void`
 
@@ -238,7 +238,7 @@ so there is nothing to address per class.
 
 ---
 
-### inTransaction() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L201)</small>
+### inTransaction() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L209)</small>
 
 `public function inTransaction(array|null $meta = null): bool`
 
@@ -255,7 +255,7 @@ so there is nothing to address per class.
 
 ---
 
-### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L230)</small>
+### enrichMetadata() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L238)</small>
 
 `public function enrichMetadata(array $meta, ReflectionClass $class): array`
 
@@ -294,7 +294,7 @@ with the snake/plural convention as fallback — no per-backend key.
 
 ---
 
-### txTarget() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L284)</small>
+### txTarget() · <small>[🗎](../../src/Orm/Storage/MongoStore.php#L292)</small>
 
 `public function txTarget(array $meta): string`
 

@@ -28,7 +28,8 @@ use ReflectionProperty;
  *   'pkMode'     => string,              // 'model-chain' | 'convention' — resolved by the store (enrichment)
  *   'readRole'   => ?string,             // #[Connection(read|role)] — null = unset
  *   'writeRole'  => ?string,             // #[Connection(write|role)] — null = unset
- *   'pkFields'   => list<string>,        // resolved PK fields, declaration order (['id'] fallback)
+ *   'pkFields'   => list<string>,        // resolved PK fields, declaration order; [] when the
+ *                                        // class declares no key (never a phantom name)
  *   'castExclusions' => list<string>,    // types whose cast the STORE suppresses by default
  *                                        // (store-contributed during enrichment; absent = cast all)
  *   'columns'    => [name => ['name' =>.., 'type' =>.., 'nullable' => bool,
@@ -89,7 +90,7 @@ use ReflectionProperty;
 final class Metadata
 {
     /** Bump when compiler output changes shape — invalidates L2 entries. */
-    private const VERSION = 'v10';
+    private const VERSION = 'v11';
 
     /** @var array<class-string, array> */
     private static array $l1 = [];
@@ -504,15 +505,12 @@ final class Metadata
 
         // Resolved PK list in declaration order — the single source of
         // truth consumers read instead of re-scanning columns[].pk.
-        // Mirrors idFields() exactly: marks > declared override > ['id'].
+        // Marks > declared idFields() override > the `id` column.
         $meta['pkFields'] = [];
         foreach ($meta['columns'] as $field => $col) {
             if ($col['pk']) {
                 $meta['pkFields'][] = $field;
             }
-        }
-        if ($meta['pkFields'] === []) {
-            $meta['pkFields'] = ['id'];
         }
 
         self::toL2($class, $meta);

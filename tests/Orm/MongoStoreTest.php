@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/FakeMongoCollection.php';
 require_once __DIR__ . '/Fixtures/ArticleDocument.php';
 
+use Azera\AppContext;
 use Azera\Orm\Metadata;
 use Azera\Orm\Storage\MongoStore;
 use Azera\Tests\Orm\Fixtures\ArticleDocument;
@@ -27,7 +28,23 @@ final class MongoStoreTest extends TestCase
     {
         Metadata::clear();
         $this->fakes = new FakeMongoFactory();
+
+        // Register the store BEFORE the first metadata compile: enrichment is
+        // what contributes pkMode 'convention', and that is what resolves
+        // `$_id` as the key. Without it the class has no key metadata at all
+        // (pkFields []), which is a different, unsupported shape.
+        AppContext::setInstance(new AppContext());
+        AppContext::instance()->entityManager()->setStore(
+            'mongo',
+            new MongoStore(fn(string $name) => $this->fakes->for($name))
+        );
+
         $this->store = new MongoStore(fn(string $name) => $this->fakes->for($name));
+    }
+
+    protected function tearDown(): void
+    {
+        AppContext::reset();
     }
 
     public function testInsertGeneratesIdWhenPkOmitted(): void

@@ -50,17 +50,18 @@ declared schema() override > null.
 
 ---
 
-### idFields() · <small>[🗎](../../src/Orm/Model.php#L78)</small>
+### idFields() · <small>[🗎](../../src/Orm/Model.php#L79)</small>
 
 `public function idFields(): array`
 
 Return the primary key field(s) for this model.
 
 Metadata-backed ('pkFields' — the resolved PK list): fields marked
-#[Column(pk: true)] — multiple marks compose a composite key —
-falling back to ['id']. A declared idFields() override is the
-authority (dynamic > static); parent::idFields() from such an
-override resolves through the compile-time re-entrancy guard.
+#[Column(pk: true)] — multiple marks compose a composite key — or the
+`id` column. Returns `[]` when the class declares no key at all. A
+declared idFields() override is the authority (dynamic > static);
+parent::idFields() from such an override resolves through the
+compile-time re-entrancy guard.
 
 **Return value**
 
@@ -69,7 +70,7 @@ override resolves through the compile-time re-entrancy guard.
 
 ---
 
-### query() · <small>[🗎](../../src/Orm/Model.php#L97)</small>
+### query() · <small>[🗎](../../src/Orm/Model.php#L98)</small>
 
 `public static function query(string|null $alias = null): Azera\Db\Query`
 
@@ -90,7 +91,7 @@ Its entities()/firstEntity() terminals hydrate heap-tracked entities on the requ
 
 ---
 
-### with() · <small>[🗎](../../src/Orm/Model.php#L113)</small>
+### with() · <small>[🗎](../../src/Orm/Model.php#L114)</small>
 
 `public static function with(string ...$relations): Azera\Db\Query`
 
@@ -113,7 +114,7 @@ declared via Orm attributes on the model.
 
 ---
 
-### fresh() · <small>[🗎](../../src/Orm/Model.php#L130)</small>
+### fresh() · <small>[🗎](../../src/Orm/Model.php#L131)</small>
 
 `public static function fresh(): Azera\Db\Query`
 
@@ -127,7 +128,7 @@ place (same instance, current values) instead of stale.
 
 ---
 
-### exists() · <small>[🗎](../../src/Orm/Model.php#L169)</small>
+### exists() · <small>[🗎](../../src/Orm/Model.php#L170)</small>
 
 `public static function exists(array $conditions): bool`
 
@@ -153,7 +154,7 @@ backend-agnostic existence check.
 
 ---
 
-### count() · <small>[🗎](../../src/Orm/Model.php#L187)</small>
+### count() · <small>[🗎](../../src/Orm/Model.php#L188)</small>
 
 `public static function count(array $conditions = []): int`
 
@@ -176,7 +177,7 @@ the backend-agnostic alternative.
 
 ---
 
-### save() · <small>[🗎](../../src/Orm/Model.php#L212)</small>
+### save() · <small>[🗎](../../src/Orm/Model.php#L213)</small>
 
 `public function save(): bool`
 
@@ -198,7 +199,7 @@ Returns true when a write happened (a no-op flush — nothing scheduled
 
 ---
 
-### delete() · <small>[🗎](../../src/Orm/Model.php#L255)</small>
+### delete() · <small>[🗎](../../src/Orm/Model.php#L260)</small>
 
 `public function delete(): bool`
 
@@ -219,7 +220,7 @@ else is needed here.
 
 ---
 
-### refresh() · <small>[🗎](../../src/Orm/Model.php#L275)</small>
+### refresh() · <small>[🗎](../../src/Orm/Model.php#L289)</small>
 
 `public function refresh(): static|null`
 
@@ -236,7 +237,7 @@ models and models with scheduled unflushed writes.
 
 ---
 
-### hasChanged() · <small>[🗎](../../src/Orm/Model.php#L290)</small>
+### hasChanged() · <small>[🗎](../../src/Orm/Model.php#L304)</small>
 
 `public function hasChanged(): bool`
 
@@ -250,7 +251,7 @@ true when any metadata column has a set value).
 
 ---
 
-### changedData() · <small>[🗎](../../src/Orm/Model.php#L301)</small>
+### changedData() · <small>[🗎](../../src/Orm/Model.php#L315)</small>
 
 `public function changedData(): array`
 
@@ -264,7 +265,7 @@ Field-name-keyed map of values that differ from the heap baseline
 
 ---
 
-### loadState() · <small>[🗎](../../src/Orm/Model.php#L310)</small>
+### loadState() · <small>[🗎](../../src/Orm/Model.php#L324)</small>
 
 `public function loadState(): static`
 
@@ -278,7 +279,7 @@ snapshot (the loadState() replacement). No-op for untracked entities.
 
 ---
 
-### setDefaultRole() · <small>[🗎](../../src/Orm/Model.php#L335)</small>
+### setDefaultRole() · <small>[🗎](../../src/Orm/Model.php#L349)</small>
 
 `public static function setDefaultRole(string $role): void`
 
@@ -297,7 +298,7 @@ Set both the read and write database role for this model class.
 
 ---
 
-### setDefaultReadRole() · <small>[🗎](../../src/Orm/Model.php#L346)</small>
+### setDefaultReadRole() · <small>[🗎](../../src/Orm/Model.php#L360)</small>
 
 `public static function setDefaultReadRole(string $role): void`
 
@@ -316,7 +317,7 @@ Set the database role used for SELECT queries on this model class.
 
 ---
 
-### setDefaultWriteRole() · <small>[🗎](../../src/Orm/Model.php#L356)</small>
+### setDefaultWriteRole() · <small>[🗎](../../src/Orm/Model.php#L370)</small>
 
 `public static function setDefaultWriteRole(string $role): void`
 
@@ -335,7 +336,7 @@ Set the database role used for INSERT/UPDATE/DELETE queries on this model class.
 
 ---
 
-### readRole() · <small>[🗎](../../src/Orm/Model.php#L393)</small>
+### readRole() · <small>[🗎](../../src/Orm/Model.php#L407)</small>
 
 `public function readRole(): string`
 
@@ -349,7 +350,7 @@ Return the database connection role used for read (SELECT) queries.
 
 ---
 
-### writeRole() · <small>[🗎](../../src/Orm/Model.php#L403)</small>
+### writeRole() · <small>[🗎](../../src/Orm/Model.php#L417)</small>
 
 `public function writeRole(): string`
 
@@ -363,7 +364,7 @@ Return the database connection role used for write (INSERT/UPDATE/DELETE) querie
 
 ---
 
-### readConnection() · <small>[🗎](../../src/Orm/Model.php#L415)</small>
+### readConnection() · <small>[🗎](../../src/Orm/Model.php#L429)</small>
 
 `public function readConnection(): Azera\Db\Database`
 
@@ -378,7 +379,7 @@ Resolves the configured read role via [`DatabaseManager::getOrDefault()`](Db_Dat
 
 ---
 
-### writeConnection() · <small>[🗎](../../src/Orm/Model.php#L428)</small>
+### writeConnection() · <small>[🗎](../../src/Orm/Model.php#L442)</small>
 
 `public function writeConnection(): Azera\Db\Database`
 

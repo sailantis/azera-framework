@@ -127,10 +127,20 @@ final class Heap implements RequestScoped
     /**
      * Whether every PK value is non-null (a usable identity-map key).
      *
+     * An EMPTY id set is NOT an identity: a class with no key cannot be
+     * looked up, so it must take the synthetic-slot path. Returning true
+     * here (the historical vacuous-truth behaviour) made every key-less
+     * entity share the `class|` index entry — a second INSERT silently
+     * overwrote the first's node and was never flushed.
+     *
      * @param array<string, mixed> $id PK field => value
      */
     private function hasCompleteIdentity(array $id): bool
     {
+        if ($id === []) {
+            return false;
+        }
+
         foreach ($id as $value) {
             if ($value === null) {
                 return false;

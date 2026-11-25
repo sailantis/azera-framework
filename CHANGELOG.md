@@ -9,174 +9,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **AOP was redesigned around a single invocation model.** `InterceptorInterface`
-  is now `intercept(Invocation $invocation, callable $next): mixed`; the old
-  reflection-based signature (`intercept(object, ReflectionMethod, array, callable)`)
-  is gone, as are the `PipelineHandler` stand-in and `Pipeline::through()` — there is
-  one interceptor contract and one chain implementation. `Pipeline` now composes its
-  chain once at construction; `Pipeline::call()` takes the wrapped callable plus `args`
-  and gained optional `identity:`/`advice:` parameters, and `Pipeline::handle()` is new.
-  Generated proxies build one `Invocation` per call and run a plan memoized per
-  (class, method) by `AopRuntime` — attributes are read once per process, not per call,
-  and no `ReflectionMethod` is created in the hot path. Advice carried on an
-  `Invocation` wins over an interceptor's constructor defaults. This is a breaking
-  change for custom interceptors and for code calling `Pipeline::through()`,
-  `ProxyFactory::setCurrent()` or `ProxyFactory::current()`. `ProxyFactory::getInterceptor()`
-  remains, for diagnostics. See [docs/UPGRADING.md](docs/UPGRADING.md) for a migration map.
-  `Pipeline::through()` is **back as a deprecated, immutable alias** that returns a new
-  pipeline, so 0.6 call sites keep working.
-- `DatabaseManager::peek(string $role): ?Database` returns the already-instantiated
-  connection for a role (or null) without triggering its factory. Used by the
-  transaction interceptor to detect cross-role transactions without opening
-  connections it has no business opening.
-- **`CacheInterceptor`'s derived key is now a single `xxh128` digest** of
-  `serialize([$identity, $method, $args])` — 32 characters, key-safe, and about a
-  third cheaper per call (~0.29-0.41 µs vs ~0.39-0.58 µs, PHP 8.3, Xdebug off).
-  The old shape emitted a sanitized, memoized, length-capped readable prefix in
-  front of an argument digest; that apparatus is gone. Two behaviour changes
-  follow: derived keys are no longer human-readable (`CacheService.expensiveOperation.…`
-  became an opaque hex digest), and distinct identities that sanitized alike
-  (`A\B` vs `A/B`, `a-b` vs `a_b`) no longer share a cache entry. Existing
-  entries are invalidated by the shape change — treat it as a cache version bump.
-  Explicit `key:` templates are unchanged — except that their placeholders now
-  yield a collision-free token per value instead of `''` for every non-scalar
-  (see Fixed below).
+- **AOP now uses a shared `Invocation` model.** Interceptors implement
+  `intercept(Invocation $invocation, callable $next): mixed`; pipelines compose
+  once, and generated proxies reuse per-method plans. `Pipeline::call()` accepts
+  the callable and arguments, with optional identity and advice; `Pipeline::handle()`
+  is also available. Advice on an invocation takes precedence over constructor
+  defaults. The interceptor and `Pipeline::call()` signatures changed;
+  `ProxyFactory::setCurrent()` and `current()` were removed. `Pipeline::through()`
+  remains as a deprecated immutable alias. See [docs/UPGRADING.md](docs/UPGRADING.md).
+- `DatabaseManager::peek(string $role): ?Database` returns an instantiated
+  connection without invoking its factory; the transaction interceptor uses it
+  to check transactions across roles.
+- **Cache keys use a typed, collision-resistant digest.** `CacheInterceptor`
+  hashes the serialized identity, method and arguments with `xxh128`; derived
+  keys are opaque and the change invalidates existing entries. Explicit
+  `#[Cache(key: …)]` templates encode placeholder values distinctly by type;
+  see Fixed for details.
+- **`EntityManager::remove()` on an untracked entity with a complete key deletes
+  it from storage.** Use `clear()` or `detach()` to remove an entity from identity
+  tracking without deleting it.
+- **`Orm\Concerns\EntityFacade`** consolidates finder and writer helpers for
+  `Model` and `Document`. `Document` exposes backend-agnostic entity operations;
+  SQL query-builder methods remain on `Model`. Plain classes using `#[Entity]`
+  and `#[Column]` continue to work through the EntityManager.
 
 ### Added
 
-- **`Document::find()` / `findOrFail()` / `findOne()` / `findAll()`.** The
-  mongo document base class had no read surface at all — `save()`/`delete()`
-  existed but nothing could load a document back through the class. Both
-  facades now share `Orm\Concerns\EntityFacade`, which routes through the
-  `EntityManager`'s Store seam, so the finders work on every backend
-  (`#[Entity(store: 'mongo')]` included).
-- **`Document::create()` / `upsert()` / `firstOrCreate()` /
-  `updateOrCreate()`.** The same trait carries the writer helpers, which had
-  been `Model`-only despite being store-agnostic. `create()`,
-  `firstOrCreate()` and `updateOrCreate()` call `static::save()`, so each
-  facade keeps its own insert/update policy.
+- **Shared entity facade methods.** `Document` now provides the finders
+  (`find()`, `findOrFail()`, `findOne()`, `findAll()`) and writer helpers
+  (`create()`, `upsert()`, `firstOrCreate()`, `updateOrCreate()`) through
+  `Orm\Concerns\EntityFacade`, using the configured store.
 
 ### Fixed
 
-- **`#[Cache(key: …)]` collapsed distinct arguments onto one entry.** A placeholder
-  whose value was not scalar was substituted with `''`, so two different filter
-  arrays or objects — and `null`, `false` and `''` — all produced the same cache
-  key and the first call's result was returned for the others. Every value now
-  renders to a distinct, type-prefixed, key-safe token: `null`/`true`/`false`,
-  bare integers, `s_<value>` for short key-safe strings, `f_<value>` for floats,
-  and `str_`/`arr_`/`obj_` plus a digest of `serialize()` for everything else. The
-  prefixes stop values of different types from rendering alike (`42`, `'42'`,
-  `42.0`; `'null'` vs `null`). A value the template does not name is never
-  tokenized, and one that cannot be serialized deterministically (a closure, a
-  resource) throws instead of guessing a colliding key.
-- **`#[Cache(key: …)]` raised a false error for placeholder-like arguments.** The
-  unresolved-placeholder check ran over the *substituted* string, so an argument
-  value containing `{name}` threw a `LogicException` even though the template had
-  resolved. Substitution now walks the placeholders in the template, so only a
-  genuinely unresolved one fails.
-- **An advised proxy could not be cloned or serialized.** The generated terminal
-  closure was cached on the instance and bound to the object that first called the
-  method, so a `clone` inherited a terminal bound to the original and ran
-  `parent::method` against the wrong instance; after one advised call the proxy
-  also held a `Closure` and `serialize()` threw. Proxies now declare no properties
-  and allocate the terminal per call (~0.2 µs). This also removes the generated
-  `__aopTerminal_<method>` property, which could collide with a same-named property
-  on the target class and produced a fatal "access level must not be reduced" error.
-- **By-reference variadic parameters lost their references.** The generator assumed
-  `&...$args` was not legal PHP and dropped the reference; a method mutating through
-  `&...$refs` silently discarded every change. Variadic references now survive the
-  proxy (covered by `AopRegressionTest::testVariadicByReferenceParametersKeepTheirReferences`).
-- **`TransactionalInterceptor`'s leak check ran after `commit()`.** When it fired,
-  the advised method's work was already committed while the call threw, so an outer
-  `RetryInterceptor` could retry and duplicate those writes. The check now runs
-  before `COMMIT` and rolls the unit of work back. It also snapshots which
-  connections were already inside a transaction, so an outer unit of work on another
-  role is no longer reported as a leak.
-- **`#[Transactional]` with no role required a `write` connection.** An app that
-  configured only a default connection threw instead of using it. An explicitly named
-  role must still be configured (so typos still fail loudly), but the implicit default
-  falls back to the manager's default connection again.
-- **Two `ProxyFactory`/`AppContext` instances in one process shared interceptors.**
-  The process-wide registry was keyed by advice class only, so the last publisher
-  silently replaced the others and a proxy generated by the first factory began
-  invoking the second factory's interceptor. The registry is now namespaced per
-  factory (derived from its proxy cache directory and baked into the generated
-  source), and `registerInterceptor()` clears the memoized plans so a proxy invoked
-  before the factory is rebuilt picks up the new interceptor.
-- **`AopPlan` was unreachable through PSR-4.** It was declared as a second class in
-  `AopRuntime.php`, so a direct reference looked for `src/Aop/AopPlan.php` and only
-  worked once `AopRuntime.php` happened to be loaded. It now has its own file.
-- **`Query` silently read the wrong database for non-SQL classes.**
-  `Model::findAll()`/`exists()`/`count()` and any `query()`/`with()` call on a
-  class routed to another store compiled SQL against the default SQL
-  connection: with no `DatabaseManager` configured it failed with
-  "No Database configured", and with one configured it **returned rows from
-  the SQL table of the same name** — while `find()`/`findOne()` correctly read
-  the document store. `Query::resolve()` now asserts that a model-backed source
-  belongs to the `sql` store and throws a `LogicException` naming the store and
-  the working alternative. `Model::findAll()` was moved onto the
-  EntityManager (it had been builder-backed, so it inherited the bug);
-  `exists()`/`count()` stay builder-backed and are therefore `Model`-only.
-- **`Model`'s ID-mismatch error was unactionable.** It reported only
-  `ID array count mismatch`; it now names the class and the expected/got
-  counts, matching the comment in `examples/ModelLoadMethodsExample.php`.
-- **`EntityManager::adopt()` accepted an identity it could not address.**
-  A null in the key was stored on a `MANAGED` node, and the damage was
-  silent rather than loud:
-  - SQL emitted `UPDATE ... WHERE 1=0` / `DELETE ... WHERE 1=0` — a no-op that
-    reported success.
-  - Mongo's equality filter matched a **different** document: a composite key
-    `{tenant_id: 't1', slug: null}` deleted the row whose `slug` was null,
-    not the one the caller meant.
-  - Two instances of a class with no key at all both attached under `id=[]`,
-    so they collapsed onto ONE heap node — the second was unreachable and its
-    writes landed on the first.
-
-  `adopt()` now requires every PK field and names the missing one (pointing at
-  `persist()` for entities not yet in storage). `persist()` is unchanged: an
-  INSERT legitimately has no key, and the heap's synthetic-slot path keeps
-  pending inserts apart.
-- **`EntityManager::remove()` reported success without deleting.** An
-  untracked entity with a complete key hit the "never persisted" branch, which
-  only detached it — no `DELETE` ran. `remove()` now adopts such an entity
-  first, making it symmetric with `persist()` (untracked + persist = insert,
-  untracked + remove = delete), and refuses one whose key is incomplete.
-- **`Document::delete()` could report success while deleting nothing.**
-  Two independent holes:
-  - It checked only the **first** PK column, so a composite key with a null
-    column was treated as complete. The EntityManager then saw an untracked
-    instance as "never persisted", detached it, and `delete()` returned
-    `true` with the stored document untouched. Every key field is now
-    validated, and the error names the missing field.
-  - An **untracked** instance with a full key hit the same detach path for the
-    same reason. `delete()` now relies on the fixed `remove()`, so a document
-    built by hand actually deletes its row.
-- **`Document::pkField()`'s `'id'` fallback was misleading.** Metadata falls
-  back to `pkFields = ['id']` only for a class with no key information at
-  all, so the helper could return a phantom identifier. `delete()` now reads
-  `Metadata::pkFields` directly and the helper is gone.
-- **`examples/ModelLoadMethodsExample.php` crashed** on a builder call it
-  documented as supported: `columns(['1'])` / `columns(['COUNT(*) as count'])`
-  are raw expressions and must be wrapped in `Sql::raw()`, which the
-  model-mode column validator enforces. The example also seeded rows without
-  ids, so every `find(10)` demo printed "User not found".
-
-### Changed
-
-- **`EntityManager::remove()` on an untracked entity now deletes instead of
-  detaching.** If you relied on `remove()` as "drop this object from identity
-  tracking" without touching storage, call `clear()`/`detach()` (via the heap)
-  instead — `remove()` with a complete key now issues a real `DELETE`.
-- **The facade statics live in one trait.** `Orm\Concerns\EntityFacade`
-  replaces the previous finder-only trait and also carries `create()`,
-  `upsert()`, `firstOrCreate()` and `updateOrCreate()`, which were duplicated
-  intent-wise on `Model` alone. No behaviour change for `Model` callers.
-- **`Document` is no longer a partial facade.** It exposes the full
-  backend-agnostic surface — the four finders plus the four writer helpers,
-  then `save()`/`delete()`/dirty-state — and deliberately not
-  `query()`/`with()`/`fresh()`/`exists()`/`count()` — those compile SQL. A
-  plain class with `#[Entity]`/`#[Column]` attributes (no base class) remains
-  fully supported through the EntityManager.
+- **Keyless entity metadata and persistence.** `Metadata::pkFields` now includes
+  only declared key columns and is empty when a class has no key; the metadata
+  version was bumped to `v11`. Key-dependent operations validate the key and
+  report the class, while inserts of keyless entities use plain SQL inserts and
+  synthetic heap slots. Keyless `upsert()` falls back to insert. This also avoids
+  phantom SQL/Mongo identities and prevents multiple pending entities from sharing
+  one heap node.
+- **Explicit cache-key placeholders.** Values now produce distinct, typed,
+  key-safe tokens, including serialized arrays and objects; closures and resources
+  raise an error when they cannot be serialized deterministically. Placeholder
+  validation now checks the template itself, so argument values containing
+  `{name}` do not trigger false unresolved-placeholder errors.
+- **Proxy generation and AOP runtime behavior.** Proxies now support cloning,
+  serialization and by-reference variadic parameters; terminal closures are
+  created per call. Interceptor registries are scoped per `ProxyFactory`, plans
+  refresh when interceptors are registered, and `AopPlan` is PSR-4 loadable.
+- **Transaction interception.** Leak checks now run before commit and roll back
+  on failure. Existing transactions on other roles are recognized, and an
+  implicit transaction role uses the manager's default connection.
+- **Store-aware queries and entity diagnostics.** Model-backed SQL queries now
+  reject entities assigned to another store with guidance to use that store.
+  `Model::findAll()` uses the EntityManager; ID mismatch errors identify the class
+  and expected and actual counts.
+- **Entity identity and deletion.** `adopt()` and document deletion now validate
+  every required key field and identify missing fields. Untracked entities with
+  complete keys are adopted before removal, so deletion reaches the configured
+  store. Operations requiring a primary key report the class and key requirements.
+- **ORM example corrections.** `ModelLoadMethodsExample.php` now wraps raw
+  column expressions in `Sql::raw()` and seeds records with IDs used by its
+  finder examples.
 
 ## [0.6.0] - 2026-11-24
 

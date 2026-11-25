@@ -128,7 +128,15 @@ final class MongoStore implements Store
     public function upsertOne(string $class, array $data): array
     {
         $meta = Metadata::for($class);
-        $pk   = self::pkName($meta);
+
+        // No key = no conflict target: degrade to a plain insert instead of
+        // filtering on `_id => null` (which would match every doc without an
+        // _id and overwrite one of them).
+        if ($meta['pkFields'] === []) {
+            return $this->insertOne($class, $data);
+        }
+
+        $pk = self::pkName($meta);
 
         // Filter = the PK (the conflict target); $set = the full caller
         // payload minus the PK. upsert:true makes the SERVER resolve

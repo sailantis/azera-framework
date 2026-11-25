@@ -456,10 +456,15 @@ final class StoreRoutingTest extends TestCase
         $this->assertNotContains('untracked', $ids, 'the stored document must actually be deleted');
     }
 
+    /**
+     * A class with NO key metadata at all previously got `pkFields = ['id']`
+     * from a fallback, so delete() addressed a phantom `id` property. It now
+     * reports the real problem.
+     */
     public function testDeleteRejectsADocumentWithNoKeyAtAll(): void
     {
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('not set');
+        $this->expectExceptionMessage('no primary key is defined');
 
         (new NoKeyDocument())->delete();
     }

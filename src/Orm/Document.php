@@ -80,6 +80,13 @@ abstract class Document
     {
         $pkFields = Metadata::for(static::class)['pkFields'];
 
+        if ($pkFields === []) {
+            throw new \RuntimeException(
+                'Cannot delete ' . static::class . ': no primary key is defined. '
+                . 'Declare one with #[Column(pk: true)] or an idFields() override.'
+            );
+        }
+
         foreach ($pkFields as $field) {
             if (!isset($this->{$field})) {
                 throw new \RuntimeException(sprintf(

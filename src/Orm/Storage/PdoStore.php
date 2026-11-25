@@ -100,6 +100,12 @@ final class PdoStore implements Store
         [$sql, $params] = $this->insertSql($meta, $set);
 
         switch ($strategy) {
+            case 'no_pk':
+                // Nothing to backfill: the table generates its own identity
+                // (or has none). Insert and report no id.
+                $db->query($sql, $params);
+                return ['row' => null, 'id' => null];
+
             case 'pk_set':
                 $db->query($sql, $params);
                 return ['row' => null, 'id' => null];
@@ -301,11 +307,20 @@ final class PdoStore implements Store
      * RETURNING id; unset non-PK cols -> RETURNING *; no-RETURNING driver
      * -> lastInsertId.
      */
+    /**
+     * Pick the INSERT's backfill strategy.
+     *
+     * A class with NO key (`pkFields === []`) has nothing to backfill, so the
+     * strategy is a plain INSERT with no RETURNING and no `lastInsertId()`.
+     * Historically this branch returned 'last_insert_id', which then called
+     * pkColumn() and threw mid-flush — AFTER the INSERT had already run, so
+     * a batch could commit half its rows and report an error.
+     */
     private function strategy(array $meta, array $data, bool $supportsReturning): string
     {
         $pkCols = array_values(array_filter($meta['columns'], fn($c) => $c['pk']));
         if ($pkCols === []) {
-            return 'last_insert_id';
+            return 'no_pk';
         }
 
         $pkSet = true;
@@ -386,6 +401,13 @@ final class PdoStore implements Store
     private function upsertSql(array $meta, array $set, Database $db): array
     {
         [$insertSql, $params] = $this->insertSql($meta, $set);
+
+        // No key = no conflict target. There is nothing to be "on conflict"
+        // about, so the statement degrades to a plain INSERT rather than
+        // emitting the invalid `ON CONFLICT ()`.
+        if ($meta['pkFields'] === []) {
+            return [$insertSql, $params];
+        }
 
         $driver = $db->getDriver();
 

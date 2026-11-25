@@ -64,7 +64,7 @@ Register (or replace) the node for an entity.
 
 ---
 
-### find() · <small>[🗎](../../src/Orm/Heap.php#L165)</small>
+### find() · <small>[🗎](../../src/Orm/Heap.php#L175)</small>
 
 `public function find(object $entity): Azera\Orm\Node|null`
 
@@ -83,7 +83,7 @@ Find the node for an entity OBJECT (regardless of its identity).
 
 ---
 
-### findById() · <small>[🗎](../../src/Orm/Heap.php#L176)</small>
+### findById() · <small>[🗎](../../src/Orm/Heap.php#L186)</small>
 
 `public function findById(string $class, array $id): Azera\Orm\Node|null`
 
@@ -103,7 +103,7 @@ Find the node for a class + PK values — the identity-map hit path.
 
 ---
 
-### detach() · <small>[🗎](../../src/Orm/Heap.php#L184)</small>
+### detach() · <small>[🗎](../../src/Orm/Heap.php#L194)</small>
 
 `public function detach(object $entity): void`
 
@@ -122,7 +122,7 @@ Drop an entity from identity tracking (after delete or detach).
 
 ---
 
-### scheduled() · <small>[🗎](../../src/Orm/Heap.php#L211)</small>
+### scheduled() · <small>[🗎](../../src/Orm/Heap.php#L221)</small>
 
 `public function scheduled(): array`
 
@@ -135,7 +135,7 @@ All nodes currently scheduled for a flush, in insertion order.
 
 ---
 
-### entityFor() · <small>[🗎](../../src/Orm/Heap.php#L228)</small>
+### entityFor() · <small>[🗎](../../src/Orm/Heap.php#L238)</small>
 
 `public function entityFor(Azera\Orm\Node $node): object|null`
 
@@ -157,7 +157,7 @@ O(1) via the reverse node => oid index.
 
 ---
 
-### all() · <small>[🗎](../../src/Orm/Heap.php#L240)</small>
+### all() · <small>[🗎](../../src/Orm/Heap.php#L250)</small>
 
 `public function all(): array`
 
@@ -170,7 +170,7 @@ All nodes (any state), in insertion order.
 
 ---
 
-### count() · <small>[🗎](../../src/Orm/Heap.php#L245)</small>
+### count() · <small>[🗎](../../src/Orm/Heap.php#L255)</small>
 
 `public function count(): int`
 
@@ -181,7 +181,7 @@ All nodes (any state), in insertion order.
 
 ---
 
-### resetState() · <small>[🗎](../../src/Orm/Heap.php#L255)</small>
+### resetState() · <small>[🗎](../../src/Orm/Heap.php#L265)</small>
 
 `public function resetState(): void`
 

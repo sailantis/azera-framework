@@ -14,7 +14,8 @@ Compiled shape (all values JSON-serializable — required for the L2 cache):
   'pkMode'     => string,              // 'model-chain' | 'convention' — resolved by the store (enrichment)
   'readRole'   => ?string,             // #[Connection(read|role)] — null = unset
   'writeRole'  => ?string,             // #[Connection(write|role)] — null = unset
-  'pkFields'   => list<string>,        // resolved PK fields, declaration order (['id'] fallback)
+  'pkFields'   => list<string>,        // resolved PK fields, declaration order; [] when the
+                                       // class declares no key (never a phantom name)
   'castExclusions' => list<string>,    // types whose cast the STORE suppresses by default
                                        // (store-contributed during enrichment; absent = cast all)
   'columns'    => [name => ['name' =>.., 'type' =>.., 'nullable' => bool,
@@ -74,7 +75,7 @@ dynamic — they sit ABOVE the #[Connection] attribute in precedence.
 
 ## Public methods
 
-### useCache() · <small>[🗎](../../src/Orm/Metadata.php#L128)</small>
+### useCache() · <small>[🗎](../../src/Orm/Metadata.php#L129)</small>
 
 `public static function useCache(Psr\SimpleCache\CacheInterface|null $cache, int|null $ttl = null): void`
 
@@ -102,7 +103,7 @@ typically `cacheSalt()` with a deploy hash, or a TTL:
 
 ---
 
-### cacheSalt() · <small>[🗎](../../src/Orm/Metadata.php#L140)</small>
+### cacheSalt() · <small>[🗎](../../src/Orm/Metadata.php#L141)</small>
 
 `public static function cacheSalt(string|null $salt): void`
 
@@ -125,7 +126,7 @@ requested again (TTL or backend eviction reclaims their space).
 
 ---
 
-### for() · <small>[🗎](../../src/Orm/Metadata.php#L150)</small>
+### for() · <small>[🗎](../../src/Orm/Metadata.php#L151)</small>
 
 `public static function for(string $class): array`
 
@@ -144,7 +145,7 @@ Compile (or fetch from cache) metadata for a class.
 
 ---
 
-### clear() · <small>[🗎](../../src/Orm/Metadata.php#L171)</small>
+### clear() · <small>[🗎](../../src/Orm/Metadata.php#L172)</small>
 
 `public static function clear(): void`
 
@@ -162,7 +163,7 @@ application may be using for unrelated data.
 
 ---
 
-### clearL1() · <small>[🗎](../../src/Orm/Metadata.php#L190)</small>
+### clearL1() · <small>[🗎](../../src/Orm/Metadata.php#L191)</small>
 
 `public static function clearL1(): void`
 
@@ -175,7 +176,7 @@ Forget only the L1 (per-process) tier — any wired L2 stays warm.
 
 ---
 
-### isCompiling() · <small>[🗎](../../src/Orm/Metadata.php#L202)</small>
+### isCompiling() · <small>[🗎](../../src/Orm/Metadata.php#L203)</small>
 
 `public static function isCompiling(string $class): bool`
 

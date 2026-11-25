@@ -70,10 +70,11 @@ abstract class Model
      * Return the primary key field(s) for this model.
      *
      * Metadata-backed ('pkFields' — the resolved PK list): fields marked
-     * #[Column(pk: true)] — multiple marks compose a composite key —
-     * falling back to ['id']. A declared idFields() override is the
-     * authority (dynamic > static); parent::idFields() from such an
-     * override resolves through the compile-time re-entrancy guard.
+     * #[Column(pk: true)] — multiple marks compose a composite key — or the
+     * `id` column. Returns `[]` when the class declares no key at all. A
+     * declared idFields() override is the authority (dynamic > static);
+     * parent::idFields() from such an override resolves through the
+     * compile-time re-entrancy guard.
      */
     public function idFields(): array
     {
@@ -216,9 +217,13 @@ abstract class Model
         // Adopt only entities with a full identity: without all ID fields
         // set there is nothing to adopt — the EM must schedule an INSERT
         // (adopting a PK-less model as MANAGED would diff-dirty it into an
-        // UPDATE with WHERE 1=0).
-        $hasAllIds = true;
-        foreach ($this->idFields() as $field) {
+        // UPDATE with WHERE 1=0). An EMPTY key list means the class declares
+        // no key at all, which is also "nothing to adopt" — it takes the
+        // INSERT path like any other key-less entity.
+        $idFields  = $this->idFields();
+        $hasAllIds = $idFields !== [];
+
+        foreach ($idFields as $field) {
             if (!isset($this->$field)) {
                 $hasAllIds = false;
                 break;
@@ -254,7 +259,16 @@ abstract class Model
      */
     public function delete(): bool
     {
-        foreach ($this->idFields() as $field) {
+        $idFields = $this->idFields();
+
+        if ($idFields === []) {
+            throw new \RuntimeException(
+                'Cannot delete ' . static::class . ': no primary key is defined. '
+                . 'Declare one with #[Column(pk: true)] or an idFields() override.'
+            );
+        }
+
+        foreach ($idFields as $field) {
             if (!isset($this->$field)) {
                 throw new \RuntimeException("ID field '$field' not set");
             }

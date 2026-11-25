@@ -84,7 +84,7 @@ instances), so this only needs to fail early with a clearer error.
 
 ---
 
-### hasChanged() · <small>[🗎](../../src/Orm/Document.php#L107)</small>
+### hasChanged() · <small>[🗎](../../src/Orm/Document.php#L114)</small>
 
 `public function hasChanged(): bool`
 
@@ -98,7 +98,7 @@ true when any metadata column has a set value).
 
 ---
 
-### changedData() · <small>[🗎](../../src/Orm/Document.php#L118)</small>
+### changedData() · <small>[🗎](../../src/Orm/Document.php#L125)</small>
 
 `public function changedData(): array`
 
@@ -112,7 +112,7 @@ Field-name-keyed map of values that differ from the heap baseline
 
 ---
 
-### loadState() · <small>[🗎](../../src/Orm/Document.php#L127)</small>
+### loadState() · <small>[🗎](../../src/Orm/Document.php#L134)</small>
 
 `public function loadState(): static`
 
@@ -126,7 +126,7 @@ snapshot (the loadState() replacement). No-op for untracked entities.
 
 ---
 
-### refresh() · <small>[🗎](../../src/Orm/Document.php#L138)</small>
+### refresh() · <small>[🗎](../../src/Orm/Document.php#L145)</small>
 
 `public function refresh(): static|null`
 

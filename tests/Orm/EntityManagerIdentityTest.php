@@ -322,4 +322,67 @@ final class EntityManagerIdentityTest extends TestCase
 
         $this->assertCount(2, $this->em->heap()->scheduled(), 'two pending inserts must not collapse into one');
     }
+
+    /* --------------------- phantom-['id'] fallout: keyless classes at large */
+
+    /**
+     * Metadata used to inject `pkFields = ['id']` for a class with no key,
+     * even though `id` was not a column. Every consumer then trusted it, and
+     * the failures were silent: nodes keyed on `id=null` collapsed, and
+     * PdoStore's strategy threw only AFTER the INSERT had run.
+     */
+    public function testMetadataNeverReportsAKeyFieldThatIsNotAColumn(): void
+    {
+        $meta = Metadata::for(NoKeyModel::class);
+
+        $this->assertSame([], $meta['pkFields'], 'a class with no key has no key fields');
+        $this->assertSame([], array_diff($meta['pkFields'], array_keys($meta['columns'])));
+    }
+
+    public function testKeyLessClassCanStillBeInserted(): void
+    {
+        $this->db->setMockResults([[]]);
+
+        $entity = new NoKeyModel();
+        $entity->title = 'No key';
+
+        $this->em->persist($entity)->flush();
+
+        $queries = $this->dataQueries();
+        $this->assertCount(1, $queries);
+        $this->assertStringStartsWith('INSERT INTO "no_key_model"', $queries[0]['sql']);
+        $this->assertStringNotContainsString('RETURNING', $queries[0]['sql']);
+    }
+
+    public function testTwoKeyLessInsertsBothReachTheStore(): void
+    {
+        $this->db->setMockResults([[], []]);
+
+        $a = new NoKeyModel();
+        $a->title = 'A';
+        $b = new NoKeyModel();
+        $b->title = 'B';
+
+        $this->em->persist($a);
+        $this->em->persist($b);
+        $this->em->flush();
+
+        $inserts = array_filter($this->dataQueries(), fn($q) => str_starts_with($q['sql'], 'INSERT INTO'));
+        $this->assertCount(2, $inserts, 'the second key-less INSERT must not be lost');
+    }
+
+    public function testUpsertOnAKeyLessClassEmitsAPlainInsert(): void
+    {
+        $this->db->setMockResults([[]]);
+
+        $entity = new NoKeyModel();
+        $entity->title = 'Via upsert';
+
+        $this->em->upsert($entity)->flush();
+
+        $queries = $this->dataQueries();
+        $this->assertCount(1, $queries);
+        $this->assertStringStartsWith('INSERT INTO', $queries[0]['sql']);
+        $this->assertStringNotContainsString('ON CONFLICT ()', $queries[0]['sql'], 'an empty conflict target is invalid SQL');
+    }
 }

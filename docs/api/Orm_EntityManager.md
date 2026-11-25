@@ -357,7 +357,7 @@ keeps those entities apart).
 
 ---
 
-### track() · <small>[🗎](../../src/Orm/EntityManager.php#L504)</small>
+### track() · <small>[🗎](../../src/Orm/EntityManager.php#L511)</small>
 
 `public function track(object $entity): object`
 
@@ -380,7 +380,7 @@ SQL only for fields changed after the track() call.
 
 ---
 
-### contains() · <small>[🗎](../../src/Orm/EntityManager.php#L526)</small>
+### contains() · <small>[🗎](../../src/Orm/EntityManager.php#L533)</small>
 
 `public function contains(object $entity): bool`
 
@@ -399,7 +399,7 @@ Whether the entity is tracked in the request heap.
 
 ---
 
-### isScheduled() · <small>[🗎](../../src/Orm/EntityManager.php#L534)</small>
+### isScheduled() · <small>[🗎](../../src/Orm/EntityManager.php#L541)</small>
 
 `public function isScheduled(object $entity): bool`
 
@@ -418,7 +418,7 @@ Whether the entity has scheduled work in the current flush cycle.
 
 ---
 
-### dirtyData() · <small>[🗎](../../src/Orm/EntityManager.php#L558)</small>
+### dirtyData() · <small>[🗎](../../src/Orm/EntityManager.php#L565)</small>
 
 `public function dirtyData(object $entity): array`
 
@@ -448,7 +448,7 @@ guard's problem, not a data diff).
 
 ---
 
-### isDirty() · <small>[🗎](../../src/Orm/EntityManager.php#L606)</small>
+### isDirty() · <small>[🗎](../../src/Orm/EntityManager.php#L613)</small>
 
 `public function isDirty(object $entity): bool`
 
@@ -468,7 +468,7 @@ true - it has pending state that adopt+flush would write).
 
 ---
 
-### revert() · <small>[🗎](../../src/Orm/EntityManager.php#L616)</small>
+### revert() · <small>[🗎](../../src/Orm/EntityManager.php#L623)</small>
 
 `public function revert(object $entity): void`
 
@@ -489,7 +489,7 @@ entities - nothing to revert to.
 
 ---
 
-### clear() · <small>[🗎](../../src/Orm/EntityManager.php#L647)</small>
+### clear() · <small>[🗎](../../src/Orm/EntityManager.php#L654)</small>
 
 `public function clear(): void`
 
@@ -503,7 +503,7 @@ work is dropped, NOT flushed - explicit clear means "forget".
 
 ---
 
-### resetState() · <small>[🗎](../../src/Orm/EntityManager.php#L659)</small>
+### resetState() · <small>[🗎](../../src/Orm/EntityManager.php#L666)</small>
 
 `public function resetState(): void`
 
@@ -520,7 +520,7 @@ rebuilds it from the then-current manager.
 
 ---
 
-### setStore() · <small>[🗎](../../src/Orm/EntityManager.php#L1138)</small>
+### setStore() · <small>[🗎](../../src/Orm/EntityManager.php#L1145)</small>
 
 `public function setStore(string $type, Azera\Orm\Storage\Store $store): static`
 
