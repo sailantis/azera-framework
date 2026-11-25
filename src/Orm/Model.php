@@ -22,6 +22,8 @@ use Azera\Db\Resolver\ModelResolver;
 #[\AllowDynamicProperties]
 abstract class Model
 {
+    use Concerns\EntityFacade;
+
     /* -------------------------------------------------------------
      *  MODEL CONFIG
      * ------------------------------------------------------------- */
@@ -132,172 +134,35 @@ abstract class Model
 
     /* -------------------------------------------------------------
      *  CREATE
+     *
+     * create() / upsert() / firstOrCreate() / updateOrCreate() come from
+     * the EntityFacade trait: they go through the EntityManager's Store
+     * seam, so they work on every backend (SQL and documents alike).
      * ------------------------------------------------------------- */
-
-    /**
-     * Create a new model instance with the given values and save it to the database. Returns the created instance.
-     * @param array $values Associative array of field values to set on the new model
-     * @return static The created model instance
-     */
-    public static function create(array $values): static
-    {
-        $instance = new static();
-
-        foreach ($values as $key => $value) {
-            $instance->$key = $value;
-        }
-
-        $instance->save();
-        return $instance;
-    }
-
-    /**
-     * Create or update a model using database-level UPSERT semantics
-     * (INSERT ... ON CONFLICT DO UPDATE). A single atomic statement with
-     * no prior SELECT — the database handles the conflict resolution.
-     *
-     * Routed through the {@see EntityManager}: the entity lands in the
-     * identity map (MANAGED after flush) and the statement joins any open
-     * flush transaction. All ID fields must be present in $values so the
-     * conflict target is well-defined; on conflict, all non-ID fields
-     * from $values are updated.
-     *
-     * @param array $values Associative array of field values (must include all ID fields)
-     * @return static The model instance with the given values
-     */
-    public static function upsert(array $values): static
-    {
-        $instance = new static();
-
-        foreach ($values as $key => $value) {
-            $instance->$key = $value;
-        }
-
-        $em = AppContext::instance()->entityManager();
-        $em->upsert($instance);
-        $em->flush();
-
-        return $instance;
-    }
-
-    /**
-     * Find the first model matching the given conditions or create a new one with the combined conditions and values if none found. This is useful for ensuring a record exists without creating duplicates. Returns the found or created instance.
-     * @param array $conditions Associative array of field conditions to find the model
-     * @param array $values Additional values to set on the model if it needs to be created (merged with conditions)
-     * @return static The found or created model instance
-     */
-    public static function firstOrCreate(array $conditions, array $values = []): static
-    {
-        $model = static::findOne($conditions);
-
-        if ($model) {
-            return $model;
-        }
-
-        return static::create(array_merge($conditions, $values));
-    }
-
-    /**
-     * Find the first model matching the given conditions or update it with the provided values if found, otherwise create a new one with the combined conditions and values. This is useful for ensuring a record exists and is up to date without creating duplicates. Returns the found, updated, or created instance.
-     * @param array $conditions Associative array of field conditions to find the model
-     * @param array $values Values to set on the model if found (updated) or merged with conditions if created
-     * @return static The found, updated, or created model instance
-     */
-    public static function updateOrCreate(array $conditions, array $values = []): static
-    {
-        $model = static::findOne($conditions);
-
-        if ($model) {
-            foreach ($values as $key => $value) {
-                $model->$key = $value;
-            }
-            $model->save();
-            return $model;
-        }
-
-        return static::create(array_merge($conditions, $values));
-    }
 
     /* -------------------------------------------------------------
      *  READS — all through the EntityManager identity map
      * ------------------------------------------------------------- */
 
-    /**
-     * Find a model by its ID(s) through the EntityManager: heap probe
-     * first, one Store read on miss, hydration onto the shared heap. The
-     * returned instance is identity-mapped — the same row read twice in
-     * one request yields the same object.
+    /*
+     * find() / findOrFail() / findOne() / findAll() come from the
+     * EntityFacade trait: they go through the EntityManager's Store seam,
+     * so they work on every backend (SQL and documents alike).
      *
-     * $fresh=true re-reads the row and refreshes the tracked instance IN
-     * PLACE (same object, current values) — the polling-safe variant.
-     * Throws when the entity carries scheduled unflushed writes.
-     *
-     * @param mixed $id Single ID value, or array of ID values (numeric list
-     *                  matching idFields order, or field => value map for
-     *                  composite keys)
+     * exists() / count() below are builder-based and therefore SQL-only —
+     * `Query` refuses a non-SQL store rather than querying the wrong
+     * database.
      */
-    public static function find(mixed $id, bool $fresh = false): ?static
-    {
-        $idFields = (new static())->idFields();
-        $idMap    = self::mapId($id, $idFields);
-
-        $found = AppContext::instance()->entityManager()->find(static::class, $idMap, $fresh);
-
-        return $found instanceof static ? $found : null;
-    }
 
     /**
-     * Finds a model by its ID(s) or throws an exception if not found
-     * @param mixed $id Single ID value or array of ID values (for composite keys)
-     * @param bool $fresh Re-read the row and refresh the tracked instance in place
-     * @throws \RuntimeException if the model is not found
-     */
-    public static function findOrFail(mixed $id, bool $fresh = false): static
-    {
-        $model = static::find($id, $fresh);
-        if (!$model) {
-            throw new \RuntimeException(static::class . " not found");
-        }
-        return $model;
-    }
-
-    /**
-     * Find the first model matching the given conditions via the
-     * EntityManager (bound parameters, metadata-mapped columns,
-     * heap-tracked result), or null when nothing matches.
+     * Check whether any record matches the given conditions.
      *
-     * $fresh=true refreshes already-tracked hits in place (same instance,
-     * current values).
+     * Builder-backed and therefore **SQL-only**: on a class routed to
+     * another store (e.g. `#[Entity(store: 'mongo')]`) this throws a
+     * `LogicException` rather than querying the wrong database. Use
+     * `findOne($conditions) !== null` or `$em->findBy(...)` for a
+     * backend-agnostic existence check.
      *
-     * @param array $conditions Associative array of field conditions to find the model
-     */
-    public static function findOne(array $conditions, bool $fresh = false): ?static
-    {
-        $rows = AppContext::instance()->entityManager()->findBy(static::class, $conditions, $fresh);
-
-        $first = $rows[0] ?? null;
-        return $first instanceof static ? $first : null;
-    }
-
-    /**
-     * Find all models matching the given conditions as heap-tracked
-     * entities (identity-mapped, ordered by row order). If no conditions
-     * are provided, it returns all models.
-     *
-     * @param array $conditions Associative array of field conditions to find the models
-     * @return list<static> The found model instances
-     */
-    public static function findAll(array $conditions = [], bool $fresh = false): array
-    {
-        $query = static::query();
-        foreach ($conditions as $field => $value) {
-            $query->where($field, '=', $value);
-        }
-        return $query->fresh($fresh)->entities();
-    }
-
-    /**
-     * Check if any model exists matching the given conditions. Returns true if at least one record matches, false otherwise.
      * @param array $conditions Associative array of field conditions to check for existence
      * @return bool True if a matching model exists, false otherwise
      */
@@ -311,7 +176,11 @@ abstract class Model
     }
 
     /**
-     * Count the number of models matching the given conditions. Returns the count as an integer.
+     * Count records matching the given conditions.
+     *
+     * Builder-backed and therefore **SQL-only** — see {@see exists()} for
+     * the backend-agnostic alternative.
+     *
      * @param array $conditions Associative array of field conditions to count
      * @return int The count of matching models
      */
@@ -322,52 +191,6 @@ abstract class Model
             $query->where($field, '=', $value);
         }
         return (int) $query->count();
-    }
-
-    /**
-     * Normalize the many accepted ID shapes into the EM's
-     * field => value map. Scalar IDs require a single-PK model.
-     *
-     * @param mixed $id
-     * @param list<string> $idFields
-     * @return array<string, mixed>
-     */
-    private static function mapId(mixed $id, array $idFields): array
-    {
-        if (!\is_array($id)) {
-            if (\count($idFields) !== 1) {
-                throw new \RuntimeException(
-                    'Composite key models require an array of ID values (' . implode(', ', $idFields) . ')'
-                );
-            }
-            return [$idFields[0] => $id];
-        }
-
-        if (\count($id) !== \count($idFields)) {
-            throw new \RuntimeException("ID array count mismatch");
-        }
-
-        // Numeric list: values are ordered like idFields.
-        if (array_is_list($id)) {
-            $map = [];
-            foreach ($idFields as $i => $field) {
-                if (!isset($id[$i])) {
-                    throw new \RuntimeException("Missing ID value for field '$field'");
-                }
-                $map[$field] = $id[$i];
-            }
-            return $map;
-        }
-
-        // Associative: keys must match idFields.
-        $map = [];
-        foreach ($idFields as $field) {
-            if (!isset($id[$field])) {
-                throw new \RuntimeException("Missing ID value for field '$field'");
-            }
-            $map[$field] = $id[$field];
-        }
-        return $map;
     }
 
     /* -------------------------------------------------------------
@@ -418,9 +241,15 @@ abstract class Model
     }
 
     /**
-     * Delete the model through the {@see EntityManager}
-     * (adopt + remove + flush — one DELETE by PK identity). Requires that
-     * all ID fields are set; throws otherwise.
+     * Delete the model through the {@see EntityManager} (remove + flush —
+     * one DELETE by PK identity). Requires that all ID fields are set;
+     * throws otherwise.
+     *
+     * The guard below is kept for its facade-specific message (documented in
+     * `examples/SaveCreateUpdateExample.php`); `{@see EntityManager::remove()}`
+     * enforces the same invariant and adopts untracked instances, so nothing
+     * else is needed here.
+     *
      * @return bool True if the delete was successful
      */
     public function delete(): bool
@@ -431,12 +260,7 @@ abstract class Model
             }
         }
 
-        $em = AppContext::instance()->entityManager();
-        if (!$em->contains($this)) {
-            $em->adopt($this);
-        }
-
-        $em->remove($this)->flush();
+        AppContext::instance()->entityManager()->remove($this)->flush();
 
         return true;
     }

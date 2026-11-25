@@ -346,7 +346,7 @@ both write and read paths consult:
   strings under a numeric-declared type).
 
 ```php
-class Article extends Document
+class Article extends Document          // or Model — or no base class at all
 {
     #[Column(cast: false)]
     public $_id;              // mongo identity — ObjectId string, never decoded
@@ -373,6 +373,7 @@ every type whose registered cast your wire format makes redundant.
 ```php
 use Azera\Orm\Attribute\Column;
 use Azera\Orm\Attribute\Entity;
+use Azera\Orm\Document;
 use Azera\Orm\Storage\MongoStore;
 use MongoDB\Client;
 
@@ -401,6 +402,25 @@ $found->title = 'Edited';
 $found->save();                   // $set diff UPDATE (only changed fields)
 $found->delete();                 // deleteOne by _id
 ```
+
+`find()` / `findOrFail()` / `findOne()` / `findAll()` are EntityManager-backed,
+so they are identical on `Document` and on `Model` and work on whatever store
+the class is routed to. The query builder (`query()` / `with()` / `exists()` /
+`count()`) compiles SQL and is therefore **not** available on documents —
+`Query` throws a `LogicException` naming the store rather than reading the wrong
+database. Use the EntityManager for anything the finders cannot express:
+
+```php
+$em = AppContext::instance()->entityManager();
+
+$em->findBy(Article::class, ['title' => 'Hello']);   // list<Article>
+$em->persist($article)->flush();                    // unit of work
+```
+
+> The `Document` base class is optional. A plain class with the same
+> attributes is fully supported — `$em->find(Article::class, ['_id' => $id])`,
+> `$em->findBy(...)`, `$em->persist(...)->flush()` all work with no base class
+> at all. `Document` only adds the static finders plus `save()`/`delete()`.
 
 | Piece           | Contract                                                                                                                                 |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
@@ -540,9 +560,16 @@ $user  = User::findOrFail(123);                     // static or throws RuntimeE
 $user  = User::findOne(['email' => $email]);        // ?static, first match
 $users = User::findAll(['status' => 'active']);     // list<static>
 
-$exists = User::exists(['email' => $email]);        // bool
-$count  = User::count(['status' => 'active']);      // int
+$exists = User::exists(['email' => $email]);        // bool  — SQL-only
+$count  = User::count(['status' => 'active']);      // int   — SQL-only
 ```
+
+The whole static surface — the four finders plus `create()`, `upsert()`,
+`firstOrCreate()` and `updateOrCreate()` — is shared by `Model` and
+`Document` (trait `Orm\Concerns\EntityFacade`) and goes through the
+`EntityManager`, so it works on every store. `exists()` and `count()` are
+builder-backed: they compile SQL, so they live on `Model` only and throw for
+a class routed to another store.
 
 All loads go through the `EntityManager`'s identity map: the same row read
 twice in one request returns the SAME instance, and loads establish the
@@ -618,6 +645,12 @@ $articles[0]->comments;       // list<Comment> — batched second query
 | ---------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
 | `BelongsTo` / `HasOne` | SQL `LEFT JOIN` | One query — joined columns are aliased `{alias}__{column}` and split back into entities per row           |
 | `HasMany`              | second query    | One batched `WHERE fk IN (root ids)` per relation — joining would duplicate parent rows, so it never does |
+
+Eager loading is a **SQL** feature: it compiles joins and batched `IN` reads.
+`with()` on a class routed to another store (e.g. `#[Entity(store: 'mongo')]`)
+throws a `LogicException` naming that store instead of querying the wrong
+database — load related documents through the EntityManager (`findBy`) until
+a document-specific loader exists.
 
 The joined query honors all builder clauses (WHERE / ORDER BY / LIMIT /
 GROUP BY): criteria apply to the root table, never to the joined rows.
@@ -816,7 +849,8 @@ $new = new Session();
 $new->token = 'fresh';
 $em->persist($new)->flush();       // $new->id is populated after flush
 
-// DELETE
+// DELETE — an untracked entity with a full key is adopted first, so this
+// really deletes; without a key adopt() throws instead of no-opping
 $em->remove($session)->flush();
 
 // Atomic create-or-update (same statement Model::upsert() emits; full PK required)
@@ -825,9 +859,16 @@ $em->upsert($new)->flush();
 // Manually built entity with a full identity, loaded OUTSIDE the EM:
 // adopt() registers it as managed with an EMPTY baseline — the next
 // flush writes every set column (the same semantic $model->save() uses).
+// Every PK field must be set: MANAGED asserts the row already exists.
 $em->adopt($detached);
 $em->persist($detached)->flush();
 ```
+
+`persist()` and `adopt()` differ in exactly one way that matters: `persist()`
+tolerates a missing key (that is what an INSERT looks like, and the heap's
+synthetic-slot path keeps pending inserts apart), while `adopt()` requires a
+complete one. `remove()` follows `adopt()` — an entity it cannot identify is
+refused rather than silently skipped.
 
 The unit-of-work shape the facades do not expose directly: many changes,
 one flush, one transaction.
@@ -846,6 +887,7 @@ Flush semantics for these writes (single-connection atomicity and the
 | ------------------------ | ------------------------------- | --------------------------------------------------- |
 | Load by PK               | `Session::find(7)`              | `$em->find(Session::class, ['id' => 7])`            |
 | Load by conditions       | `Session::findOne([...])`       | `$em->findBy(Session::class, [...])[0]`             |
+| Load all by conditions   | `Session::findAll([...])`       | `$em->findBy(Session::class, [...])`                |
 | Insert / update          | `$session->save()`              | `$em->persist($s)->flush()`                         |
 | Upsert                   | `Session::upsert([...])`        | `$em->upsert($s)->flush()`                          |
 | Delete                   | `$session->delete()`            | `$em->remove($s)->flush()`                          |
@@ -858,6 +900,17 @@ Guidance:
 - **Facades** are the ergonomic default: static finders, `save()` /
   `firstOrCreate()`, eager loading via `with()`, and query-builder
   hydration (`entities()` requires a `Model` subclass).
+- **`Document`** is the mongo-flavoured facade. It shares the whole
+  backend-agnostic surface with `Model` (via `Orm\Concerns\EntityFacade`):
+  the four finders plus `create()` / `upsert()` / `firstOrCreate()` /
+  `updateOrCreate()`, alongside its own `save()` / `delete()` / dirty-state
+  helpers. It deliberately exposes no builder readers (`query()`, `with()`,
+  `exists()`, `count()`) — those compile SQL. It does not extend `Model`,
+  because metadata PK resolution applies `Model`'s `['id']` chain to SQL
+  models and documents rely on the `_id` convention.
+- **No base class at all** is fully supported: a plain class carrying
+  `#[Entity]` / `#[Column]` / relation attributes works through the
+  EntityManager.
 - **Plain class + EM** gives you lean domain objects with no inherited API
   surface and full unit-of-work control (batch several `persist()` calls
   into ONE atomic `flush()`). It also frees the class to extend something
@@ -866,7 +919,7 @@ Guidance:
   request-scoped heap), so the savings are in the class surface, not the
   heap.
 - The same split applies to documents: `#[Entity(store: 'mongo')]` +
-  `$em->persist()/flush()` replaces the `Document` base class.
+  `$em->persist()/flush()` works with or without the `Document` base class.
 - PK resolution differs slightly: explicit `#[Column(pk: true)]` marks work
   on any class; on plain classes the `id` / `*_id` naming convention also
   contributes the key, while `Model` classes default to `['id']`.

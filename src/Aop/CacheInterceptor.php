@@ -32,7 +32,7 @@ class CacheInterceptor implements InterceptorInterface
     public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed
     {
         $advice = $this->getAdvice($method);
-        $key    = $this->resolveKey($method, $args, $advice);
+        $key    = $this->resolveKey($target, $method, $args, $advice);
 
         $cached = $this->cache->get($key);
         if ($cached !== null) {
@@ -55,17 +55,37 @@ class CacheInterceptor implements InterceptorInterface
         return $attrs[0]->newInstance();
     }
 
-    private function resolveKey(ReflectionMethod $method, array $args, Cache $advice): string
+    private function resolveKey(object $target, ReflectionMethod $method, array $args, Cache $advice): string
     {
         if ($advice->key !== null) {
             return $this->interpolateKey($advice->key, $method, $args);
         }
 
         return self::keyFor(
-            $method->getDeclaringClass()->getShortName(),
+            self::declaringName($target, $method),
             $method->getName(),
             $args,
         );
+    }
+
+    /**
+     * Class name used in a default cache key.
+     *
+     * The explicit pipeline reflects one shared dummy class for every wrapped
+     * callable, so the declaring name alone would map two unrelated callables
+     * with equal arguments onto the same entry. {@see PipelineHandler} carries
+     * the real callable identity; prefer it when present.
+     */
+    private static function declaringName(object $target, ReflectionMethod $method): string
+    {
+        if ($target instanceof PipelineHandler) {
+            $identity = $target->identity();
+            if ($identity !== null) {
+                return $identity;
+            }
+        }
+
+        return $method->getDeclaringClass()->getShortName();
     }
 
     /**

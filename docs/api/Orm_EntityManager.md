@@ -206,12 +206,24 @@ conflict target. Anything less is an ordinary insert.
 
 ---
 
-### remove() · <small>[🗎](../../src/Orm/EntityManager.php#L236)</small>
+### remove() · <small>[🗎](../../src/Orm/EntityManager.php#L250)</small>
 
 `public function remove(object $entity): static`
 
-Queue an entity for DELETE. Never-persisted entities (or cancelled
-pending inserts) are just dropped from identity tracking.
+Queue an entity for DELETE.
+
+An UNTRACKED entity is adopted first when its identity is complete:
+"not in the heap" is not the same as "not in storage", so detaching
+would report success while leaving the row behind. This makes
+remove() symmetric with persist() — persist() on an untracked entity
+inserts, remove() on an untracked entity deletes — instead of the same
+call meaning "delete" or "do nothing" depending on invisible heap
+state.
+
+An untracked entity with an INCOMPLETE identity cannot address
+anything; `adopt()` rejects it rather than emitting a
+`WHERE 1=0` no-op. A pending insert is simply cancelled (nothing
+reached storage yet).
 
 **Parameters**
 
@@ -223,10 +235,14 @@ pending inserts) are just dropped from identity tracking.
 
 - Type: `static`
 
+**Throws**
+
+- LogicException  when an untracked entity's identity is incomplete
+
 
 ---
 
-### flush() · <small>[🗎](../../src/Orm/EntityManager.php#L265)</small>
+### flush() · <small>[🗎](../../src/Orm/EntityManager.php#L285)</small>
 
 `public function flush(): void`
 
@@ -249,7 +265,7 @@ span connections (per-target txs, best-effort all-or-nothing).
 
 ---
 
-### flushAll() · <small>[🗎](../../src/Orm/EntityManager.php#L328)</small>
+### flushAll() · <small>[🗎](../../src/Orm/EntityManager.php#L348)</small>
 
 `public function flushAll(): void`
 
@@ -275,7 +291,7 @@ flush() when the whole write set shares one connection target.
 
 ---
 
-### detach() · <small>[🗎](../../src/Orm/EntityManager.php#L398)</small>
+### detach() · <small>[🗎](../../src/Orm/EntityManager.php#L418)</small>
 
 `public function detach(object $entity): void`
 
@@ -294,7 +310,7 @@ Drop an entity from identity tracking (no storage effect).
 
 ---
 
-### adopt() · <small>[🗎](../../src/Orm/EntityManager.php#L421)</small>
+### adopt() · <small>[🗎](../../src/Orm/EntityManager.php#L454)</small>
 
 `public function adopt(object $entity): object`
 
@@ -313,6 +329,17 @@ adopt() - their heap node carries the store snapshot from hydration.
 The returned entity is the ADOPTED instance (heap re-attach replaces
 the node when the entity already sits under another identity).
 
+THE IDENTITY REQUIREMENT: MANAGED asserts "the row already exists",
+so every PK field must be set. A null in the key has no storage
+identity, and letting it through corrupts the heap rather than
+failing: `findById()` keys on the null values, `WHERE 1=0` makes the
+follow-up UPDATE/DELETE a silent no-op, and on a store that filters
+by equality (mongo) a partial key can match a DIFFERENT row. Two
+entities with NO key at all collapse onto one node. Use persist() for
+entities that are not in storage yet — it tolerates a missing key
+because it schedules an INSERT (and the heap's synthetic-slot path
+keeps those entities apart).
+
 **Parameters**
 
 | Name | Type | Default | Description |
@@ -323,10 +350,14 @@ the node when the entity already sits under another identity).
 
 - Type: `object`
 
+**Throws**
+
+- LogicException  when any PK field is unset
+
 
 ---
 
-### track() · <small>[🗎](../../src/Orm/EntityManager.php#L448)</small>
+### track() · <small>[🗎](../../src/Orm/EntityManager.php#L504)</small>
 
 `public function track(object $entity): object`
 
@@ -349,7 +380,7 @@ SQL only for fields changed after the track() call.
 
 ---
 
-### contains() · <small>[🗎](../../src/Orm/EntityManager.php#L470)</small>
+### contains() · <small>[🗎](../../src/Orm/EntityManager.php#L526)</small>
 
 `public function contains(object $entity): bool`
 
@@ -368,7 +399,7 @@ Whether the entity is tracked in the request heap.
 
 ---
 
-### isScheduled() · <small>[🗎](../../src/Orm/EntityManager.php#L478)</small>
+### isScheduled() · <small>[🗎](../../src/Orm/EntityManager.php#L534)</small>
 
 `public function isScheduled(object $entity): bool`
 
@@ -387,7 +418,7 @@ Whether the entity has scheduled work in the current flush cycle.
 
 ---
 
-### dirtyData() · <small>[🗎](../../src/Orm/EntityManager.php#L502)</small>
+### dirtyData() · <small>[🗎](../../src/Orm/EntityManager.php#L558)</small>
 
 `public function dirtyData(object $entity): array`
 
@@ -417,7 +448,7 @@ guard's problem, not a data diff).
 
 ---
 
-### isDirty() · <small>[🗎](../../src/Orm/EntityManager.php#L550)</small>
+### isDirty() · <small>[🗎](../../src/Orm/EntityManager.php#L606)</small>
 
 `public function isDirty(object $entity): bool`
 
@@ -437,7 +468,7 @@ true - it has pending state that adopt+flush would write).
 
 ---
 
-### revert() · <small>[🗎](../../src/Orm/EntityManager.php#L560)</small>
+### revert() · <small>[🗎](../../src/Orm/EntityManager.php#L616)</small>
 
 `public function revert(object $entity): void`
 
@@ -458,7 +489,7 @@ entities - nothing to revert to.
 
 ---
 
-### clear() · <small>[🗎](../../src/Orm/EntityManager.php#L591)</small>
+### clear() · <small>[🗎](../../src/Orm/EntityManager.php#L647)</small>
 
 `public function clear(): void`
 
@@ -472,7 +503,7 @@ work is dropped, NOT flushed - explicit clear means "forget".
 
 ---
 
-### resetState() · <small>[🗎](../../src/Orm/EntityManager.php#L603)</small>
+### resetState() · <small>[🗎](../../src/Orm/EntityManager.php#L659)</small>
 
 `public function resetState(): void`
 
@@ -489,7 +520,7 @@ rebuilds it from the then-current manager.
 
 ---
 
-### setStore() · <small>[🗎](../../src/Orm/EntityManager.php#L1082)</small>
+### setStore() · <small>[🗎](../../src/Orm/EntityManager.php#L1138)</small>
 
 `public function setStore(string $type, Azera\Orm\Storage\Store $store): static`
 

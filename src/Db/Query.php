@@ -3,6 +3,7 @@
 namespace Azera\Db;
 
 use Azera\AppContext;
+use Azera\Orm\Metadata;
 use Azera\Orm\Model;
 use Azera\Db\Resolver\LiteralResolver;
 use Azera\Db\Resolver\ModelResolver;
@@ -213,7 +214,44 @@ class Query extends Condition
             $this->resolver = AppContext::instance()->get(TableResolver::class);
         }
 
-        return $this->resolver->resolve($name);
+        $resolved = $this->resolver->resolve($name);
+        $this->assertSqlSource($resolved);
+
+        return $resolved;
+    }
+
+    /**
+     * Refuse a source whose class belongs to a non-SQL store.
+     *
+     * Query compiles SQL and reads through {@see Database}. A model routed to
+     * another backend (e.g. `#[Entity(store: 'mongo')]`) has no SQL table, so
+     * letting it through meant either a "No Database configured" error or —
+     * far worse, when a SQL connection IS configured — a silent read of the
+     * wrong database. Facade readers that go through the EntityManager's
+     * Store seam ({@see \Azera\Orm\Concerns\EntityFacade}) keep working;
+     * only the SQL-bound builder refuses.
+     *
+     * @param array{modelClass: ?class-string} $resolved
+     */
+    protected function assertSqlSource(array $resolved): void
+    {
+        $class = $resolved['modelClass'] ?? null;
+        if ($class === null || Metadata::isCompiling($class)) {
+            return;
+        }
+
+        $store = Metadata::for($class)['store'] ?? 'sql';
+        if ($store === 'sql') {
+            return;
+        }
+
+        throw new \LogicException(
+            "Query builds SQL, but {$class} is routed to the '{$store}' store. "
+            . 'Use the EntityManager instead: '
+            . '$em->find(' . $class . '::class, $id), $em->findBy(' . $class . '::class, $where), '
+            . '$em->persist(...)->flush(). The ' . $class . ' facade offers find()/findOrFail()/'
+            . 'findOne()/findAll() for the same reads.'
+        );
     }
 
     /**
@@ -849,7 +887,7 @@ class Query extends Condition
      * ------------------------------------------------------------- */
 
     /**
-     * Eager-load a relation (Phase 5 ORM path). Relation names must be
+     * Eager-load a relation. Relation names must be
      * declared via Orm attributes on the model. BelongsTo/HasOne become
      * LEFT JOINs at select() time (one SQL, alias-separated rows); HasMany
      * stays a second query by parent IDs.

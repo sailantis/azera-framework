@@ -88,13 +88,53 @@ class Pipeline
             return $callable(...$a);
         };
 
+        // Every pipeline call reflects the same dummy method, so the target has
+        // to carry the real callable's identity or interceptors that key on the
+        // invocation cannot tell two wrapped callables apart.
+        $identity = self::identify($callable);
+
         // Wrap interceptors in reverse order (first registered = outermost).
         for ($i = count($this->interceptors) - 1; $i >= 0; $i--) {
             $interceptor = $this->interceptors[$i];
-            $handler     = $this->wrapInterceptor($interceptor, $handler);
+            $handler     = $this->wrapInterceptor($interceptor, $handler, $identity);
         }
 
         return $handler($args);
+    }
+
+    /**
+     * Best-effort stable name for a wrapped callable.
+     *
+     * Closures are identified by their declaration site (`file:line`), which is
+     * stable across calls within a deployment and different for distinct
+     * closures. String/array callables use `Class::method` or the function name.
+     * Anything else (e.g. an invokable object produced fresh per call) falls
+     * back to the scope/type so the key at least stays consistent.
+     */
+    private static function identify(callable $callable): string
+    {
+        if ($callable instanceof \Closure) {
+            $ref = new \ReflectionFunction($callable);
+
+            return $ref->getFileName() . ':' . $ref->getStartLine();
+        }
+
+        if (is_string($callable)) {
+            return $callable;
+        }
+
+        if (is_array($callable) && count($callable) === 2) {
+            [$owner, $method] = $callable;
+            $class = is_object($owner) ? $owner::class : (string) $owner;
+
+            return $class . '::' . $method;
+        }
+
+        if (is_object($callable)) {
+            return $callable::class . '::__invoke';
+        }
+
+        return 'callable';
     }
 
     /**
@@ -118,14 +158,16 @@ class Pipeline
      * Interceptors that need advice configuration (e.g., RetryInterceptor
      * reads #[Retry]) should use a default when no attribute is present.
      */
-    private function wrapInterceptor(InterceptorInterface $interceptor, callable $handler): callable
+    private function wrapInterceptor(InterceptorInterface $interceptor, callable $handler, string $identity): callable
     {
-        return function (array $args) use ($interceptor, $handler): mixed {
+        return function (array $args) use ($interceptor, $handler, $identity): mixed {
             // Create a lightweight invocation context. Interceptors that
             // look for advice attributes will find none — they should
-            // fall back to sensible defaults.
+            // fall back to sensible defaults. The target carries the wrapped
+            // callable's identity so keyed interceptors do not collapse every
+            // pipeline call onto one entry.
             $ref    = $this->createDummyReflection();
-            $target = new PipelineHandler();
+            $target = new PipelineHandler($identity);
 
             return $interceptor->intercept($target, $ref, $args, $handler);
         };

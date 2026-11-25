@@ -18,6 +18,24 @@ $result = $ctx->pipeline()
     ->call(fn() => $service->chargeCard(100));
 ```
 
+### What the pipeline can and cannot tell interceptors
+
+A piped callable has no method to reflect, so the pipeline supplies a stand-in
+method on [`PipelineHandler`](Aop_PipelineHandler.md). Two consequences:
+
+- **Advice attributes do not exist here.** An interceptor that reads its own
+  attribute (e.g. `#[Transactional('analytics')]`) sees none and falls back to
+  its defaults. `#[Transactional]` therefore always uses the `write` role when
+  run through the pipeline — set the role by using the proxy form.
+- **Every call shares one stand-in class**, so the callable's identity is passed
+  separately: a closure by `file:line`, otherwise `Class::method`. Keyed
+  interceptors (`#[Cache]`) and log context use it, so two different callables
+  with equal arguments no longer collide onto one cache entry.
+
+Use the pipeline for transaction and retry wrappers around closures. For
+`#[Cache]` and `#[Log]`, prefer the proxy form, which knows the real class and
+method.
+
 ## Proxy-Based AOP
 
 ### How it works
@@ -109,6 +127,39 @@ public function transferMoney(int $from, int $to, float $amount): void
 - Uses `DatabaseManager::getOrDefault('write')` by default
 - Supports savepoint nesting (nested `#[Transactional]` methods use savepoints)
 - Specify a connection role: `#[Transactional(connection: 'analytics')]`
+
+A failed `COMMIT` (a deferred constraint, a deadlock detected at commit time)
+surfaces its own error. The interceptor does not attempt a rollback the driver
+has already performed, so `"There is no active transaction"` cannot replace the
+real cause, and the connection's nesting counter is reconciled with the driver
+so no transaction is left dangling.
+
+#### Choosing the right connection
+
+The role on the attribute must match the connection the method actually writes
+through. A model that redirects its writes with `Model::setDefaultWriteRole()`
+or the `#[Connection]` attribute writes somewhere the default `write` rollback
+does not reach:
+
+```php
+Model::setDefaultWriteRole('tenant_a');
+
+#[Transactional(connection: 'tenant_a')]   // must name the same role
+public function rename(Account $a): void { ... }
+```
+
+#### Not everything can be advised
+
+Proxy-based advice is implemented by generating a subclass, so it needs to
+override the method:
+
+- A **`final` method** carrying an advice attribute cannot be overridden. Use a
+  non-final method, or call the logic directly through `Db::transaction()`.
+- A **`final` class** cannot be extended at all, so advice on any of its methods
+  is unresolvable.
+
+Both are reported as a `RuntimeException` naming the class and method, raised
+when the proxy is first built.
 
 ### #[Cache(ttl: int, key: ?string)]
 

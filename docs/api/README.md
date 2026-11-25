@@ -205,6 +205,10 @@
 - [JsonCast](Orm_Casting_JsonCast.md) `Azera\Orm\Casting\JsonCast`
 - [PgArrayCast](Orm_Casting_PgArrayCast.md) `Azera\Orm\Casting\PgArrayCast`
 
+### `Azera\Orm\Concerns`
+
+- [EntityFacade](Orm_Concerns_EntityFacade.md) `Azera\Orm\Concerns\EntityFacade`
+
 ### `Azera\Orm`
 
 - [Document](Orm_Document.md) `Azera\Orm\Document`

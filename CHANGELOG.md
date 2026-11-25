@@ -7,6 +7,94 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`Document::find()` / `findOrFail()` / `findOne()` / `findAll()`.** The
+  mongo document base class had no read surface at all — `save()`/`delete()`
+  existed but nothing could load a document back through the class. Both
+  facades now share `Orm\Concerns\EntityFacade`, which routes through the
+  `EntityManager`'s Store seam, so the finders work on every backend
+  (`#[Entity(store: 'mongo')]` included).
+- **`Document::create()` / `upsert()` / `firstOrCreate()` /
+  `updateOrCreate()`.** The same trait carries the writer helpers, which had
+  been `Model`-only despite being store-agnostic. `create()`,
+  `firstOrCreate()` and `updateOrCreate()` call `static::save()`, so each
+  facade keeps its own insert/update policy.
+
+### Fixed
+
+- **`Query` silently read the wrong database for non-SQL classes.**
+  `Model::findAll()`/`exists()`/`count()` and any `query()`/`with()` call on a
+  class routed to another store compiled SQL against the default SQL
+  connection: with no `DatabaseManager` configured it failed with
+  "No Database configured", and with one configured it **returned rows from
+  the SQL table of the same name** — while `find()`/`findOne()` correctly read
+  the document store. `Query::resolve()` now asserts that a model-backed source
+  belongs to the `sql` store and throws a `LogicException` naming the store and
+  the working alternative. `Model::findAll()` was moved onto the
+  EntityManager (it had been builder-backed, so it inherited the bug);
+  `exists()`/`count()` stay builder-backed and are therefore `Model`-only.
+- **`Model`'s ID-mismatch error was unactionable.** It reported only
+  `ID array count mismatch`; it now names the class and the expected/got
+  counts, matching the comment in `examples/ModelLoadMethodsExample.php`.
+- **`EntityManager::adopt()` accepted an identity it could not address.**
+  A null in the key was stored on a `MANAGED` node, and the damage was
+  silent rather than loud:
+  - SQL emitted `UPDATE ... WHERE 1=0` / `DELETE ... WHERE 1=0` — a no-op that
+    reported success.
+  - Mongo's equality filter matched a **different** document: a composite key
+    `{tenant_id: 't1', slug: null}` deleted the row whose `slug` was null,
+    not the one the caller meant.
+  - Two instances of a class with no key at all both attached under `id=[]`,
+    so they collapsed onto ONE heap node — the second was unreachable and its
+    writes landed on the first.
+
+  `adopt()` now requires every PK field and names the missing one (pointing at
+  `persist()` for entities not yet in storage). `persist()` is unchanged: an
+  INSERT legitimately has no key, and the heap's synthetic-slot path keeps
+  pending inserts apart.
+- **`EntityManager::remove()` reported success without deleting.** An
+  untracked entity with a complete key hit the "never persisted" branch, which
+  only detached it — no `DELETE` ran. `remove()` now adopts such an entity
+  first, making it symmetric with `persist()` (untracked + persist = insert,
+  untracked + remove = delete), and refuses one whose key is incomplete.
+- **`Document::delete()` could report success while deleting nothing.**
+  Two independent holes:
+  - It checked only the **first** PK column, so a composite key with a null
+    column was treated as complete. The EntityManager then saw an untracked
+    instance as "never persisted", detached it, and `delete()` returned
+    `true` with the stored document untouched. Every key field is now
+    validated, and the error names the missing field.
+  - An **untracked** instance with a full key hit the same detach path for the
+    same reason. `delete()` now relies on the fixed `remove()`, so a document
+    built by hand actually deletes its row.
+- **`Document::pkField()`'s `'id'` fallback was misleading.** Metadata falls
+  back to `pkFields = ['id']` only for a class with no key information at
+  all, so the helper could return a phantom identifier. `delete()` now reads
+  `Metadata::pkFields` directly and the helper is gone.
+- **`examples/ModelLoadMethodsExample.php` crashed** on a builder call it
+  documented as supported: `columns(['1'])` / `columns(['COUNT(*) as count'])`
+  are raw expressions and must be wrapped in `Sql::raw()`, which the
+  model-mode column validator enforces. The example also seeded rows without
+  ids, so every `find(10)` demo printed "User not found".
+
+### Changed
+
+- **`EntityManager::remove()` on an untracked entity now deletes instead of
+  detaching.** If you relied on `remove()` as "drop this object from identity
+  tracking" without touching storage, call `clear()`/`detach()` (via the heap)
+  instead — `remove()` with a complete key now issues a real `DELETE`.
+- **The facade statics live in one trait.** `Orm\Concerns\EntityFacade`
+  replaces the previous finder-only trait and also carries `create()`,
+  `upsert()`, `firstOrCreate()` and `updateOrCreate()`, which were duplicated
+  intent-wise on `Model` alone. No behaviour change for `Model` callers.
+- **`Document` is no longer a partial facade.** It exposes the full
+  backend-agnostic surface — the four finders plus the four writer helpers,
+  then `save()`/`delete()`/dirty-state — and deliberately not
+  `query()`/`with()`/`fresh()`/`exists()`/`count()` — those compile SQL. A
+  plain class with `#[Entity]`/`#[Column]` attributes (no base class) remains
+  fully supported through the EntityManager.
+
 ## [0.6.0] - 2026-11-24
 
 This **minor** release adds compiled route matching, request handling, localization,

@@ -230,16 +230,36 @@ final class EntityManager implements RequestScoped
     }
 
     /**
-     * Queue an entity for DELETE. Never-persisted entities (or cancelled
-     * pending inserts) are just dropped from identity tracking.
+     * Queue an entity for DELETE.
+     *
+     * An UNTRACKED entity is adopted first when its identity is complete:
+     * "not in the heap" is not the same as "not in storage", so detaching
+     * would report success while leaving the row behind. This makes
+     * remove() symmetric with persist() — persist() on an untracked entity
+     * inserts, remove() on an untracked entity deletes — instead of the same
+     * call meaning "delete" or "do nothing" depending on invisible heap
+     * state.
+     *
+     * An untracked entity with an INCOMPLETE identity cannot address
+     * anything; {@see adopt()} rejects it rather than emitting a
+     * `WHERE 1=0` no-op. A pending insert is simply cancelled (nothing
+     * reached storage yet).
+     *
+     * @throws \LogicException when an untracked entity's identity is incomplete
      */
     public function remove(object $entity): static
     {
         $node = $this->heap->find($entity);
 
-        if ($node === null || $node->state === Node::SCHEDULED_INSERT) {
-            // Never persisted (or pending insert cancelled): nothing in
-            // storage to remove; drop from identity tracking.
+        if ($node === null) {
+            // Complete identity -> the row may exist, so make the DELETE
+            // real. Incomplete identity -> adopt() throws, naming the field.
+            $this->adopt($entity);
+            $node = $this->heap->find($entity);
+        }
+
+        if ($node->state === Node::SCHEDULED_INSERT) {
+            // Never reached storage: cancel the queued INSERT instead.
             $this->heap->detach($entity);
             return $this;
         }
@@ -417,6 +437,19 @@ final class EntityManager implements RequestScoped
      * adopt() - their heap node carries the store snapshot from hydration.
      * The returned entity is the ADOPTED instance (heap re-attach replaces
      * the node when the entity already sits under another identity).
+     *
+     * THE IDENTITY REQUIREMENT: MANAGED asserts "the row already exists",
+     * so every PK field must be set. A null in the key has no storage
+     * identity, and letting it through corrupts the heap rather than
+     * failing: `findById()` keys on the null values, `WHERE 1=0` makes the
+     * follow-up UPDATE/DELETE a silent no-op, and on a store that filters
+     * by equality (mongo) a partial key can match a DIFFERENT row. Two
+     * entities with NO key at all collapse onto one node. Use persist() for
+     * entities that are not in storage yet — it tolerates a missing key
+     * because it schedules an INSERT (and the heap's synthetic-slot path
+     * keeps those entities apart).
+     *
+     * @throws \LogicException when any PK field is unset
      */
     public function adopt(object $entity): object
     {
@@ -425,10 +458,33 @@ final class EntityManager implements RequestScoped
         $data = $this->extractData($entity, $meta);
 
         $id = [];
-        foreach ($meta['columns'] as $field => $col) {
-            if ($col['pk']) {
-                $id[$field] = $data[$col['name']] ?? null;
+        foreach ($meta['pkFields'] as $field) {
+            $column = $meta['columns'][$field] ?? null;
+
+            if ($column === null) {
+                // pkFields falls back to ['id'] for a class with NO key
+                // metadata at all, so this field may not be a real column.
+                throw new \LogicException(
+                    "Cannot adopt {$meta['class']}: no primary key is defined. "
+                    . 'adopt() asserts the row already exists, which requires a key — '
+                    . 'declare one with #[Column(pk: true)] or an idFields() override.'
+                );
             }
+
+            $value = $data[$column['name']] ?? null;
+
+            if ($value === null) {
+                throw new \LogicException(sprintf(
+                    "Cannot adopt %s: identity is incomplete (missing '%s'; key fields: %s). "
+                    . 'adopt() asserts the row already exists, so every key field must be set — '
+                    . 'use persist() for an entity that is not in storage yet.',
+                    $meta['class'],
+                    $field,
+                    implode(', ', $meta['pkFields'])
+                ));
+            }
+
+            $id[$field] = $value;
         }
 
         // Empty baseline: data=[] - diff sees every set column as changed.

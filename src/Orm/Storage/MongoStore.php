@@ -287,8 +287,10 @@ final class MongoStore implements Store
     }
 
     /**
-     * The document's PK column name. Metadata pk convention resolves `$_id`
-     * for documents (the *_id marks); fallback '_id' mirrors Document::pkField().
+     * The document's PK column name. Metadata resolves this for documents
+     * (the id/*_id name convention plus #[Column(pk:)] marks); the `_id`
+     * fallback only applies to a class with no key metadata at all — the
+     * same case where `Metadata::pkFields` falls back to `['id']`.
      */
     private static function pkName(array $meta): string
     {

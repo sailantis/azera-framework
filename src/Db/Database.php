@@ -377,7 +377,11 @@ class Database
 	{
 		$this->events()->dispatch(new DatabaseOperationFailed($this, $exception, $operation, $sql, $params));
 		$inTransaction = !empty($this->transactionLevel);
-		switch ($exception->errorInfo[1]) {
+		// PDO leaves errorInfo null (or driver-specific) on connection-level
+		// failures, so indexing it directly emitted a warning and masked the
+		// original exception.
+		$driverCode = $exception->errorInfo[1] ?? $exception->getCode();
+		switch ($driverCode) {
 			case 1213:
 
 			case '40P01':
@@ -598,24 +602,27 @@ class Database
 	 */
 	public function begin(bool $nesting = true): bool|int
 	{
+		// Nothing to nest onto: report "not started" without consuming a level.
+		if ($this->transactionLevel > 0 && !$nesting) {
+			return false;
+		}
+
+		$this->transactionLevel++;
+		$level = $this->transactionLevel;
+
 		try {
-			$this->transactionLevel++;
-			if ($this->transactionLevel === 1) {
+			if ($level === 1) {
 				$result = $this->pdo->beginTransaction();
-			} elseif ($nesting) {
+			} else {
 				switch ($this->driverName) {
 					case 'mysql':
 					case 'pgsql':
 					case 'sqlite':
-						$result = $this->pdo->exec(
-							"SAVEPOINT trans$this->transactionLevel"
-						);
+						$result = $this->pdo->exec("SAVEPOINT trans$level");
 						break;
 					default:
 						$result = $this->pdo->beginTransaction();
 				}
-			} else {
-				return false;
 			}
 			if ($result === false) {
 				$info = $this->pdo->errorInfo();
@@ -625,6 +632,9 @@ class Database
 			}
 			return $result;
 		} catch (PDOException $exception) {
+			// Nothing was opened: give the level back, otherwise every later
+			// rollback() would try to unwind a transaction the driver never started.
+			$this->transactionLevel = $level - 1;
 			$this->processPdoException($exception, 'beginTransaction');
 			throw $exception;
 		} finally {
@@ -647,11 +657,18 @@ class Database
 				"There is no active transaction"
 			);
 		}
+
+		// Nothing was opened for this level, so there is nothing to close.
+		if ($this->transactionLevel > 1 && !$nesting) {
+			return false;
+		}
+
+		$level = $this->transactionLevel;
+
 		try {
-			$level = $this->transactionLevel--;
 			if ($level === 1) {
 				$result = $this->pdo->commit();
-			} elseif ($nesting) {
+			} else {
 				switch ($this->driverName) {
 					case 'mysql':
 					case 'pgsql':
@@ -661,8 +678,6 @@ class Database
 					default:
 						$result = $this->pdo->commit();
 				}
-			} else {
-				return false;
 			}
 			if ($result === false) {
 				$info = $this->pdo->errorInfo();
@@ -670,8 +685,12 @@ class Database
 				$ex->errorInfo = $info;
 				throw $ex;
 			}
+			// Consume the level only once the driver has accepted the commit, so a
+			// failed commit still leaves a transaction the caller can roll back.
+			$this->transactionLevel = $level - 1;
 			return $result;
 		} catch (PDOException $exception) {
+			$this->reconcileTransactionLevel();
 			$this->processPdoException($exception, 'commit');
 			throw $exception;
 		} finally {
@@ -694,11 +713,17 @@ class Database
 				"There is no active transaction"
 			);
 		}
+
+		if ($this->transactionLevel > 1 && !$nesting) {
+			return false;
+		}
+
+		$level = $this->transactionLevel;
+
 		try {
-			$level = $this->transactionLevel--;
 			if ($level === 1) {
 				$result = $this->pdo->rollBack();
-			} elseif ($nesting) {
+			} else {
 				switch ($this->driverName) {
 					case 'mysql':
 					case 'pgsql':
@@ -708,8 +733,6 @@ class Database
 					default:
 						$result = $this->pdo->rollBack();
 				}
-			} else {
-				return false;
 			}
 			if ($result === false) {
 				$info = $this->pdo->errorInfo();
@@ -717,14 +740,43 @@ class Database
 				$ex->errorInfo = $info;
 				throw $ex;
 			}
+			$this->transactionLevel = $level - 1;
 			return $result;
 		} catch (PDOException $exception) {
+			$this->reconcileTransactionLevel();
 			$this->processPdoException($exception, 'rollback');
 			throw $exception;
 		} finally {
 			$this->events()->dispatch(
 				new TransactionRolledBack($this, $nesting, $this->transactionLevel)
 			);
+		}
+	}
+
+	/**
+	 * Re-align the nesting counter with the driver after a failed commit/rollback.
+	 *
+	 * A failed COMMIT does not mean the transaction survives: MySQL and PostgreSQL
+	 * discard it (deadlock, deferred constraint), while SQLite leaves it open.
+	 * Keeping the pre-call counter therefore either orphans a live transaction or
+	 * reports one the server already discarded, and the next rollback() then
+	 * replaces the real error with "There is no active transaction".
+	 *
+	 * The driver is authoritative: when it reports no open transaction the counter
+	 * is reset to zero; when it still reports one, the level is kept so the caller
+	 * can unwind it.
+	 */
+	private function reconcileTransactionLevel(): void
+	{
+		if (!isset($this->pdo)) {
+			return;
+		}
+		try {
+			if (!$this->pdo->inTransaction()) {
+				$this->transactionLevel = 0;
+			}
+		} catch (PDOException) {
+			$this->transactionLevel = 0;
 		}
 	}
 
@@ -838,7 +890,3 @@ class Database
 		return $this->driverName;
 	}
 }
-
-// BC shim removed: all consumers reference Database/Database directly.
-
-// BC shim removed: all consumers reference Database/Database directly.

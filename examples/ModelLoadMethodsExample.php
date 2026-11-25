@@ -7,6 +7,7 @@ use Azera\AppContext;
 use Azera\Db\Database;
 use Azera\Db\ModelMapping;
 use Azera\Db\ResultSet;
+use Azera\Db\Sql;
 use Azera\Orm\Model;
 
 /**
@@ -54,11 +55,13 @@ $pdo->exec('CREATE TABLE cart_items (
 
 AppContext::instance()->dbManager()->set('default', new Database('sqlite:' . $dbFile, '', ''));
 
-// Seed some data so the load methods have something to find:
+// Seed some data so the load methods have something to find.
+// Explicit ids keep the find()/update/delete demos below meaningful
+// (an auto-increment key would make `find(10)` return null).
 \Azera\Db\Query::raw()->table('users')->bulkValues([
-    ['username' => 'john', 'email' => 'john@example.com', 'status' => 'active'],
-    ['username' => 'alice', 'email' => 'alice@example.com', 'status' => 'active'],
-    ['username' => 'bob', 'email' => 'bob@example.com', 'status' => 'inactive'],
+    ['id' => 10, 'username' => 'john', 'email' => 'john@example.com', 'status' => 'active'],
+    ['id' => 11, 'username' => 'alice', 'email' => 'alice@example.com', 'status' => 'active'],
+    ['id' => 12, 'username' => 'bob', 'email' => 'bob@example.com', 'status' => 'inactive'],
 ])->insert();
 \Azera\Db\Query::raw()->table('user_products')->bulkValues([
     ['user_id' => 10, 'product_id' => 25, 'quantity' => 2, 'created_at' => date('Y-m-d H:i:s')],
@@ -326,7 +329,7 @@ $user = User::find(10);
 
 // Old way: checking existence
 $exists = User::query()
-    ->columns(['1'])
+    ->columns([Sql::raw('1')])
     ->where('email', 'test@example.com')
     ->select()
     ->fetchColumn() !== null;
@@ -336,7 +339,7 @@ $exists = User::exists(['email' => 'test@example.com']);
 
 // Old way: counting
 $count = User::query()
-    ->columns(['COUNT(*) as count'])
+    ->columns([Sql::raw('COUNT(*) AS count')])
     ->where('status', 'active')
     ->select()
     ->fetchColumn();

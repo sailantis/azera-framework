@@ -7,11 +7,24 @@ use Azera\AppContext;
 /**
  * Base class for MongoDB-backed objects (pairs with #[Entity(store: 'mongo')]).
  *
- * FACADE over the {@see EntityManager}: save()/delete() delegate to the
- * EM's write pipeline (persist + flush), so documents and SQL models go
- * through the SAME diff -> order -> transaction path and land in the SAME
- * request-scoped heap. The #[Entity] attribute's `store` selects the
- * registered store type (EntityManager::setStore()).
+ * FACADE over the {@see EntityManager}: the whole static surface —
+ * {@see find()}, {@see findOrFail()}, {@see findOne()}, {@see findAll()},
+ * {@see create()}, {@see upsert()}, {@see firstOrCreate()},
+ * {@see updateOrCreate()} — is shared with {@see Model} via
+ * {@see Concerns\EntityFacade} and goes through the Store seam, so it behaves
+ * identically on documents and on SQL models. Writes delegate to the EM's
+ * pipeline (persist + flush): documents and SQL models run the SAME
+ * diff -> order -> transaction path and land in the SAME request-scoped heap.
+ * The #[Entity] attribute's `store` selects the registered store type
+ * (EntityManager::setStore()).
+ *
+ * Deliberately NOT a {@see Model} subclass: metadata PK resolution keys off
+ * `isSubclassOf(Model::class)` to apply the SQL `['id']` chain, so extending
+ * it would break the document `_id` convention. For the same reason the
+ * builder-based readers (`query()`, `with()`, `fresh()`, `exists()`,
+ * `count()`) are NOT available here — they compile SQL and would query the
+ * wrong database; use the EntityManager for anything the facade cannot
+ * express.
  *
  * The EM's heap-node diff is authoritative — hydrated documents are
  * heap-tracked, so persist() schedules an UPDATE only when fields actually
@@ -19,6 +32,8 @@ use Azera\AppContext;
  */
 abstract class Document
 {
+    use Concerns\EntityFacade;
+
     /**
      * Which store type handles this document (the registry key
      * EntityManager::setStore() maps to an instance). Mirrors the
@@ -51,28 +66,34 @@ abstract class Document
         return $scheduled;
     }
 
+    /**
+     * Delete this document through the {@see EntityManager} (remove + flush —
+     * one delete by the full key).
+     *
+     * The key check below is kept for its facade-specific message; the
+     * EntityManager enforces the same invariant (and adopts untracked
+     * instances), so this only needs to fail early with a clearer error.
+     *
+     * @throws \RuntimeException when any PK field is unset
+     */
     public function delete(): bool
     {
-        $meta    = Metadata::for(static::class);
-        $pkField = $this->pkField($meta);
+        $pkFields = Metadata::for(static::class)['pkFields'];
 
-        if (($this->{$pkField} ?? null) === null) {
-            throw new \RuntimeException('Cannot delete without PK');
-        }
-
-        AppContext::instance()->entityManager()->remove($this)->flush();
-        return true;
-    }
-
-    private function pkField(array $meta): string
-    {
-        foreach ($meta['columns'] as $field => $col) {
-            if ($col['pk']) {
-                return $field;
+        foreach ($pkFields as $field) {
+            if (!isset($this->{$field})) {
+                throw new \RuntimeException(sprintf(
+                    "Cannot delete %s: ID field '%s' not set (key fields: %s)",
+                    static::class,
+                    $field,
+                    implode(', ', $pkFields)
+                ));
             }
         }
 
-        return 'id';
+        AppContext::instance()->entityManager()->remove($this)->flush();
+
+        return true;
     }
 
     /* -------------------------------------------------------------

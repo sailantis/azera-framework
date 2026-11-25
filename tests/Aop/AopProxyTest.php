@@ -94,6 +94,26 @@ class NonAdvisedService
     }
 }
 
+#[Advised]
+class FinalMethodService
+{
+    #[Retry(times: 2, backoff: 0)]
+    final public function finalAdvised(): string
+    {
+        return 'ok';
+    }
+}
+
+#[Advised]
+final class FinalClassService
+{
+    #[Retry(times: 2, backoff: 0)]
+    public function advised(): string
+    {
+        return 'ok';
+    }
+}
+
 class TestLogger implements LoggerInterface
 {
     public array $entries = [];
@@ -334,5 +354,37 @@ class AopProxyTest extends TestCase
         // CacheService has #[Cache] but not #[Retry] or #[Log]
         $cacheService = $ctx->get(CacheService::class);
         $this->assertInstanceOf(CacheService::class, $cacheService);
+    }
+
+    /**
+     * A final advised method used to produce a PHP fatal ("Cannot override
+     * final method") while the generated proxy file was required, with no
+     * reference to the attribute that caused it.
+     */
+    public function testFinalAdvisedMethodThrowsAnActionableError(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/finalAdvised.*final|final.*finalAdvised/s');
+
+        $ctx->get(FinalMethodService::class);
+    }
+
+    /**
+     * A final class cannot be extended at all, so advice on its methods is
+     * unresolvable; report which class and why instead of failing to declare
+     * the subclass.
+     */
+    public function testFinalAdvisedClassThrowsAnActionableError(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/FinalClassService.*final|final.*FinalClassService/s');
+
+        $ctx->get(FinalClassService::class);
     }
 }

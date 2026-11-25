@@ -384,11 +384,37 @@ class ProxyFactory
             }
 
             if ($matchingAdvices !== []) {
+                if ($method->isFinal() && $ref->isFinal()) {
+                    // Both are final: nothing about this can be intercepted, and
+                    // saying so here beats a fatal during require().
+                    throw new \RuntimeException(
+                        "Cannot apply AOP advice to {$ref->getName()}::{$method->getName()}:"
+                        . ' the class and the method are both final, so no proxy can override it.'
+                    );
+                }
+                if ($method->isFinal()) {
+                    // A generated override of a final method is a fatal error in
+                    // the emitted file, reported with no reference to the attribute
+                    // that caused it.
+                    throw new \RuntimeException(
+                        "Cannot apply AOP advice to {$ref->getName()}::{$method->getName()}:"
+                        . ' the method is final and cannot be overridden by a proxy.'
+                        . ' Remove `final`, or call the logic directly instead of via an advice attribute.'
+                    );
+                }
+
                 $advised[$method->getName()] = [
                     'method'  => $method,
                     'advices' => $matchingAdvices,
                 ];
             }
+        }
+
+        if ($advised !== [] && $ref->isFinal()) {
+            throw new \RuntimeException(
+                "Cannot apply AOP advice to {$ref->getName()}: the class is final, so no proxy"
+                . ' can extend it. Remove `final`, or call the logic directly instead of via an advice attribute.'
+            );
         }
 
         return $advised;

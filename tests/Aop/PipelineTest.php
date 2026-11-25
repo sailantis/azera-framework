@@ -238,6 +238,63 @@ class PipelineTest extends TestCase
         $this->assertNotEmpty($logger->entries);
     }
 
+    /**
+     * Two different callables wrapping the same arguments must not share a
+     * cache entry.
+     *
+     * Every pipeline call reflects the same dummy method, so a key built from
+     * the declaring class alone maps both onto one entry — the second callable
+     * then gets the first one's cached result instead of running.
+     */
+    public function testCacheKeysAreDistinctPerCallable(): void
+    {
+        $cache    = new ArrayCache();
+        $pipeline = new Pipeline([new CacheInterceptor($cache)]);
+
+        $first  = $pipeline->call(fn(string $x) => "A:{$x}", ['k']);
+        $second = $pipeline->call(fn(string $x) => "B:{$x}", ['k']);
+
+        $this->assertSame('A:k', $first);
+        $this->assertSame('B:k', $second, 'the second callable must not read the first one\'s cached value');
+    }
+
+    /**
+     * The same callable called twice must still hit its own entry — the
+     * identity has to be stable, not merely unique.
+     */
+    public function testCacheKeysAreStableForTheSameCallable(): void
+    {
+        $cache    = new ArrayCache();
+        $pipeline = new Pipeline([new CacheInterceptor($cache)]);
+        $calls    = 0;
+
+        $callable = function (int $n) use (&$calls) {
+            $calls++;
+            return $n * 2;
+        };
+
+        $this->assertSame(10, $pipeline->call($callable, [5]));
+        $this->assertSame(10, $pipeline->call($callable, [5]));
+        $this->assertSame(1, $calls);
+    }
+
+    /**
+     * Log lines must name the wrapped callable rather than the shared dummy
+     * handler class, otherwise every pipeline entry in a log is indistinguishable.
+     */
+    public function testLogNamesTheWrappedCallable(): void
+    {
+        $logger = new PipelineTestLogger();
+
+        (new Pipeline([new LogInterceptor($logger)]))->call(fn() => 'ok');
+
+        $messages = implode(' | ', array_column($logger->entries, 'message'));
+
+        $this->assertNotSame('', $messages);
+        $this->assertStringNotContainsString('PipelineHandler', $messages);
+        $this->assertStringContainsString(basename(__FILE__), $messages);
+    }
+
     public function testInvalidInterceptorThrows(): void
     {
         $this->expectException(\InvalidArgumentException::class);
