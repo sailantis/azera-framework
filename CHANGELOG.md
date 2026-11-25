@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Event dispatch caches priority-ordered listeners per event class**, refreshing
+  the cache when `listen()` is called. Class-string listeners remain lazy, and
+  cache size is bounded.
 - **AOP now uses a shared `Invocation` model.** Interceptors implement
   `intercept(Invocation $invocation, callable $next): mixed`; pipelines compose
   once, and generated proxies reuse per-method plans. `Pipeline::call()` accepts

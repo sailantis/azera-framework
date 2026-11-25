@@ -3,7 +3,6 @@
 namespace Azera\Event;
 
 use Azera\AppContext;
-use Closure;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\StoppableEventInterface;
 use RuntimeException;
@@ -33,20 +32,23 @@ use RuntimeException;
 class EventDispatcher implements EventDispatcherInterface
 {
     /**
-     * Map of event class => sorted listener array.
+     * Map of event class => listener entries.
      * Each listener entry is ['handler' => callable|string, 'priority' => int].
+     * Entries are appended in registration order; ordering by priority happens
+     * once when building the per-event dispatch list.
      *
-     * @var array<string, array{handler: callable|string, priority: int}>
+     * @var array<string, list<array{handler: callable|string, priority: int}>>
      */
     private array $listeners = [];
 
     /**
-     * Map of event class => boolean indicating the listener list needs
-     * re-sorting by priority before the next dispatch.
+     * Map of event class => ordered listener entries for that event, including
+     * listeners registered for its parents and interfaces. Cleared on every
+     * {@see listen()} because a new listener can affect any event class.
      *
-     * @var array<string, bool>
+     * @var array<string, list<array{handler: callable|string, priority: int}>>
      */
-    private array $dirty = [];
+    private array $ordered = [];
 
     /**
      * Lazily-resolved listener cache for class-string handlers.
@@ -54,6 +56,12 @@ class EventDispatcher implements EventDispatcherInterface
      * @var array<string, callable>
      */
     private array $resolvedListeners = [];
+
+    /**
+     * Maximum number of event classes kept in the dispatch cache, so dispatching
+     * throw-away event classes (e.g. anonymous classes) cannot grow it unbounded.
+     */
+    private const CACHE_LIMIT = 1024;
 
     public function __construct(
         private ?AppContext $context = null,
@@ -71,15 +79,24 @@ class EventDispatcher implements EventDispatcherInterface
     public function listen(string $eventClass, callable|string $handler, int $priority = 0): void
     {
         $this->listeners[$eventClass][] = ['handler' => $handler, 'priority' => $priority];
-        $this->dirty[$eventClass]       = true;
+
+        // A new listener may apply to any cached event class through inheritance,
+        // so drop every cached dispatch list. Resolved handler instances survive.
+        $this->ordered = [];
     }
 
     public function dispatch(object $event): object
     {
-        $eventClass = $event::class;
+        foreach ($this->resolveListeners($event::class) as $entry) {
+            $handler = $entry['handler'];
 
-        foreach ($this->resolveListeners($eventClass) as $listener) {
-            $listener($event);
+            // Class-string handlers are resolved (and cached) on first use, so a
+            // stoppable event never instantiates listeners it will not reach.
+            if (is_string($handler)) {
+                $handler = $this->resolveHandler($handler);
+            }
+
+            $handler($event);
 
             if ($event instanceof StoppableEventInterface && $event->isPropagationStopped()) {
                 break;
@@ -90,44 +107,51 @@ class EventDispatcher implements EventDispatcherInterface
     }
 
     /**
-     * Resolve all listeners applicable to the given event class,
-     * considering parent classes and implemented interfaces.
+     * Build the ordered listener list for an event class, considering parent
+     * classes and implemented interfaces. The list is cached until the next
+     * {@see listen()} call.
      *
-     * @return iterable<callable>
+     * @return list<array{handler: callable|string, priority: int}>
      */
-    private function resolveListeners(string $eventClass): iterable
+    private function resolveListeners(string $eventClass): array
     {
-        // Collect candidate event types: the class itself, parents, interfaces.
-        $types = [$eventClass];
-        $types = array_merge($types, class_parents($eventClass, false) ?: []);
-        $types = array_merge($types, class_implements($eventClass, false) ?: []);
+        if ($this->listeners === []) {
+            return [];
+        }
 
-        $collected = [];
+        if (isset($this->ordered[$eventClass])) {
+            return $this->ordered[$eventClass];
+        }
 
-        foreach ($types as $type) {
-            if (!isset($this->listeners[$type])) {
-                continue;
-            }
+        // Candidate event types: the class itself, then parents, then interfaces.
+        $collected = $this->listeners[$eventClass] ?? [];
 
-            if ($this->dirty[$type] ?? false) {
-                usort(
-                    $this->listeners[$type],
-                    static fn(array $a, array $b): int => $b['priority'] <=> $a['priority']
-                );
-                $this->dirty[$type] = false;
-            }
-
-            foreach ($this->listeners[$type] as $entry) {
-                $collected[] = $entry;
+        foreach (class_parents($eventClass, false) ?: [] as $parent) {
+            if (isset($this->listeners[$parent])) {
+                foreach ($this->listeners[$parent] as $entry) {
+                    $collected[] = $entry;
+                }
             }
         }
 
-        // Sort the merged collection by priority (stable for same priority).
+        foreach (class_implements($eventClass, false) ?: [] as $interface) {
+            if (isset($this->listeners[$interface])) {
+                foreach ($this->listeners[$interface] as $entry) {
+                    $collected[] = $entry;
+                }
+            }
+        }
+
+        // Higher priority first; PHP's sort is stable, so equal priorities keep
+        // their collection order (own listeners, then parents, then interfaces,
+        // each in registration order).
         usort($collected, static fn(array $a, array $b): int => $b['priority'] <=> $a['priority']);
 
-        foreach ($collected as $entry) {
-            yield $this->resolveHandler($entry['handler']);
+        if (count($this->ordered) >= self::CACHE_LIMIT) {
+            return $collected;
         }
+
+        return $this->ordered[$eventClass] = $collected;
     }
 
     /**
@@ -139,10 +163,10 @@ class EventDispatcher implements EventDispatcherInterface
     private function resolveHandler(callable|string $handler): callable
     {
         if (is_callable($handler)) {
-            return $handler;
+            return $this->resolvedListeners[$handler] = $handler;
         }
 
-        // Class-string handler — resolve via AppContext.
+        // Class-string handler â€” resolve via AppContext.
         if (isset($this->resolvedListeners[$handler])) {
             return $this->resolvedListeners[$handler];
         }
@@ -159,6 +183,6 @@ class EventDispatcher implements EventDispatcherInterface
             );
         }
 
-        return $this->resolvedListeners[$handler] = Closure::fromCallable($instance);
+        return $this->resolvedListeners[$handler] = $instance;
     }
 }
