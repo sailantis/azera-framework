@@ -2,37 +2,33 @@
 
 namespace Azera\Aop;
 
-use ReflectionMethod;
-
 /**
- * Contract for interceptors that wrap advised methods.
+ * The single interceptor contract.
  *
- * An interceptor receives the target object, the reflection method being
- * intercepted, the method arguments, and a `$next` callable that invokes
- * the next interceptor in the chain (or the actual method if this is the
- * last interceptor). Interceptors can:
+ * One implementation serves both the explicit pipeline and the generated proxies:
+ * there is no separate reflection-based flavour to drift from.
  *
- * - Run code before calling `$next()`
- * - Modify the arguments before calling `$next()`
- * - Short-circuit by returning a value without calling `$next()`
- * - Run code after `$next()` returns (post-processing)
- * - Catch/transform exceptions thrown by `$next()`
+ * Implementations may:
+ *
+ * - run code before calling `$next`,
+ * - rewrite the arguments by assigning `$invocation->args = [...]` before calling `$next`,
+ * - short-circuit by returning a value without calling `$next`,
+ * - run code after `$next` returns,
+ * - catch or replace exceptions thrown by `$next`.
+ *
+ * Read the advice for this invocation with `$invocation->advice(MyAdvice::class)`.
+ * In explicit mode that returns null and the constructor configuration applies.
  *
  * Example:
  * ```php
- * class TransactionalInterceptor implements InterceptorInterface
+ * final class RetryInterceptor implements InterceptorInterface
  * {
- *     public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed
+ *     public function intercept(Invocation $invocation, callable $next): mixed
  *     {
- *         $db->begin();
- *         try {
- *             $result = $next($args);
- *             $db->commit();
- *             return $result;
- *         } catch (\Throwable $e) {
- *             $db->rollback();
- *             throw $e;
- *         }
+ *         $advice = $invocation->advice(Retry::class);
+ *         $times  = $advice?->times ?? $this->defaultTimes;
+ *
+ *         return $next($invocation);
  *     }
  * }
  * ```
@@ -40,14 +36,8 @@ use ReflectionMethod;
 interface InterceptorInterface
 {
     /**
-     * Intercept a method invocation.
-     *
-     * @param object           $target  The proxy-wrapped target object.
-     * @param ReflectionMethod $method  The reflection method being intercepted.
-     * @param array            $args    The method arguments (may be modified).
-     * @param callable         $next    Callable that invokes the next handler.
-     *   Receives the (possibly modified) args array and returns the method result.
-     * @return mixed The method result (or a replacement value).
+     * @param Invocation                  $invocation The invocation being intercepted.
+     * @param callable(Invocation): mixed $next       Invokes the next interceptor, or the underlying call.
      */
-    public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed;
+    public function intercept(Invocation $invocation, callable $next): mixed;
 }

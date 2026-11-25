@@ -2,28 +2,29 @@
 
 **Full name:** [Azera\Aop\CacheInterceptor](../../src/Aop/CacheInterceptor.php)
 
-Intercepts methods marked with [`Cache`](Aop_Cache.md) and caches their return values.
+Caches the return value of methods marked with [`Cache`](Aop_Cache.md).
 
-Cache key resolution:
-1. If a custom key template is provided, interpolate `{argName}` placeholders
-   with the method arguments.
-2. Otherwise, build a key from the class name, method name, and a hash
-   of the arguments.
+Key resolution:
+1. If the advice carries a `key` template, `{argName}` placeholders are filled from the
+   invocation's named arguments (transparent mode only — explicit calls are positional).
+2. Otherwise a key is derived from a class/identity name, the method name and a hash of
+   the arguments.
 
-On a cache hit, the method is NOT executed — the cached value is returned.
-On a miss, the method executes and the result is stored with the given TTL.
+Explicit (pipeline) calls have no advice and no argument names; they always use the
+derived key and the `defaultTtl` constructor argument.
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Aop/CacheInterceptor.php#L28)</small>
+### __construct() · <small>[🗎](../../src/Aop/CacheInterceptor.php#L21)</small>
 
-`public function __construct(Psr\SimpleCache\CacheInterface $cache): mixed`
+`public function __construct(Psr\SimpleCache\CacheInterface $cache, int|null $defaultTtl = null): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$cache` | Psr\SimpleCache\CacheInterface | - |  |
+| `$defaultTtl` | int\|null | `null` |  |
 
 **Return value**
 
@@ -32,17 +33,15 @@ On a miss, the method executes and the result is stored with the given TTL.
 
 ---
 
-### intercept() · <small>[🗎](../../src/Aop/CacheInterceptor.php#L32)</small>
+### intercept() · <small>[🗎](../../src/Aop/CacheInterceptor.php#L26)</small>
 
-`public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
+`public function intercept(Azera\Aop\Invocation $invocation, callable $next): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$target` | object | - |  |
-| `$method` | ReflectionMethod | - |  |
-| `$args` | array | - |  |
+| `$invocation` | [Invocation](Aop_Invocation.md) | - |  |
 | `$next` | callable | - |  |
 
 **Return value**
@@ -52,27 +51,19 @@ On a miss, the method executes and the result is stored with the given TTL.
 
 ---
 
-### keyFor() · <small>[🗎](../../src/Aop/CacheInterceptor.php#L88)</small>
+### keyFor() · <small>[🗎](../../src/Aop/CacheInterceptor.php#L54)</small>
 
-`public static function keyFor(string $className, string $methodName, array $args): string`
+`public static function keyFor(string $className, string|null $methodName, array $args): string`
 
-Build the default cache key for a class/method/args triple.
-
-The declaring class name is sanitized because anonymous classes report
-names like "Pipeline.php:150$5" (Windows) or, on Linux, the full
-absolute declaring path — `getShortName()` has no backslash to split on
-there, so the path leaks in. That path is both invalid as a cache key
-and arbitrarily long, so an over-long key is folded into a fixed-length
-digest. It is never truncated: that would drop the args hash and make
-different arguments collide onto a single entry.
+Build the default cache key for an identity/method/args triple.
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$className` | string | - | Declaring class name (may be path-derived). |
-| `$methodName` | string | - | Method name. |
-| `$args` | array | - | Call arguments. |
+| `$className` | string | - | Identity of the unit (class, `file:line`, or caller-supplied label). |
+| `$methodName` | string\|null | - | Method name, or null for explicit calls. |
+| `$args` | array | - | Arguments. |
 
 **Return value**
 

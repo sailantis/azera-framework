@@ -91,13 +91,10 @@ class AppContext
 
     protected array $serviceInstances = [];
 
-    /** @var array<class-string<Advice>, InterceptorInterface|callable> Map of advice class => interceptor (or lazy factory returning one) */
+    /** @var array<class-string<Advice>, \Azera\Aop\InterceptorInterface|callable> Map of advice class => interceptor (or lazy factory returning one) */
     protected array $interceptors = [];
 
     protected ?ProxyFactory $proxyFactory = null;
-
-    /** @var array<string, bool> Cache of whether a class has #[Advised] */
-    private array $advisedCache = [];
 
     // --- Singleton ---
 
@@ -410,8 +407,7 @@ class AppContext
      *
      * Example:
      * ```php
-     * $result = $ctx->pipeline()
-     *     ->through([new RetryInterceptor(3), new LogInterceptor($logger)])
+     * $result = $ctx->pipeline([new RetryInterceptor(3), new LogInterceptor($logger)])
      *     ->call(fn() => $service->chargeCard(100));
      * ```
      *
@@ -443,6 +439,37 @@ class AppContext
     public function registerInterceptor(string $adviceClass, InterceptorInterface|callable $interceptor): void
     {
         $this->interceptors[$adviceClass] = $interceptor;
+
+        // AppContext::get() remembers resolved objects in $serviceDefinitions, and
+        // a class resolved before this interceptor existed was stored unproxied.
+        // Forget only the classes that carry #[Advised]: they are the ones whose
+        // instance depends on the interceptor map. Plain services are untouched.
+        foreach ($this->serviceDefinitions as $id => $_) {
+            if (is_string($id) && class_exists($id) && $this->isAdvisedClass($id)) {
+                unset($this->serviceDefinitions[$id], $this->serviceInstances[$id]);
+            }
+        }
+
+        // A ProxyFactory that is already built holds its own copy of the
+        // interceptor map, so drop it; the next advised instantiation rebuilds it.
+        // The process-wide registry is cleared too: an advised proxy that is
+        // invoked before the next build must not keep running the plan the old
+        // factory memoized for the advice class that just changed.
+        \Azera\Aop\AopRuntime::clearPlans($this->proxyFactory?->namespace() ?? $this->aopNamespace());
+        $this->proxyFactory = null;
+    }
+
+    /** Whether a class is marked `#[Advised]`, walking up the parent chain. */
+    private function isAdvisedClass(string $class): bool
+    {
+        $ref = new \ReflectionClass($class);
+        do {
+            if ($ref->getAttributes(Advised::class) !== []) {
+                return true;
+            }
+        } while ($ref = $ref->getParentClass());
+
+        return false;
     }
 
     /**
@@ -453,23 +480,69 @@ class AppContext
     {
         if ($this->proxyFactory === null) {
             $this->proxyFactory = new ProxyFactory();
-            // Default cache dir: sys_get_temp_dir()/azera_aop (OPcache-friendly).
+            // Set the cache dir BEFORE registering: the factory derives its
+            // AopRuntime namespace from it, and generated proxies bake that
+            // namespace into their source.
+            // Default: sys_get_temp_dir()/azera_aop (OPcache-friendly).
             // Set to null via setAopCacheDir(null) to use eval (development).
-            $this->proxyFactory->setCacheDir(
-                $this->aopCacheDir
-                    ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera_aop'
-            );
+            $this->proxyFactory->setCacheDir($this->aopCacheDir ?? $this->defaultAopCacheDir());
+
             foreach ($this->interceptors as $adviceClass => $interceptor) {
                 // Resolve lazy factories exactly once, at ProxyFactory build
                 // time (first advised-class instantiation) — not at boot.
-                $this->proxyFactory->register(
-                    $adviceClass,
-                    $interceptor instanceof InterceptorInterface ? $interceptor : $interceptor()
-                );
+                // Interceptor instances are used as-is; anything else callable
+                // (a Closure is an object too) is a factory.
+                $resolved = $interceptor instanceof InterceptorInterface
+                    ? $interceptor
+                    : $interceptor();
+
+                $this->proxyFactory->register($adviceClass, $resolved);
             }
-            ProxyFactory::setCurrent($this->proxyFactory);
+
+            // Publish even when empty so a context with no interceptors clears
+            // any map/plan a previous instance left under this namespace.
+            \Azera\Aop\AopRuntime::setInterceptors(
+                $this->proxyFactory->namespace(),
+                $this->resolvedInterceptorMap(),
+            );
         }
         return $this->proxyFactory;
+    }
+
+    /**
+     * The interceptor map with every lazy factory resolved, without building a
+     * factory or publishing anything.
+     *
+     * @return array<class-string<Advice>, InterceptorInterface>
+     */
+    private function resolvedInterceptorMap(): array
+    {
+        $resolved = [];
+
+        foreach ($this->interceptors as $adviceClass => $interceptor) {
+            $resolved[$adviceClass] = $interceptor instanceof InterceptorInterface
+                ? $interceptor
+                : $interceptor();
+        }
+
+        return $resolved;
+    }
+
+    /** The default AOP proxy cache directory (OPcache-friendly, writable). */
+    private function defaultAopCacheDir(): string
+    {
+        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera_aop';
+    }
+
+    /**
+     * The namespace this context's proxies will publish under.
+     *
+     * Mirrors {@see ProxyFactory::namespace()} for the directory the factory will
+     * use, including before the factory exists.
+     */
+    private function aopNamespace(): string
+    {
+        return 'factory:' . ($this->aopCacheDir ?? $this->defaultAopCacheDir());
     }
 
     /**
@@ -483,27 +556,28 @@ class AppContext
      */
     public function setAopCacheDir(?string $dir): void
     {
+        $this->aopCacheDir = $dir;
+
         if ($this->proxyFactory !== null) {
             $this->proxyFactory->setCacheDir($dir);
         }
-        $this->aopCacheDir = $dir;
     }
 
     /** @var string|null AOP cache directory (stored before proxyFactory is created). */
     private ?string $aopCacheDir = null;
 
     /**
-     * Check if a class is marked with #[Advised] and has at least one
-     * method with a registered advice attribute. Cached per class.
+     * Whether a class carries `#[Advised]` and at least one method whose advice
+     * has a registered interceptor.
+     *
+     * Never memoised: the answer depends on the *current* interceptor map, and
+     * memoising it per class name cached "not advised" forever when a class was
+     * resolved before its interceptor was registered. The scan below is a handful
+     * of reflection reads on a class we are constructing right now, which is
+     * irrelevant next to instantiation.
      */
     private function hasAdvisedMethods(\ReflectionClass $ref): bool
     {
-        $className = $ref->getName();
-
-        if (isset($this->advisedCache[$className])) {
-            return $this->advisedCache[$className];
-        }
-
         // Fast check: class (or any parent) must have #[Advised] attribute.
         // Class-level attributes are NOT inherited by PHP, so we walk
         // up the parent chain ourselves.
@@ -517,7 +591,7 @@ class AppContext
         } while ($class = $class->getParentClass());
 
         if (!$hasAdvised) {
-            return $this->advisedCache[$className] = false;
+            return false;
         }
 
         // Check if any method has a registered advice attribute.
@@ -527,12 +601,12 @@ class AppContext
             foreach ($method->getAttributes() as $attr) {
                 $attrClass = $attr->getName();
                 if (isset($this->interceptors[$attrClass])) {
-                    return $this->advisedCache[$className] = true;
+                    return true;
                 }
             }
         }
 
-        return $this->advisedCache[$className] = false;
+        return false;
     }
 
     // --- Critical Services ---

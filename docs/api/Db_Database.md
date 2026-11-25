@@ -264,7 +264,7 @@ concurrently without clobbering a single shared slot.
 
 ---
 
-### selectRow() · <small>[🗎](../../src/Db/Database.php#L507)</small>
+### selectRow() · <small>[🗎](../../src/Db/Database.php#L511)</small>
 
 `public function selectRow(string $query, array|null $params = null, int $fetchMode = 0): array|bool`
 
@@ -285,7 +285,7 @@ Fetch a single row from the database as object, associative array, or numeric ar
 
 ---
 
-### selectAll() · <small>[🗎](../../src/Db/Database.php#L522)</small>
+### selectAll() · <small>[🗎](../../src/Db/Database.php#L526)</small>
 
 `public function selectAll(string $query, array|null $params = null, int $fetchMode = 0): array`
 
@@ -306,7 +306,7 @@ Fetch all rows from the database as an array of objects, associative arrays, or 
 
 ---
 
-### rowCount() · <small>[🗎](../../src/Db/Database.php#L534)</small>
+### rowCount() · <small>[🗎](../../src/Db/Database.php#L538)</small>
 
 `public function rowCount(): int`
 
@@ -320,7 +320,7 @@ Return the number of rows affected by the last executed statement.
 
 ---
 
-### getDefaultFetchMode() · <small>[🗎](../../src/Db/Database.php#L545)</small>
+### getDefaultFetchMode() · <small>[🗎](../../src/Db/Database.php#L549)</small>
 
 `public function getDefaultFetchMode(): int`
 
@@ -336,7 +336,7 @@ every result set.
 
 ---
 
-### inTransaction() · <small>[🗎](../../src/Db/Database.php#L559)</small>
+### inTransaction() · <small>[🗎](../../src/Db/Database.php#L563)</small>
 
 `public function inTransaction(): bool`
 
@@ -350,7 +350,7 @@ Whether a transaction is currently active on this connection
 
 ---
 
-### lastInsertId() · <small>[🗎](../../src/Db/Database.php#L563)</small>
+### lastInsertId() · <small>[🗎](../../src/Db/Database.php#L567)</small>
 
 `public function lastInsertId(string|null $table = null, string|null $field = null): string|bool`
 
@@ -368,7 +368,7 @@ Whether a transaction is currently active on this connection
 
 ---
 
-### begin() · <small>[🗎](../../src/Db/Database.php#L599)</small>
+### begin() · <small>[🗎](../../src/Db/Database.php#L603)</small>
 
 `public function begin(bool $nesting = true): int|bool`
 
@@ -392,7 +392,7 @@ Begin a new transaction, or create a savepoint if nested transactions are enable
 
 ---
 
-### commit() · <small>[🗎](../../src/Db/Database.php#L643)</small>
+### commit() · <small>[🗎](../../src/Db/Database.php#L653)</small>
 
 `public function commit(bool $nesting = true): int|bool`
 
@@ -416,7 +416,7 @@ Commit the current transaction or release the current savepoint (for nested tran
 
 ---
 
-### rollback() · <small>[🗎](../../src/Db/Database.php#L690)</small>
+### rollback() · <small>[🗎](../../src/Db/Database.php#L709)</small>
 
 `public function rollback(bool $nesting = true): int|bool`
 
@@ -439,7 +439,7 @@ Rollback the current transaction or to a savepoint if nesting is enabled and sup
 
 ---
 
-### quote() · <small>[🗎](../../src/Db/Database.php#L736)</small>
+### quote() · <small>[🗎](../../src/Db/Database.php#L788)</small>
 
 `public function quote(string|null $str): string|bool`
 
@@ -458,7 +458,7 @@ Quote a string for use in a query.
 
 ---
 
-### quoteIdentifier() · <small>[🗎](../../src/Db/Database.php#L751)</small>
+### quoteIdentifier() · <small>[🗎](../../src/Db/Database.php#L803)</small>
 
 `public function quoteIdentifier(string|null ...$args): string`
 
@@ -480,7 +480,7 @@ Parts are joined with a dot separator. NULL parts are skipped. "*" is passed thr
 
 ---
 
-### getInternalConnection() · <small>[🗎](../../src/Db/Database.php#L780)</small>
+### getInternalConnection() · <small>[🗎](../../src/Db/Database.php#L832)</small>
 
 `public function getInternalConnection(): PDO|null`
 
@@ -494,7 +494,7 @@ Return the underlying PDO connection instance.
 
 ---
 
-### builder() · <small>[🗎](../../src/Db/Database.php#L789)</small>
+### builder() · <small>[🗎](../../src/Db/Database.php#L841)</small>
 
 `public function builder(): Azera\Db\Query`
 
@@ -507,7 +507,7 @@ Create a new Query builder instance associated with this database connection.
 
 ---
 
-### supportsReturning() · <small>[🗎](../../src/Db/Database.php#L802)</small>
+### supportsReturning() · <small>[🗎](../../src/Db/Database.php#L854)</small>
 
 `public function supportsReturning(): bool`
 
@@ -523,7 +523,7 @@ also support it. Older servers must fall back to lastInsertId() for ID backfilli
 
 ---
 
-### getDriver() · <small>[🗎](../../src/Db/Database.php#L836)</small>
+### getDriver() · <small>[🗎](../../src/Db/Database.php#L888)</small>
 
 `public function getDriver(): string`
 

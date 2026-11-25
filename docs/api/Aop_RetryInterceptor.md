@@ -2,18 +2,17 @@
 
 **Full name:** [Azera\Aop\RetryInterceptor](../../src/Aop/RetryInterceptor.php)
 
-Intercepts methods marked with [`Retry`](Aop_Retry.md) and retries them on failure.
+Retries methods marked with [`Retry`](Aop_Retry.md) on failure.
 
-Retries up to `$times` attempts (including the first). Between retries,
-sleeps for `$backoff` milliseconds. If all attempts fail, the last
-exception is re-thrown.
+`times` is the total number of attempts (including the first). Between attempts the
+interceptor sleeps for `backoff` milliseconds. If every attempt fails, the last exception
+is re-thrown.
 
-When used in the explicit [`Pipeline`](Aop_Pipeline.md) (no attribute), the constructor
-defaults for `times` and `backoff` are used.
+Explicit (pipeline) calls have no attribute; `defaultTimes` / `defaultBackoff` apply.
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Aop/RetryInterceptor.php#L21)</small>
+### __construct() · <small>[🗎](../../src/Aop/RetryInterceptor.php#L19)</small>
 
 `public function __construct(Psr\Log\LoggerInterface|null $logger = null, int $defaultTimes = 3, int $defaultBackoff = 0): mixed`
 
@@ -32,17 +31,15 @@ defaults for `times` and `backoff` are used.
 
 ---
 
-### intercept() · <small>[🗎](../../src/Aop/RetryInterceptor.php#L27)</small>
+### intercept() · <small>[🗎](../../src/Aop/RetryInterceptor.php#L25)</small>
 
-`public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
+`public function intercept(Azera\Aop\Invocation $invocation, callable $next): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$target` | object | - |  |
-| `$method` | ReflectionMethod | - |  |
-| `$args` | array | - |  |
+| `$invocation` | [Invocation](Aop_Invocation.md) | - |  |
 | `$next` | callable | - |  |
 
 **Return value**

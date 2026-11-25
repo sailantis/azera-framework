@@ -55,6 +55,8 @@ area you need.
 - [Cache](14-CACHE.md) — PSR-16 caching and built-in implementations.
 - [Queues](15-QUEUES.md) — Synchronous jobs and async queue contracts.
 - [AOP](16-AOP.md) — Method interceptors and built-in advice attributes.
+- [Upgrading](UPGRADING.md) — How to migrate custom interceptors to the 0.7
+  invocation-based contract.
 - [Configuration](17-CONFIG.md) — Dot-notation access and environment overlays.
 - [Enterprise Security](18-SECURITY-ENTERPRISE.md) — CSRF, rate limiting,
   password hashing, and authentication contracts.

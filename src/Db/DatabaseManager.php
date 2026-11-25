@@ -112,6 +112,23 @@ class DatabaseManager
     }
 
     /**
+     * Get the Database instance for a role **if it is already instantiated**,
+     * without invoking its factory.
+     *
+     * Lets diagnostics inspect live connection state (for example to find
+     * connections left inside a transaction) without opening every configured
+     * connection as a side effect.
+     *
+     * @param string $role The role to inspect.
+     * @return Database|null The instance, or null when the role is unknown or its
+     *   factory has not run yet.
+     */
+    public function peek(string $role): ?Database
+    {
+        return $this->instances[$role] ?? null;
+    }
+
+    /**
      * Get the default Database instance.
      *
      * @return Database The default Database instance

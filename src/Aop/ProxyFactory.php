@@ -42,11 +42,36 @@ class ProxyFactory
      * one, and stale files on disk are simply never matched again.
      *
      * v2: the class name became deterministic (it used to be randomised).
+     * v3: the emitted body is straight-line explicit AOP — interceptors are
+     *     resolved once and invoked directly, with no per-call chain building
+     *     and no per-call ReflectionMethod. Proxy argument arrays now carry
+     *     references, so by-reference parameters are no longer silently copied.
+     * v4: the emitted body no longer resolves interceptors at all. Each advised
+     *     method builds one Invocation and runs the precomposed Pipeline that
+     *     AopRuntime memoizes per (class, method); advice attributes are read
+     *     once per process by AopRuntime, not per call.
+     * v5: per-instance terminal closures were replaced by a runtime-held, per-instance
+     *     terminal store. A closure cached on the proxy was bound to the instance that
+     *     first called the method, so a `clone` inherited a terminal bound to the
+     *     original (and the proxy stopped being serializable). Proxies now bake an
+     *     interceptor NAMESPACE into the emitted source as well, so two factories in
+     *     one process no longer overwrite each other's registry.
      */
-    private const GENERATOR_VERSION = 2;
+    private const GENERATOR_VERSION = 5;
 
     /** @var array<class-string<Advice>, InterceptorInterface> */
     private array $interceptors = [];
+
+    /**
+     * Namespace this factory publishes its interceptors under.
+     *
+     * Baked into every generated proxy so the proxy resolves the registry entry that
+     * belongs to THIS factory. Derived from the cache directory, so a cached proxy
+     * file keeps working in the process that loads it later (the factory there
+     * publishes under the same directory), and two factories with different cache
+     * directories never share an entry.
+     */
+    private ?string $namespace = null;
 
     /** @var array<string, class-string|null> */
     private array $proxyClassCache = [];
@@ -57,9 +82,28 @@ class ProxyFactory
     /** Cache directory for file-based proxy generation. Null = use eval(). */
     private ?string $cacheDir = null;
 
+    /**
+     * Register the interceptor for one advice class, replacing any previous one.
+     *
+     * The resolved map is published to {@see AopRuntime} so generated proxies can
+     * resolve their precomposed chains without holding a factory reference.
+     */
     public function register(string $adviceClass, InterceptorInterface $interceptor): void
     {
         $this->interceptors[$adviceClass] = $interceptor;
+        AopRuntime::setInterceptor($this->namespace(), $adviceClass, $interceptor);
+    }
+
+    /**
+     * The namespace this factory publishes under.
+     *
+     * Lazily derived so `register()` before `setCacheDir()` still lands somewhere
+     * sane, and so `setCacheDir()` can move a factory to its final namespace.
+     * `AppContext::proxyFactory()` sets the directory first, then registers.
+     */
+    public function namespace(): string
+    {
+        return $this->namespace ??= 'factory:' . ($this->cacheDir ?? 'eval');
     }
 
     /**
@@ -73,6 +117,16 @@ class ProxyFactory
     public function setCacheDir(?string $dir): void
     {
         $this->cacheDir = $dir !== null ? rtrim($dir, '/\\') : null;
+
+        // The namespace is derived from the directory and baked into generated
+        // source, so a directory change must also move an already-registered map
+        // and discard any proxy cached under the old namespace.
+        $this->namespace = 'factory:' . ($this->cacheDir ?? 'eval');
+        $this->proxyClassCache = [];
+
+        if ($this->interceptors !== []) {
+            AopRuntime::setInterceptors($this->namespace, $this->interceptors);
+        }
     }
 
     public function getCacheDir(): ?string
@@ -135,9 +189,16 @@ class ProxyFactory
             return $this->proxyClassCache[$className] = null;
         }
 
+        // Both caches are keyed by namespace + class: the namespace is baked into
+        // the emitted source, so two factories with different cache directories
+        // produce DIFFERENT proxy classes for the same target. Keying on the class
+        // name alone would hand the second factory the first factory's proxy, and
+        // that proxy resolves plans under the first factory's namespace.
+        $cacheKey = $this->namespace() . "\0" . $className;
+
         // In-process cache: already loaded in this PHP process?
-        if (isset(self::$loadedProxies[$className])) {
-            return $this->proxyClassCache[$className] = self::$loadedProxies[$className];
+        if (isset(self::$loadedProxies[$cacheKey])) {
+            return $this->proxyClassCache[$className] = self::$loadedProxies[$cacheKey];
         }
 
         $methodsCode = $this->generateProxyCode($ref, $advisedMethods);
@@ -153,7 +214,7 @@ class ProxyFactory
             $proxyClass = get_class($instance);
         }
 
-        self::$loadedProxies[$className] = $proxyClass;
+        self::$loadedProxies[$cacheKey] = $proxyClass;
         return $this->proxyClassCache[$className] = $proxyClass;
     }
 
@@ -431,6 +492,9 @@ class ProxyFactory
             $methods[] = $this->generateMethodOverride($info['method'], $info['advices']);
         }
 
+        // Per-(class, method) process-global plan: precomposed pipeline plus
+        // the baked advice map. Built on first call by AopRuntime, memoized
+        // thereafter — nothing is derived per call.
         return implode("\n\n", $methods);
     }
 
@@ -464,47 +528,73 @@ class ProxyFactory
     /**
      * Generate the override for a single advised method.
      *
-     * The proxy IS the instance, so the innermost handler calls
-     * parent::method() directly — no separate target object.
+     * The emitted body builds one {@see Invocation} per call and hands it to the
+     * process-wide precomposed {@see AopPlan} for this (class, method) — the
+     * interceptors, the advice map, the parameter names and the registry namespace
+     * are resolved once per process by {@see AopRuntime::plan()}, never per call.
+     *
+     * The terminal (`parent::method(...)`) is allocated per call, deliberately.
+     * Caching it on the proxy instance was a defect with three faces:
+     *
+     * - **`clone`.** The cached closure was bound to the instance that first called
+     *   the method, so a clone inherited a terminal bound to the ORIGINAL. An advised
+     *   method on the clone then ran `parent::method` against the original object.
+     * - **Serialization.** After the first advised call the property held a Closure,
+     *   so the proxy could no longer be serialized (session, queue, cache payloads) —
+     *   a regression against the closure-free object it used to be.
+     * - **Property collisions.** The generated property name was derived from the
+     *   method name, so a target class that already declared it produced a fatal
+     *   "access level must not be reduced" error in the emitted file.
+     *
+     * The proxy therefore declares no properties at all, which makes it clone-safe,
+     * serializable, and immune to name collisions without generating `__clone` /
+     * `__serialize` hooks — hooks that cannot be emitted correctly in general,
+     * because a parent class may already define them with its own payload shape.
+     *
+     * Two details that are easy to get wrong and were both wrong before:
+     *
+     * - **By-reference parameters.** The old body collected arguments as values
+     *   (`[$x, $arr]`), so a `&$array` parameter arrived as a copy and mutations
+     *   were silently lost. References are now carried explicitly
+     *   (`[$x, &$arr]`, `...$rest`), and PHP preserves reference elements when the
+     *   array is spread into the by-reference variadic terminal.
+     * - **`void` methods.** A `return expr;` in a void function is a fatal
+     *   error, so void overrides invoke the chain as a statement.
      */
     private function generateMethodOverride(ReflectionMethod $method, array $adviceClasses): string
     {
-        $methodName      = $method->getName();
-        $params          = $this->generateParameterList($method);
-        $argsArray       = $this->generateArgsArray($method);
-        $returnType      = $this->generateReturnType($method);
-        $isVoid          = $this->isVoidMethod($method);
-        $returnStatement = $isVoid ? "\$chain(\$args);" : "return \$chain(\$args);";
+        $methodName    = $method->getName();
+        $targetClass   = $method->getDeclaringClass()->getName();
+        $params        = $this->generateParameterList($method);
+        $argsArray     = $this->generateArgsArray($method);
+        $returnType    = $this->generateReturnType($method);
+        $isVoid        = $this->isVoidMethod($method);
+        $adviceList    = implode(', ', array_map(
+            static fn(string $advice): string => var_export($advice, true),
+            array_values($adviceClasses),
+        ));
+        $namespace     = var_export($this->namespace(), true);
 
-        $chainArray = implode(', ', array_map(fn($c) => "'{$c}'", $adviceClasses));
+        $handle = "        \$__plan = \\Azera\\Aop\\AopRuntime::plan({$namespace}, " . var_export($targetClass, true) . ", "
+            . var_export($methodName, true) . ", [{$adviceList}]);\n"
+            . "        \$__invocation = new \\Azera\\Aop\\Invocation(\n"
+            . "            target: \$this,\n"
+            . "            method: " . var_export($methodName, true) . ",\n"
+            . "            identity: " . var_export($targetClass . '::' . $methodName, true) . ",\n"
+            . "            args: {$argsArray},\n"
+            . "            advice: \$__plan->advice,\n"
+            . "            parameterNames: \$__plan->parameterNames,\n"
+            . "        );\n"
+            . "        \$__invocation->attributes[\\Azera\\Aop\\Pipeline::ATTR_CALLABLE] = fn(&...\$__a) => parent::{$methodName}(...\$__a);\n";
+
+        $body = $isVoid
+            ? $handle . "        \$__plan->pipeline->handle(\$__invocation);"
+            : $handle . "        return \$__plan->pipeline->handle(\$__invocation);";
 
         return <<<PHP
     public function {$methodName}({$params}){$returnType}
     {
-        \$factory = \\Azera\\Aop\\ProxyFactory::current();
-        \$ref = new \\ReflectionMethod(parent::class, '{$methodName}');
-        \$args = {$argsArray};
-
-        \$adviceClasses = [{$chainArray}];
-        \$interceptors = [];
-        foreach (\$adviceClasses as \$adviceClass) {
-            \$interceptors[] = \$factory->getInterceptor(\$adviceClass);
-        }
-
-        // Innermost handler: call parent::method()
-        \$chain = function (array \$a) {
-            return parent::{$methodName}(...\$a);
-        };
-
-        // Wrap interceptors in reverse order (first registered = outermost)
-        for (\$i = count(\$interceptors) - 1; \$i >= 0; \$i--) {
-            \$interceptor = \$interceptors[\$i];
-            \$chain = function (array \$a) use (\$interceptor, \$ref, \$chain) {
-                return \$interceptor->intercept(\$this, \$ref, \$a, \$chain);
-            };
-        }
-
-        {$returnStatement}
+{$body}
     }
 PHP;
     }
@@ -550,9 +640,22 @@ PHP;
         foreach ($method->getParameters() as $param) {
             $name = $param->getName();
             if ($param->isVariadic()) {
-                $args[] = "...\\\${$name}";
+                // A by-reference variadic (`&...$refs`) IS legal PHP, and each
+                // element of the variadic array is a live reference to the caller's
+                // variable. Spreading it into the args array literal keeps those
+                // references, so mutations reach the caller exactly as for a single
+                // `&$x` parameter. (The old comment claimed variadics could not be
+                // by-reference and dropped the reference; spreading an empty
+                // variadic is a no-op, so this is also the correct shape for a
+                // by-value variadic.)
+                $args[] = '...$' . $name;
+            } elseif ($param->isPassedByReference()) {
+                // Carry the reference, not a copy. The old generator emitted
+                // "$arr", so a &$array parameter reached the parent method as a
+                // value and every mutation was silently discarded.
+                $args[] = '&$' . $name;
             } else {
-                $args[] = "\${$name}";
+                $args[] = '$' . $name;
             }
         }
         return '[' . implode(', ', $args) . ']';
@@ -585,20 +688,12 @@ PHP;
         return '';
     }
 
-    // --- Static registry ---
-
-    private static ?ProxyFactory $current = null;
-
-    public static function setCurrent(?ProxyFactory $factory): void
-    {
-        self::$current = $factory;
-    }
-
-    public static function current(): ?ProxyFactory
-    {
-        return self::$current;
-    }
-
+    /**
+     * The interceptor registered for one advice class.
+     *
+     * Exposed for diagnostics and tests; generated proxies resolve their plan
+     * through {@see AopRuntime} instead.
+     */
     public function getInterceptor(string $adviceClass): InterceptorInterface
     {
         return $this->interceptors[$adviceClass];

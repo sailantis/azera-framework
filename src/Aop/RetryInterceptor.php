@@ -3,18 +3,16 @@
 namespace Azera\Aop;
 
 use Psr\Log\LoggerInterface;
-use ReflectionMethod;
 use Throwable;
 
 /**
- * Intercepts methods marked with {@see Retry} and retries them on failure.
+ * Retries methods marked with {@see Retry} on failure.
  *
- * Retries up to `$times` attempts (including the first). Between retries,
- * sleeps for `$backoff` milliseconds. If all attempts fail, the last
- * exception is re-thrown.
+ * `times` is the total number of attempts (including the first). Between attempts the
+ * interceptor sleeps for `backoff` milliseconds. If every attempt fails, the last exception
+ * is re-thrown.
  *
- * When used in the explicit {@see Pipeline} (no attribute), the constructor
- * defaults for `times` and `backoff` are used.
+ * Explicit (pipeline) calls have no attribute; `defaultTimes` / `defaultBackoff` apply.
  */
 class RetryInterceptor implements InterceptorInterface
 {
@@ -24,24 +22,32 @@ class RetryInterceptor implements InterceptorInterface
         private int $defaultBackoff = 0,
     ) {}
 
-    public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed
+    public function intercept(Invocation $invocation, callable $next): mixed
     {
-        $advice    = $this->getAdvice($method);
-        $attempts  = $advice->times;
-        $backoffMs = $advice->backoff;
+        $advice  = $invocation->advice(Retry::class);
+        $times   = $advice?->times ?? $this->defaultTimes;
+        $backoff = $advice?->backoff ?? $this->defaultBackoff;
 
+        return $this->attempt($invocation, $next, max(1, $times), $backoff);
+    }
+
+    /**
+     * @param callable(Invocation): mixed $next
+     */
+    private function attempt(Invocation $invocation, callable $next, int $times, int $backoffMs): mixed
+    {
         $lastException = null;
 
-        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+        for ($attempt = 1; $attempt <= $times; $attempt++) {
             try {
-                return $next($args);
+                return $next($invocation);
             } catch (Throwable $e) {
                 $lastException = $e;
 
-                if ($attempt < $attempts) {
+                if ($attempt < $times) {
                     $this->logger?->debug(
-                        "Retrying {$method->getName()} (attempt {$attempt}/{$attempts})",
-                        ['exception' => $e->getMessage(), 'backoff_ms' => $backoffMs]
+                        "Retrying {$invocation->identity} (attempt {$attempt}/{$times})",
+                        ['exception' => $e->getMessage(), 'backoff_ms' => $backoffMs],
                     );
 
                     if ($backoffMs > 0) {
@@ -52,15 +58,5 @@ class RetryInterceptor implements InterceptorInterface
         }
 
         throw $lastException;
-    }
-
-    private function getAdvice(ReflectionMethod $method): Retry
-    {
-        $attrs = $method->getAttributes(Retry::class);
-        if ($attrs === []) {
-            // No attribute (explicit pipeline) — use constructor defaults.
-            return new Retry(times: $this->defaultTimes, backoff: $this->defaultBackoff);
-        }
-        return $attrs[0]->newInstance();
     }
 }

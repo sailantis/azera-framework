@@ -5,6 +5,7 @@ namespace Azera\Tests\Aop;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Azera\Aop\Advised;
+use Azera\Aop\Invocation;
 use Azera\Aop\Transactional;
 use Azera\Aop\TransactionalInterceptor;
 use Azera\AppContext;
@@ -16,8 +17,7 @@ use Throwable;
 
 #[Advised]
 class TransactionalService
-{
-    public function __construct(public Database $db) {}
+{    public function __construct(public Database $db) {}
 
     #[Transactional]
     public function writesThenSucceeds(): string
@@ -50,6 +50,21 @@ class TransactionalService
     {
         $this->db->query("INSERT INTO t (v) VALUES ('inner')");
         throw new RuntimeException('inner boom');
+    }
+}
+
+/**
+ * Fixture for connection-role validation: names a role that does not exist.
+ */
+#[Advised]
+class UnknownRoleService
+{
+    public function __construct(public Database $db) {}
+
+    #[Transactional(connection: 'analytcs')]
+    public function go(): string
+    {
+        return 'ok';
     }
 }
 
@@ -89,6 +104,21 @@ class TransactionalInterceptorTest extends TestCase
         return array_map(
             static fn(object $row) => $row->v,
             $this->db->query('SELECT v FROM t ORDER BY rowid')->fetchAll(),
+        );
+    }
+
+    /**
+     * Build the Invocation the proxy would hand the interceptor, so the direct
+     * `intercept()` calls below exercise the same shape the generated code uses.
+     */
+    private function invocation(object|string|null $target, ?string $method, array $advice = [], ?string $identity = null): Invocation
+    {
+        return new Invocation(
+            target: $target,
+            method: $method,
+            identity: $identity ?? (is_object($target) ? $target::class . '::' . ($method ?? '__invoke') : 'test'),
+            args: [],
+            advice: $advice,
         );
     }
 
@@ -164,9 +194,7 @@ class TransactionalInterceptorTest extends TestCase
         $caught = null;
         try {
             $interceptor->intercept(
-                new \stdClass(),
-                new \ReflectionMethod(TransactionalService::class, 'writesThenSucceeds'),
-                [],
+                $this->invocation(new \stdClass(), 'writesThenSucceeds', [Transactional::class => new Transactional()], 'TransactionalService::writesThenSucceeds'),
                 static function () use ($db) {
                     $db->query('INSERT INTO child (parent_id) VALUES (999)');
                     return 'done';
@@ -199,5 +227,144 @@ class TransactionalInterceptorTest extends TestCase
         $this->db->commit();
         $this->assertSame(0, $this->level());
         $this->assertFalse($this->pdoInTransaction());
+    }
+
+    /**
+     * A role that is not configured must fail loudly.
+     *
+     * `DatabaseManager::getOrDefault()` silently returns the default connection
+     * for an unknown role, so a typo like `#[Transactional('analytcs')]` would
+     * write to the wrong database with no warning at all.
+     */
+    public function testUnknownConnectionRoleIsRejected(): void
+    {
+        $interceptor = new TransactionalInterceptor(AppContext::instance()->dbManager());
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/analytcs/');
+
+        $interceptor->intercept(
+            $this->invocation(
+                new UnknownRoleService($this->db),
+                'go',
+                [Transactional::class => new Transactional('analytcs')],
+                'UnknownRoleService::go',
+            ),
+            static fn() => 'ok',
+        );
+    }
+
+    /**
+     * A typo'd role error must also name the roles that *are* configured, so the
+     * fix is obvious from the message alone.
+     */
+    public function testUnknownRoleErrorListsConfiguredRoles(): void
+    {
+        AppContext::instance()->dbManager()->set('analytics', new Database('sqlite::memory:'));
+
+        $interceptor = new TransactionalInterceptor(AppContext::instance()->dbManager());
+
+        try {
+            $interceptor->intercept(
+                $this->invocation(
+                    new UnknownRoleService($this->db),
+                    'go',
+                    [Transactional::class => new Transactional('analytcs')],
+                    'UnknownRoleService::go',
+                ),
+                static fn() => 'ok',
+            );
+            $this->fail('expected the unknown role to be rejected');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('write', $e->getMessage());
+            $this->assertStringContainsString('analytics', $e->getMessage());
+        }
+    }
+
+    /**
+     * The cross-connection leak is the one thing the interceptor cannot see
+     * statically: the body may write through a role the advice never opened, so
+     * those writes are never committed. Detectable at runtime, behind a flag.
+     */
+    public function testLeakedConnectionIsDetectedWhenEnabled(): void
+    {
+        $manager = AppContext::instance()->dbManager();
+        $tenant  = new Database('sqlite::memory:');
+        $manager->set('tenant_a', $tenant);
+
+        $interceptor = new TransactionalInterceptor($manager, detectLeakedConnections: true);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/tenant_a/');
+
+        try {
+            $interceptor->intercept(
+                $this->invocation(
+                    new TransactionalService($this->db),
+                    'writesThenSucceeds',
+                    [Transactional::class => new Transactional()],
+                    'TransactionalService::writesThenSucceeds',
+                ),
+                static function () use ($tenant) {
+                    $tenant->begin();
+
+                    return 'ok';
+                },
+            );
+        } finally {
+            if ($tenant->inTransaction()) {
+                $tenant->rollback();
+            }
+        }
+    }
+
+    public function testLeakedConnectionIsIgnoredWhenDisabled(): void
+    {
+        $manager = AppContext::instance()->dbManager();
+        $tenant  = new Database('sqlite::memory:');
+        $manager->set('tenant_a', $tenant);
+
+        $interceptor = new TransactionalInterceptor($manager);
+
+        $tenant->begin();
+
+        try {
+            $result = $interceptor->intercept(
+                $this->invocation(
+                    new TransactionalService($this->db),
+                    'writesThenSucceeds',
+                    [Transactional::class => new Transactional()],
+                    'TransactionalService::writesThenSucceeds',
+                ),
+                static fn() => 'ok',
+            );
+            $this->assertSame('ok', $result);
+        } finally {
+            if ($tenant->inTransaction()) {
+                $tenant->rollback();
+            }
+        }
+    }
+
+    /**
+     * peeking must not instantiate a role whose factory has never run, otherwise
+     * the leak check would open every configured connection.
+     */
+    public function testPeekDoesNotOpenUnusedConnections(): void
+    {
+        $manager = new DatabaseManager();
+        $opened  = 0;
+        $manager->set('write', fn() => new Database('sqlite::memory:'));
+        $manager->set('lazy', function () use (&$opened) {
+            $opened++;
+
+            return new Database('sqlite::memory:');
+        });
+
+        $this->assertNull($manager->peek('lazy'));
+        $this->assertSame(0, $opened, 'peek must not invoke the factory');
+
+        $manager->get('lazy');
+        $this->assertInstanceOf(Database::class, $manager->peek('lazy'));
     }
 }

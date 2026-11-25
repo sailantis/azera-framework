@@ -2,22 +2,24 @@
 
 **Full name:** [Azera\Aop\LogInterceptor](../../src/Aop/LogInterceptor.php)
 
-Intercepts methods marked with [`Log`](Aop_Log.md) and logs their execution.
+Logs entry, exit, duration and failure of methods marked with [`Log`](Aop_Log.md).
 
-Logs method entry (with optional arguments), exit (with duration),
-and any exceptions thrown.
+In explicit (pipeline) calls there is no attribute, so the constructor defaults apply:
+`defaultLevel` (`info`) and `logArgs` (`false`).
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Aop/LogInterceptor.php#L17)</small>
+### __construct() · <small>[🗎](../../src/Aop/LogInterceptor.php#L16)</small>
 
-`public function __construct(Psr\Log\LoggerInterface $logger): mixed`
+`public function __construct(Psr\Log\LoggerInterface $logger, string $defaultLevel = 'info', bool $logArgs = false): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$logger` | Psr\Log\LoggerInterface | - |  |
+| `$defaultLevel` | string | `'info'` |  |
+| `$logArgs` | bool | `false` |  |
 
 **Return value**
 
@@ -26,17 +28,15 @@ and any exceptions thrown.
 
 ---
 
-### intercept() · <small>[🗎](../../src/Aop/LogInterceptor.php#L21)</small>
+### intercept() · <small>[🗎](../../src/Aop/LogInterceptor.php#L22)</small>
 
-`public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
+`public function intercept(Azera\Aop\Invocation $invocation, callable $next): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$target` | object | - |  |
-| `$method` | ReflectionMethod | - |  |
-| `$args` | array | - |  |
+| `$invocation` | [Invocation](Aop_Invocation.md) | - |  |
 | `$next` | callable | - |  |
 
 **Return value**

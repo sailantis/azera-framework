@@ -29,9 +29,14 @@ ReflectionMethod scan, then the raw target is returned — no proxy.
 
 ## Public methods
 
-### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L60)</small>
+### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L91)</small>
 
 `public function register(string $adviceClass, Azera\Aop\InterceptorInterface $interceptor): void`
+
+Register the interceptor for one advice class, replacing any previous one.
+
+The resolved map is published to [`AopRuntime`](Aop_AopRuntime.md) so generated proxies can
+resolve their precomposed chains without holding a factory reference.
 
 **Parameters**
 
@@ -47,7 +52,24 @@ ReflectionMethod scan, then the raw target is returned — no proxy.
 
 ---
 
-### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L73)</small>
+### namespace() · <small>[🗎](../../src/Aop/ProxyFactory.php#L104)</small>
+
+`public function namespace(): string`
+
+The namespace this factory publishes under.
+
+Lazily derived so `register()` before `setCacheDir()` still lands somewhere
+sane, and so `setCacheDir()` can move a factory to its final namespace.
+`AppContext::proxyFactory()` sets the directory first, then registers.
+
+**Return value**
+
+- Type: `string`
+
+
+---
+
+### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L117)</small>
 
 `public function setCacheDir(string|null $dir): void`
 
@@ -69,7 +91,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L78)</small>
+### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L132)</small>
 
 `public function getCacheDir(): string|null`
 
@@ -80,7 +102,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L83)</small>
+### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L137)</small>
 
 `public function hasInterceptors(): bool`
 
@@ -91,7 +113,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### proxyPath() · <small>[🗎](../../src/Aop/ProxyFactory.php#L98)</small>
+### proxyPath() · <small>[🗎](../../src/Aop/ProxyFactory.php#L152)</small>
 
 `public function proxyPath(ReflectionClass $ref): string|null`
 
@@ -116,7 +138,7 @@ path the loader will look at.
 
 ---
 
-### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L124)</small>
+### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L178)</small>
 
 `public function buildProxyClass(ReflectionClass $ref): string|null`
 
@@ -140,37 +162,14 @@ written to disk and `require`d — OPcache caches it. In eval mode
 
 ---
 
-### setCurrent() · <small>[🗎](../../src/Aop/ProxyFactory.php#L566)</small>
-
-`public static function setCurrent(Azera\Aop\ProxyFactory|null $factory): void`
-
-**Parameters**
-
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `$factory` | [ProxyFactory](Aop_ProxyFactory.md)\|null | - |  |
-
-**Return value**
-
-- Type: `void`
-
-
----
-
-### current() · <small>[🗎](../../src/Aop/ProxyFactory.php#L571)</small>
-
-`public static function current(): Azera\Aop\ProxyFactory|null`
-
-**Return value**
-
-- Type: [ProxyFactory](Aop_ProxyFactory.md)|`null`
-
-
----
-
-### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L576)</small>
+### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L697)</small>
 
 `public function getInterceptor(string $adviceClass): Azera\Aop\InterceptorInterface`
+
+The interceptor registered for one advice class.
+
+Exposed for diagnostics and tests; generated proxies resolve their plan
+through [`AopRuntime`](Aop_AopRuntime.md) instead.
 
 **Parameters**
 

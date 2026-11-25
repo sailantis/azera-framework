@@ -119,7 +119,32 @@ Get the Database instance for a specific role, or the default if the role is not
 
 ---
 
-### getDefault() · <small>[🗎](../../src/Db/DatabaseManager.php#L120)</small>
+### peek() · <small>[🗎](../../src/Db/DatabaseManager.php#L126)</small>
+
+`public function peek(string $role): Azera\Db\Database|null`
+
+Get the Database instance for a role **if it is already instantiated**,
+without invoking its factory.
+
+Lets diagnostics inspect live connection state (for example to find
+connections left inside a transaction) without opening every configured
+connection as a side effect.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$role` | string | - | The role to inspect. |
+
+**Return value**
+
+- Type: [Database](Db_Database.md)|`null`
+- Description: The instance, or null when the role is unknown or its<br>factory has not run yet.
+
+
+---
+
+### getDefault() · <small>[🗎](../../src/Db/DatabaseManager.php#L137)</small>
 
 `public function getDefault(): Azera\Db\Database`
 
@@ -137,7 +162,7 @@ Get the default Database instance.
 
 ---
 
-### roles() · <small>[🗎](../../src/Db/DatabaseManager.php#L133)</small>
+### roles() · <small>[🗎](../../src/Db/DatabaseManager.php#L150)</small>
 
 `public function roles(): array`
 
@@ -151,7 +176,7 @@ Return the names of all registered SQL roles.
 
 ---
 
-### defaultRole() · <small>[🗎](../../src/Db/DatabaseManager.php#L143)</small>
+### defaultRole() · <small>[🗎](../../src/Db/DatabaseManager.php#L160)</small>
 
 `public function defaultRole(): string|null`
 

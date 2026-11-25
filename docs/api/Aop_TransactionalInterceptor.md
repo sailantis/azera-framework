@@ -2,27 +2,30 @@
 
 **Full name:** [Azera\Aop\TransactionalInterceptor](../../src/Aop/TransactionalInterceptor.php)
 
-Intercepts methods marked with [`Transactional`](Aop_Transactional.md) and wraps them
-in a database transaction.
+Wraps methods marked with [`Transactional`](Aop_Transactional.md) in a database transaction.
 
-- Begins a transaction (or savepoint if nested) before the method
+- Begins a transaction (or savepoint when nested) before the method
 - Commits on success
 - Rolls back on any Throwable, then re-throws
 
-The connection role can be specified via the attribute argument
-(defaults to the write connection).
+Resolution order for the connection role: the attribute's `connection` argument wins and
+must name a configured role; otherwise the `defaultRole` constructor argument is used,
+falling back to the manager's default connection when that role is not configured
+(`write` by default).
 
 ## Public methods
 
 ### __construct() · <small>[🗎](../../src/Aop/TransactionalInterceptor.php#L23)</small>
 
-`public function __construct(Azera\Db\DatabaseManager $dbManager): mixed`
+`public function __construct(Azera\Db\DatabaseManager $dbManager, string $defaultRole = 'write', bool $detectLeakedConnections = false): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
 | `$dbManager` | [DatabaseManager](Db_DatabaseManager.md) | - |  |
+| `$defaultRole` | string | `'write'` |  |
+| `$detectLeakedConnections` | bool | `false` |  |
 
 **Return value**
 
@@ -31,17 +34,15 @@ The connection role can be specified via the attribute argument
 
 ---
 
-### intercept() · <small>[🗎](../../src/Aop/TransactionalInterceptor.php#L29)</small>
+### intercept() · <small>[🗎](../../src/Aop/TransactionalInterceptor.php#L40)</small>
 
-`public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed`
+`public function intercept(Azera\Aop\Invocation $invocation, callable $next): mixed`
 
 **Parameters**
 
 | Name | Type | Default | Description |
 |---|---|---|---|
-| `$target` | object | - |  |
-| `$method` | ReflectionMethod | - |  |
-| `$args` | array | - |  |
+| `$invocation` | [Invocation](Aop_Invocation.md) | - |  |
 | `$next` | callable | - |  |
 
 **Return value**

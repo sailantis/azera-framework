@@ -3,84 +3,78 @@
 namespace Azera\Aop;
 
 use Psr\Log\LoggerInterface;
-use ReflectionMethod;
 use Throwable;
 
 /**
- * Intercepts methods marked with {@see Log} and logs their execution.
+ * Logs entry, exit, duration and failure of methods marked with {@see Log}.
  *
- * Logs method entry (with optional arguments), exit (with duration),
- * and any exceptions thrown.
+ * In explicit (pipeline) calls there is no attribute, so the constructor defaults apply:
+ * `defaultLevel` (`info`) and `logArgs` (`false`).
  */
 class LogInterceptor implements InterceptorInterface
 {
     public function __construct(
         private LoggerInterface $logger,
+        private string $defaultLevel = 'info',
+        private bool $logArgs = false,
     ) {}
 
-    public function intercept(object $target, ReflectionMethod $method, array $args, callable $next): mixed
+    public function intercept(Invocation $invocation, callable $next): mixed
     {
-        $advice     = $this->getAdvice($method);
-        $level      = $advice->level;
-        $methodName = $method->getName();
-        $className  = self::declaringName($target, $method);
+        $advice  = $invocation->advice(Log::class);
+        $level   = $advice?->level ?? $this->defaultLevel;
+        $logArgs = $advice?->logArgs ?? $this->logArgs;
 
-        $context = ['method' => "{$className}::{$methodName}"];
+        $name    = $this->nameFor($invocation);
+        $context = ['method' => $name];
 
-        if ($advice->logArgs) {
-            $context['args'] = $args;
+        if ($logArgs) {
+            $context['args'] = $this->sanitize($invocation->args);
         }
 
-        $this->logger->log($level, "Entering {$className}::{$methodName}", $context);
-        $start = microtime(true);
+        $this->logger->log($level, "Entering {$name}", $context);
+        $start = hrtime(true);
 
         try {
-            $result   = $next($args);
-            $duration = (microtime(true) - $start) * 1000.0;
-            $this->logger->log($level, "Completed {$className}::{$methodName}", $context + ['duration_ms' => round($duration, 2)]);
+            $result   = $next($invocation);
+            $duration = (hrtime(true) - $start) / 1e6;
+            $this->logger->log($level, "Completed {$name}", $context + ['duration_ms' => round($duration, 2)]);
             return $result;
         } catch (Throwable $e) {
-            $duration = (microtime(true) - $start) * 1000.0;
+            $duration = (hrtime(true) - $start) / 1e6;
             $this->logger->error(
-                "Failed {$className}::{$methodName}",
-                $context + ['duration_ms' => round($duration, 2), 'exception' => $e->getMessage()]
+                "Failed {$name}",
+                $context + ['duration_ms' => round($duration, 2), 'exception' => $e->getMessage()],
             );
             throw $e;
         }
     }
 
-    private function getAdvice(ReflectionMethod $method): Log
+    /** Closure identities are `path/to/file.php:12`; keep that readable in a log line. */
+    private function nameFor(Invocation $invocation): string
     {
-        $attrs = $method->getAttributes(Log::class);
-        if ($attrs === []) {
-            return new Log();
+        $identity = $invocation->identity;
+
+        if ($invocation->method !== null) {
+            return $identity;
         }
-        return $attrs[0]->newInstance();
+
+        $pos = strrpos($identity, DIRECTORY_SEPARATOR);
+        if ($pos === false) {
+            $pos = strrpos($identity, '/');
+        }
+
+        return $pos === false ? $identity : substr($identity, $pos + 1);
     }
 
-    /**
-     * Name to log for the invoked unit.
-     *
-     * In the explicit pipeline every call reflects one shared dummy class, so
-     * the declaring name would log `PipelineHandler::__invoke` for unrelated
-     * callables. {@see PipelineHandler} carries the real identity; use it.
-     *
-     * The identity for a closure is `file:line`, and a full path is correct for
-     * a cache key but unreadable in a log line — trim it to the file name.
-     */
-    private static function declaringName(object $target, ReflectionMethod $method): string
+    /** Replace non-scalar values with a marker so logs stay serializable. */
+    private function sanitize(array $args): array
     {
-        if ($target instanceof PipelineHandler) {
-            $identity = $target->identity();
-            if ($identity !== null) {
-                // Closure identities are `file:line`; keep only the file name.
-                $parts = preg_split('#[\\\\/]#', $identity);
-                $tail  = $parts === false ? $identity : end($parts);
-
-                return $tail === false || $tail === '' ? $identity : $tail;
-            }
+        $out = [];
+        foreach ($args as $key => $value) {
+            $out[$key] = is_scalar($value) || $value === null ? $value : 'object(' . get_debug_type($value) . ')';
         }
 
-        return $method->getDeclaringClass()->getShortName();
+        return $out;
     }
 }

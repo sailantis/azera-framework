@@ -52,10 +52,10 @@ class ActionMW implements MiddlewareInterface
 
 class OuterITC implements InterceptorInterface
 {
-    public function intercept(object $target, \ReflectionMethod $method, array $args, callable $next): mixed
+    public function intercept(\Azera\Aop\Invocation $invocation, callable $next): mixed
     {
         ConsolePipelineTest::$trace[] = 'itc-outer';
-        $r = $next($args);
+        $r = $next($invocation);
         ConsolePipelineTest::$trace[] = 'itc-outer-after';
         return $r;
     }
@@ -63,10 +63,10 @@ class OuterITC implements InterceptorInterface
 
 class InnerITC implements InterceptorInterface
 {
-    public function intercept(object $target, \ReflectionMethod $method, array $args, callable $next): mixed
+    public function intercept(\Azera\Aop\Invocation $invocation, callable $next): mixed
     {
         ConsolePipelineTest::$trace[] = 'itc-inner';
-        return $next($args);
+        return $next($invocation);
     }
 }
 

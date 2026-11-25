@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **AOP was redesigned around a single invocation model.** `InterceptorInterface`
+  is now `intercept(Invocation $invocation, callable $next): mixed`; the old
+  reflection-based signature (`intercept(object, ReflectionMethod, array, callable)`)
+  is gone, as are the `PipelineHandler` stand-in and `Pipeline::through()` — there is
+  one interceptor contract and one chain implementation. `Pipeline` now composes its
+  chain once at construction; `Pipeline::call()` takes the wrapped callable plus `args`
+  and gained optional `identity:`/`advice:` parameters, and `Pipeline::handle()` is new.
+  Generated proxies build one `Invocation` per call and run a plan memoized per
+  (class, method) by `AopRuntime` — attributes are read once per process, not per call,
+  and no `ReflectionMethod` is created in the hot path. Advice carried on an
+  `Invocation` wins over an interceptor's constructor defaults. This is a breaking
+  change for custom interceptors and for code calling `Pipeline::through()`,
+  `ProxyFactory::setCurrent()` or `ProxyFactory::current()`. `ProxyFactory::getInterceptor()`
+  remains, for diagnostics. See [docs/UPGRADING.md](docs/UPGRADING.md) for a migration map.
+  `Pipeline::through()` is **back as a deprecated, immutable alias** that returns a new
+  pipeline, so 0.6 call sites keep working.
+- `DatabaseManager::peek(string $role): ?Database` returns the already-instantiated
+  connection for a role (or null) without triggering its factory. Used by the
+  transaction interceptor to detect cross-role transactions without opening
+  connections it has no business opening.
+- **`CacheInterceptor`'s derived key is now a single `xxh128` digest** of
+  `serialize([$identity, $method, $args])` — 32 characters, key-safe, and about a
+  third cheaper per call (~0.29-0.41 µs vs ~0.39-0.58 µs, PHP 8.3, Xdebug off).
+  The old shape emitted a sanitized, memoized, length-capped readable prefix in
+  front of an argument digest; that apparatus is gone. Two behaviour changes
+  follow: derived keys are no longer human-readable (`CacheService.expensiveOperation.…`
+  became an opaque hex digest), and distinct identities that sanitized alike
+  (`A\B` vs `A/B`, `a-b` vs `a_b`) no longer share a cache entry. Existing
+  entries are invalidated by the shape change — treat it as a cache version bump.
+  Explicit `key:` templates are unchanged — except that their placeholders now
+  yield a collision-free token per value instead of `''` for every non-scalar
+  (see Fixed below).
+
 ### Added
 
 - **`Document::find()` / `findOrFail()` / `findOne()` / `findAll()`.** The
@@ -23,6 +58,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`#[Cache(key: …)]` collapsed distinct arguments onto one entry.** A placeholder
+  whose value was not scalar was substituted with `''`, so two different filter
+  arrays or objects — and `null`, `false` and `''` — all produced the same cache
+  key and the first call's result was returned for the others. Every value now
+  renders to a distinct, type-prefixed, key-safe token: `null`/`true`/`false`,
+  bare integers, `s_<value>` for short key-safe strings, `f_<value>` for floats,
+  and `str_`/`arr_`/`obj_` plus a digest of `serialize()` for everything else. The
+  prefixes stop values of different types from rendering alike (`42`, `'42'`,
+  `42.0`; `'null'` vs `null`). A value the template does not name is never
+  tokenized, and one that cannot be serialized deterministically (a closure, a
+  resource) throws instead of guessing a colliding key.
+- **`#[Cache(key: …)]` raised a false error for placeholder-like arguments.** The
+  unresolved-placeholder check ran over the *substituted* string, so an argument
+  value containing `{name}` threw a `LogicException` even though the template had
+  resolved. Substitution now walks the placeholders in the template, so only a
+  genuinely unresolved one fails.
+- **An advised proxy could not be cloned or serialized.** The generated terminal
+  closure was cached on the instance and bound to the object that first called the
+  method, so a `clone` inherited a terminal bound to the original and ran
+  `parent::method` against the wrong instance; after one advised call the proxy
+  also held a `Closure` and `serialize()` threw. Proxies now declare no properties
+  and allocate the terminal per call (~0.2 µs). This also removes the generated
+  `__aopTerminal_<method>` property, which could collide with a same-named property
+  on the target class and produced a fatal "access level must not be reduced" error.
+- **By-reference variadic parameters lost their references.** The generator assumed
+  `&...$args` was not legal PHP and dropped the reference; a method mutating through
+  `&...$refs` silently discarded every change. Variadic references now survive the
+  proxy (covered by `AopRegressionTest::testVariadicByReferenceParametersKeepTheirReferences`).
+- **`TransactionalInterceptor`'s leak check ran after `commit()`.** When it fired,
+  the advised method's work was already committed while the call threw, so an outer
+  `RetryInterceptor` could retry and duplicate those writes. The check now runs
+  before `COMMIT` and rolls the unit of work back. It also snapshots which
+  connections were already inside a transaction, so an outer unit of work on another
+  role is no longer reported as a leak.
+- **`#[Transactional]` with no role required a `write` connection.** An app that
+  configured only a default connection threw instead of using it. An explicitly named
+  role must still be configured (so typos still fail loudly), but the implicit default
+  falls back to the manager's default connection again.
+- **Two `ProxyFactory`/`AppContext` instances in one process shared interceptors.**
+  The process-wide registry was keyed by advice class only, so the last publisher
+  silently replaced the others and a proxy generated by the first factory began
+  invoking the second factory's interceptor. The registry is now namespaced per
+  factory (derived from its proxy cache directory and baked into the generated
+  source), and `registerInterceptor()` clears the memoized plans so a proxy invoked
+  before the factory is rebuilt picks up the new interceptor.
+- **`AopPlan` was unreachable through PSR-4.** It was declared as a second class in
+  `AopRuntime.php`, so a direct reference looked for `src/Aop/AopPlan.php` and only
+  worked once `AopRuntime.php` happened to be loaded. It now has its own file.
 - **`Query` silently read the wrong database for non-SQL classes.**
   `Model::findAll()`/`exists()`/`count()` and any `query()`/`with()` call on a
   class routed to another store compiled SQL against the default SQL

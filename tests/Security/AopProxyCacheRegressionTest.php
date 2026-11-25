@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use Azera\Aop\Advised;
 use Azera\Aop\Retry;
 use Azera\Aop\InterceptorInterface;
+use Azera\Aop\Invocation;
 use Azera\Aop\ProxyFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -60,9 +61,9 @@ class AopCacheTargetD
 
 class AopCacheInterceptor implements InterceptorInterface
 {
-    public function intercept(object $target, \ReflectionMethod $method, array $args, callable $next): mixed
+    public function intercept(Invocation $invocation, callable $next): mixed
     {
-        return $next($args);
+        return $next($invocation);
     }
 }
 
@@ -113,7 +114,6 @@ class AopProxyCacheRegressionTest extends TestCase
         $factory = new ProxyFactory();
         $factory->setCacheDir($this->cacheDir);
         $factory->register(Retry::class, new AopCacheInterceptor());
-        ProxyFactory::setCurrent($factory);
 
         return $factory;
     }
