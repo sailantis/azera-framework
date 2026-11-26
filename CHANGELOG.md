@@ -491,7 +491,8 @@ with the packaging and tooling a published library is expected to carry.
 characters`. The pipeline now reflects a named class, and over-long keys are
   folded into a fixed-length digest instead of overflowing.
 
-[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/sailantis/azera-framework/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.6.0
 [0.5.1]: https://github.com/sailantis/azera-framework/releases/tag/v0.5.1
 [0.5.0]: https://github.com/sailantis/azera-framework/releases/tag/v0.5.0
 [0.4.2]: https://github.com/sailantis/azera-framework/releases/tag/v0.4.2
