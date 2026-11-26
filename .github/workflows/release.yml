@@ -46,7 +46,14 @@ jobs:
           esac
           git rev-parse --verify "refs/tags/$TAG^{commit}" >/dev/null 2>&1 \
             || { echo "::error::tag '$TAG' does not exist in this repository"; exit 1; }
-          if [[ "$TAG" =~ ^v.+-.+$ ]]; then
+          # SemVer splits at the FIRST '+': everything after it is build
+          # metadata, never a pre-release. Matching a bare '-' anywhere in the
+          # tag (`^v.+-.+$`) classified `v1.0.0+21AF26D3---117B344092BD` as a
+          # prerelease, so a stable build would have been published unpinned and
+          # outside "Latest". The core version is tested instead -- a '-' AFTER
+          # the patch number and BEFORE any '+'.
+          CORE="${TAG%%+*}"
+          if [[ "$CORE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+- ]]; then
             PRERELEASE=true
           else
             PRERELEASE=false
