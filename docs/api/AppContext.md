@@ -449,7 +449,7 @@ without constructing anything during bootstrap.
 
 ---
 
-### setAopProxiesEnabled() · <small>[🗎](../../src/AppContext.php#L481)</small>
+### setAopProxiesEnabled() · <small>[🗎](../../src/AppContext.php#L475)</small>
 
 `public function setAopProxiesEnabled(bool $enabled): void`
 
@@ -486,7 +486,7 @@ rather than an object memoized under the previous setting.
 
 ---
 
-### aopProxiesEnabled() · <small>[🗎](../../src/AppContext.php#L496)</small>
+### aopProxiesEnabled() · <small>[🗎](../../src/AppContext.php#L485)</small>
 
 `public function aopProxiesEnabled(): bool`
 
@@ -499,7 +499,7 @@ Whether transparent AOP proxying is enabled (the default).
 
 ---
 
-### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L613)</small>
+### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L572)</small>
 
 `public function setAopCacheDir(string|null $dir): void`
 
@@ -521,7 +521,7 @@ Pass null to use eval() (development, no cache files).
 
 ---
 
-### session() · <small>[🗎](../../src/AppContext.php#L682)</small>
+### session() · <small>[🗎](../../src/AppContext.php#L641)</small>
 
 `public function session(): Azera\Http\Session|null`
 
@@ -534,7 +534,7 @@ Get the Session instance, or null until `setSession()` binds one.
 
 ---
 
-### setSession() · <small>[🗎](../../src/AppContext.php#L693)</small>
+### setSession() · <small>[🗎](../../src/AppContext.php#L652)</small>
 
 `public function setSession(Azera\Http\Session $session): void`
 
@@ -553,7 +553,7 @@ Set the Session instance.
 
 ---
 
-### flash() · <small>[🗎](../../src/AppContext.php#L713)</small>
+### flash() · <small>[🗎](../../src/AppContext.php#L672)</small>
 
 `public function flash(): Azera\Http\Flash`
 
@@ -578,7 +578,7 @@ CLI task or a unit test.
 
 ---
 
-### route() · <small>[🗎](../../src/AppContext.php#L722)</small>
+### route() · <small>[🗎](../../src/AppContext.php#L681)</small>
 
 `public function route(): Azera\Core\ResolvedRoute|null`
 
@@ -591,7 +591,7 @@ Get the current resolved route information.
 
 ---
 
-### setRoute() · <small>[🗎](../../src/AppContext.php#L732)</small>
+### setRoute() · <small>[🗎](../../src/AppContext.php#L691)</small>
 
 `public function setRoute(Azera\Core\ResolvedRoute $route): void`
 
@@ -610,7 +610,7 @@ Set the current resolved route information.
 
 ---
 
-### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L759)</small>
+### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L718)</small>
 
 `public function clearRequestScope(): void`
 
@@ -642,7 +642,7 @@ Safe to call repeatedly; a no-op when no request has been processed yet.
 
 ---
 
-### set() · <small>[🗎](../../src/AppContext.php#L792)</small>
+### set() · <small>[🗎](../../src/AppContext.php#L751)</small>
 
 `public function set(string $id, callable|object|null $service = null): void`
 
@@ -665,7 +665,7 @@ first resolution and their returned object is cached for subsequent lookups.
 
 ---
 
-### has() · <small>[🗎](../../src/AppContext.php#L810)</small>
+### has() · <small>[🗎](../../src/AppContext.php#L769)</small>
 
 `public function has(string $id): bool`
 
@@ -685,7 +685,7 @@ Check if a service is registered in the context.
 
 ---
 
-### get() · <small>[🗎](../../src/AppContext.php#L828)</small>
+### get() · <small>[🗎](../../src/AppContext.php#L787)</small>
 
 `public function get(string $id): object`
 
@@ -714,7 +714,7 @@ auto-wire and instantiate it.
 
 ---
 
-### tryGet() · <small>[🗎](../../src/AppContext.php#L857)</small>
+### tryGet() · <small>[🗎](../../src/AppContext.php#L816)</small>
 
 `public function tryGet(string $id): object|null`
 
@@ -740,7 +740,7 @@ or if a registered factory currently resolves to null.
 
 ---
 
-### getOrNull() · <small>[🗎](../../src/AppContext.php#L885)</small>
+### getOrNull() · <small>[🗎](../../src/AppContext.php#L844)</small>
 
 `public function getOrNull(string $id): object|null`
 
@@ -764,7 +764,7 @@ explicitly.
 
 ---
 
-### resolved() · <small>[🗎](../../src/AppContext.php#L896)</small>
+### resolved() · <small>[🗎](../../src/AppContext.php#L855)</small>
 
 `public function resolved(string $id): object|null`
 

@@ -25,7 +25,7 @@ $dispatcher->dispatch(new UserCreated($user));
 
 ## Public methods
 
-### __construct() · <small>[🗎](../../src/Event/EventDispatcher.php#L67)</small>
+### __construct() · <small>[🗎](../../src/Event/EventDispatcher.php#L66)</small>
 
 `public function __construct(Azera\AppContext|null $context = null): mixed`
 
@@ -42,7 +42,7 @@ $dispatcher->dispatch(new UserCreated($user));
 
 ---
 
-### listen() · <small>[🗎](../../src/Event/EventDispatcher.php#L80)</small>
+### listen() · <small>[🗎](../../src/Event/EventDispatcher.php#L79)</small>
 
 `public function listen(string $eventClass, callable|string $handler, int $priority = 0): void`
 
@@ -63,7 +63,7 @@ Register a listener for an event class.
 
 ---
 
-### dispatch() · <small>[🗎](../../src/Event/EventDispatcher.php#L89)</small>
+### dispatch() · <small>[🗎](../../src/Event/EventDispatcher.php#L88)</small>
 
 `public function dispatch(object $event): object`
 
