@@ -440,12 +440,6 @@ class AppContext
     {
         $this->interceptors[$adviceClass] = $interceptor;
 
-        // Nothing can have been proxied while proxies are disabled, so the map
-        // cannot have changed the identity of an already-resolved instance.
-        if ($this->aopProxiesEnabled) {
-            $this->forgetAdvisedServices();
-        }
-
         // A ProxyFactory that is already built holds its own copy of the
         // interceptor map, so drop it; the next advised instantiation rebuilds it.
         // The process-wide registry is cleared too: an advised proxy that is
@@ -485,47 +479,12 @@ class AppContext
         }
 
         $this->aopProxiesEnabled = $enabled;
-
-        // Both directions must evict: enabling has to replace instances built raw,
-        // disabling has to drop proxies already handed out. Resolved `#[Advised]`
-        // services are the only ones whose identity this setting changes.
-        $this->forgetAdvisedServices();
     }
 
     /** Whether transparent AOP proxying is enabled (the default). */
     public function aopProxiesEnabled(): bool
     {
         return $this->aopProxiesEnabled;
-    }
-
-    /**
-     * Forget every resolved service whose instance depends on the AOP settings.
-     *
-     * Only classes carrying `#[Advised]` are evicted: they are the ones whose
-     * identity — proxy or raw — depends on the interceptor map and the proxy
-     * switch. Plain services are untouched. Walks the parent chain because
-     * class-level attributes are not inherited by PHP.
-     */
-    private function forgetAdvisedServices(): void
-    {
-        foreach ($this->serviceDefinitions as $id => $_) {
-            if (is_string($id) && class_exists($id) && $this->isAdvisedClass($id)) {
-                unset($this->serviceDefinitions[$id], $this->serviceInstances[$id]);
-            }
-        }
-    }
-
-    /** Whether a class is marked `#[Advised]`, walking up the parent chain. */
-    private function isAdvisedClass(string $class): bool
-    {
-        $ref = new \ReflectionClass($class);
-        do {
-            if ($ref->getAttributes(Advised::class) !== []) {
-                return true;
-            }
-        } while ($ref = $ref->getParentClass());
-
-        return false;
     }
 
     /**
