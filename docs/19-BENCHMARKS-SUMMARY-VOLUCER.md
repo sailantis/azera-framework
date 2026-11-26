@@ -4,7 +4,7 @@ The headline numbers from the measured Volucer deployment. Volucer runs the app 
 
 **Environment** — PHP 8.5.11 · Linux 6.8.0-139-generic · OPcache: yes · JIT: tracing (buffer 64M) · 1000 iterations per run over 10 runs, lower is better.
 
-**Frameworks** — Azera v0.6.0-10-g3926ba6 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6 (RC) 6.0.0RC4.
+**Frameworks** — Azera v0.6.0-10-g3926ba6 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6.0.0RC4.
 
 _Measured 2026-11-26T01:57:45+00:00_
 
@@ -55,7 +55,7 @@ These rows are end-to-end for a resident worker with a pool that never recycles 
 
 **Run-to-run spread** — a resident arm's rows are mostly the server, so a cell moves by a few percent between two runs of unchanged code, and by more than a tenth on roughly one cell in five. Read a gap smaller than that band as a tie, which is what the trailing `≈` in the table marks, and prefer the rows where real work is done over the routing-only ones when the question is which framework is faster.
 
-| Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP | Phalcon 6 (RC) |
+| Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP | Phalcon |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | `GET /api/routing/1` | no DB — typed route + constant body (routing only) | **0.159** | 0.336 | 0.244 | 0.660 | 0.537 | 0.242 | 0.182 |
 | `GET /` | no DB — routing + template only | **0.175** | 0.427 | 0.340 | 0.680 | 0.680 | 0.315 | 0.208 |

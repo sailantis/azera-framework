@@ -4,7 +4,7 @@ The headline numbers from the measured nginx + PHP-FPM deployment: the cost of o
 
 **Environment** — PHP 8.5.11 · Linux 6.8.0-139-generic · OPcache: yes · JIT: tracing (buffer 64M) · 1000 iterations per run over 10 runs, lower is better.
 
-**Frameworks** — Azera v0.6.0-10-g3926ba6 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6 (RC) 6.0.0RC4.
+**Frameworks** — Azera v0.6.0-10-g3926ba6 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6.0.0RC4.
 
 _Measured 2026-11-26T01:57:45+00:00_
 
@@ -51,7 +51,7 @@ Median in milliseconds, lower is better. **Bold** = fastest for that endpoint; a
 
 **Server floor** — measured nginx + PHP-FPM with `pm.max_requests=0`: the pool never recycles its worker, so no process is spawned per request — what remains is the FastCGI handshake plus a minimal script. A hello-world endpoint that boots nothing but PHP (`floor-php`) and a static file through nginx (`floor-http`) measure exactly that cost — the floor every row below stands on. Subtracting that floor leaves the framework's own per-request boot, which FPM still pays for every request even though its worker survives.
 
-| Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP | Phalcon 6 (RC) |
+| Request | Workload | Azera | Laravel | Symfony | Spiral | CodeIgniter | CakePHP | Phalcon |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | `GET /api/routing/1` | no DB — typed route + constant body (routing only) | **0.341** | 3.96 | 1.85 | 8.05 | 1.58 | 1.34 | 0.651 |
 | `GET /` | no DB — routing + template only | **0.420** | 3.75 | 2.03 | 8.09 | 1.72 | 1.42 | 0.751 |

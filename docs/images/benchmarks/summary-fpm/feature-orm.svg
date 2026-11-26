@@ -3,7 +3,7 @@
 <text x="218" y="32" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="17" font-weight="700" fill="#1e293b" text-anchor="start">ORM / Active Record</text>
 <text x="218" y="54" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">linear scale · lower is better · x = median ÷ the fastest on that endpoint</text>
 <text x="218" y="74" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">bar = median · dot = median · whisker = fastest observation → p95 (ms)</text>
-<text x="218" y="94" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Azera v0.6.0-10-g3926ba6 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6 (RC) 6.0.0RC4</text>
+<text x="218" y="94" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11" font-weight="400" fill="#64748b" text-anchor="start" font-style="italic">Azera v0.6.0-10-g3926ba6 · Laravel 12.69.2 · Symfony 7.4.18 · Spiral 3.17.2 · CodeIgniter 4.7.4 · CakePHP 5.4.0 · Phalcon 6.0.0RC4</text>
 <text x="206" y="122" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="11" font-weight="600" fill="#64748b" text-anchor="end">median</text>
 <line x1="218" y1="128" x2="218" y2="936" stroke="#f1f5f9" stroke-width="1"/>
 <text x="218" y="958" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12" font-weight="500" fill="#64748b" text-anchor="middle">0 ms</text>
@@ -32,7 +32,7 @@
 <line x1="341.2" y1="180" x2="341.2" y2="194" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/>
 <circle cx="320.5" cy="187" r="5.6" fill="#8b5a2b" stroke="#ffffff" stroke-width="2"/>
 <text x="350.2" y="191.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#94a3b8" text-anchor="start" stroke="#ffffff" stroke-width="3" paint-order="stroke" stroke-linejoin="round">x 1.7</text>
-<text x="112" y="191.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon 6 (RC)</text>
+<text x="112" y="191.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon</text>
 <text x="206" y="191.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="end">1.98 ms</text>
 <rect x="218" y="206" width="132.27" height="14" fill="#e8590c" fill-opacity="0.12"/>
 <line x1="342.08" y1="213" x2="368.77" y2="213" stroke="#e8590c" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
@@ -88,7 +88,7 @@
 <line x1="335.38" y1="382" x2="335.38" y2="396" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/>
 <circle cx="318.07" cy="389" r="5.6" fill="#8b5a2b" stroke="#ffffff" stroke-width="2"/>
 <text x="344.38" y="393.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#94a3b8" text-anchor="start" stroke="#ffffff" stroke-width="3" paint-order="stroke" stroke-linejoin="round">x 1.8</text>
-<text x="112" y="393.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon 6 (RC)</text>
+<text x="112" y="393.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon</text>
 <text x="206" y="393.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="end">1.94 ms</text>
 <rect x="218" y="408" width="126.12" height="14" fill="#e8590c" fill-opacity="0.12"/>
 <line x1="337.32" y1="415" x2="360.95" y2="415" stroke="#e8590c" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
@@ -144,7 +144,7 @@
 <line x1="321.15" y1="584" x2="321.15" y2="598" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/>
 <circle cx="305.32" cy="591" r="5.6" fill="#8b5a2b" stroke="#ffffff" stroke-width="2"/>
 <text x="330.15" y="595.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#94a3b8" text-anchor="start" stroke="#ffffff" stroke-width="3" paint-order="stroke" stroke-linejoin="round">x 1.6</text>
-<text x="112" y="595.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon 6 (RC)</text>
+<text x="112" y="595.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon</text>
 <text x="206" y="595.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="end">1.69 ms</text>
 <rect x="218" y="610" width="123.07" height="14" fill="#e8590c" fill-opacity="0.12"/>
 <line x1="334.07" y1="617" x2="357.21" y2="617" stroke="#e8590c" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
@@ -200,7 +200,7 @@
 <line x1="377.08" y1="786" x2="377.08" y2="800" stroke="#8b5a2b" stroke-width="2.5" stroke-linecap="round"/>
 <circle cx="356.3" cy="793" r="5.6" fill="#8b5a2b" stroke="#ffffff" stroke-width="2"/>
 <text x="386.08" y="797.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="400" fill="#94a3b8" text-anchor="start" stroke="#ffffff" stroke-width="3" paint-order="stroke" stroke-linejoin="round">x 1.3</text>
-<text x="112" y="797.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon 6 (RC)</text>
+<text x="112" y="797.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#8b5a2b" text-anchor="end">Phalcon</text>
 <text x="206" y="797.5" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" font-size="12.5" font-weight="700" fill="#1e293b" text-anchor="end">2.68 ms</text>
 <rect x="218" y="812" width="181.95" height="14" fill="#e8590c" fill-opacity="0.12"/>
 <line x1="386.95" y1="819" x2="423.64" y2="819" stroke="#e8590c" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
