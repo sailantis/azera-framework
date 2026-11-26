@@ -418,7 +418,7 @@ $result = $ctx->pipeline([new RetryInterceptor(3), new LogInterceptor($logger)])
 
 ---
 
-### registerInterceptor() · <small>[🗎](../../src/AppContext.php#L438)</small>
+### registerInterceptor() · <small>[🗎](../../src/AppContext.php#L439)</small>
 
 `public function registerInterceptor(string $adviceClass, Azera\Aop\InterceptorInterface|callable $interceptor): void`
 
@@ -426,7 +426,8 @@ Register an interceptor for a specific advice type.
 
 Once at least one interceptor is registered, the DI container
 will proxy classes marked with [`Advised`](Aop_Advised.md) that have methods
-carrying the corresponding advice attribute.
+carrying the corresponding advice attribute — unless proxying has been
+switched off with `setAopProxiesEnabled()`.
 
 The interceptor may also be passed as a zero-argument factory
 (closure/invokable) returning an InterceptorInterface. Factories are
@@ -448,7 +449,57 @@ without constructing anything during bootstrap.
 
 ---
 
-### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L556)</small>
+### setAopProxiesEnabled() · <small>[🗎](../../src/AppContext.php#L481)</small>
+
+`public function setAopProxiesEnabled(bool $enabled): void`
+
+Turn transparent AOP proxying on or off for this context.
+
+This is an escape hatch for deployments where generating and loading a
+subclass is undesirable — no writable cache directory, `eval()` disallowed
+by policy, or a package that registers interceptors during its own boot.
+It is NOT a performance switch: with no interceptor registered the check in
+`build()` costs ~50 ns per class construction, measured, and a
+`Controller` is constructed once per worker process, not once per request.
+
+While disabled, `build()` always returns the raw class instance, so
+classes marked [`Advised`](Aop_Advised.md) silently lose their advice. Registration is
+unaffected (`registerInterceptor()` keeps storing interceptors, and
+re-enabling applies them), and the explicit alternative is untouched —
+`$ctx->pipeline([...])->call(...)` and `Pipeline::handle()` never generated
+a proxy and keep working.
+
+Flipping the switch in either direction forgets already-resolved `#[Advised]`
+services, so the next resolution returns an instance of the right kind
+rather than an object memoized under the previous setting.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$enabled` | bool | - | False to return raw instances for every class. |
+
+**Return value**
+
+- Type: `void`
+
+
+---
+
+### aopProxiesEnabled() · <small>[🗎](../../src/AppContext.php#L496)</small>
+
+`public function aopProxiesEnabled(): bool`
+
+Whether transparent AOP proxying is enabled (the default).
+
+**Return value**
+
+- Type: `bool`
+
+
+---
+
+### setAopCacheDir() · <small>[🗎](../../src/AppContext.php#L613)</small>
 
 `public function setAopCacheDir(string|null $dir): void`
 
@@ -470,7 +521,7 @@ Pass null to use eval() (development, no cache files).
 
 ---
 
-### session() · <small>[🗎](../../src/AppContext.php#L616)</small>
+### session() · <small>[🗎](../../src/AppContext.php#L682)</small>
 
 `public function session(): Azera\Http\Session|null`
 
@@ -483,7 +534,7 @@ Get the Session instance, or null until `setSession()` binds one.
 
 ---
 
-### setSession() · <small>[🗎](../../src/AppContext.php#L627)</small>
+### setSession() · <small>[🗎](../../src/AppContext.php#L693)</small>
 
 `public function setSession(Azera\Http\Session $session): void`
 
@@ -502,7 +553,7 @@ Set the Session instance.
 
 ---
 
-### flash() · <small>[🗎](../../src/AppContext.php#L647)</small>
+### flash() · <small>[🗎](../../src/AppContext.php#L713)</small>
 
 `public function flash(): Azera\Http\Flash`
 
@@ -527,7 +578,7 @@ CLI task or a unit test.
 
 ---
 
-### route() · <small>[🗎](../../src/AppContext.php#L656)</small>
+### route() · <small>[🗎](../../src/AppContext.php#L722)</small>
 
 `public function route(): Azera\Core\ResolvedRoute|null`
 
@@ -540,7 +591,7 @@ Get the current resolved route information.
 
 ---
 
-### setRoute() · <small>[🗎](../../src/AppContext.php#L666)</small>
+### setRoute() · <small>[🗎](../../src/AppContext.php#L732)</small>
 
 `public function setRoute(Azera\Core\ResolvedRoute $route): void`
 
@@ -559,7 +610,7 @@ Set the current resolved route information.
 
 ---
 
-### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L693)</small>
+### clearRequestScope() · <small>[🗎](../../src/AppContext.php#L759)</small>
 
 `public function clearRequestScope(): void`
 
@@ -591,7 +642,7 @@ Safe to call repeatedly; a no-op when no request has been processed yet.
 
 ---
 
-### set() · <small>[🗎](../../src/AppContext.php#L726)</small>
+### set() · <small>[🗎](../../src/AppContext.php#L792)</small>
 
 `public function set(string $id, callable|object|null $service = null): void`
 
@@ -614,7 +665,7 @@ first resolution and their returned object is cached for subsequent lookups.
 
 ---
 
-### has() · <small>[🗎](../../src/AppContext.php#L744)</small>
+### has() · <small>[🗎](../../src/AppContext.php#L810)</small>
 
 `public function has(string $id): bool`
 
@@ -634,7 +685,7 @@ Check if a service is registered in the context.
 
 ---
 
-### get() · <small>[🗎](../../src/AppContext.php#L762)</small>
+### get() · <small>[🗎](../../src/AppContext.php#L828)</small>
 
 `public function get(string $id): object`
 
@@ -663,7 +714,7 @@ auto-wire and instantiate it.
 
 ---
 
-### tryGet() · <small>[🗎](../../src/AppContext.php#L791)</small>
+### tryGet() · <small>[🗎](../../src/AppContext.php#L857)</small>
 
 `public function tryGet(string $id): object|null`
 
@@ -689,7 +740,7 @@ or if a registered factory currently resolves to null.
 
 ---
 
-### getOrNull() · <small>[🗎](../../src/AppContext.php#L819)</small>
+### getOrNull() · <small>[🗎](../../src/AppContext.php#L885)</small>
 
 `public function getOrNull(string $id): object|null`
 
@@ -713,7 +764,7 @@ explicitly.
 
 ---
 
-### resolved() · <small>[🗎](../../src/AppContext.php#L830)</small>
+### resolved() · <small>[🗎](../../src/AppContext.php#L896)</small>
 
 `public function resolved(string $id): object|null`
 

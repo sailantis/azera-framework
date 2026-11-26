@@ -201,6 +201,25 @@ $ctx->registerInterceptor(Transactional::class, new TransactionalInterceptor($ct
 
 Register interceptors **before** resolving advised services. Late registration is tolerated — resolved `#[Advised]` definitions are evicted and rebuilt on the next resolve — but nothing already executing can be retrofitted.
 
+### Switching proxying off
+
+`setAopProxiesEnabled(false)` makes `build()` return the raw class instance for every class, while leaving interceptor registration and the explicit `Pipeline` API untouched:
+
+```php
+$ctx->registerInterceptor(Cache::class, new CacheInterceptor($ctx->cache()));
+$ctx->setAopProxiesEnabled(false);   // keep interceptors registered, generate no proxies
+```
+
+This is an **escape hatch, not a performance switch**. It exists for deployments that cannot generate and load a subclass — no writable cache directory, `eval()` disallowed by policy, or a third-party package that registers interceptors in its own boot — and for cutting transparent advice off at runtime without editing the services.
+
+What it does and does not change:
+
+- **Advice is silently skipped.** A class marked `#[Advised]` runs its own bodies unmodified. There is no warning and no error: the attribute becomes inert.
+- **Registration still works.** `registerInterceptor()` keeps storing interceptors, and re-enabling applies them; `$ctx->pipeline([...])->call(...)` and `Pipeline::handle()` never involved a proxy and keep working.
+- **Both directions evict.** Flipping the switch either way forgets resolved `#[Advised]` services, so the next resolution returns an instance of the right kind instead of one memoized under the previous setting.
+
+**It buys no meaningful speed.** With no interceptor registered, the check in `build()` is already skipped, and with interceptors registered it is ~50 ns per class construction on this machine — about 0.03 % of a 0.16 ms request. A `Controller` is constructed once per worker process, not per request, because `clearRequestScope()` does not evict controllers. Leave the switch alone unless one of the constraints above actually applies.
+
 ### Using AOP
 
 ```php
@@ -416,7 +435,8 @@ Registration-state costs:
 | State | Cost |
 | --- | --- |
 | No interceptors registered | zero — `build()` returns a plain instance |
-| Interceptors registered, class not `#[Advised]` | zero — plain instance |
+| Proxying switched off (`setAopProxiesEnabled(false)`) | zero — `build()` returns a plain instance |
+| Interceptors registered, class not `#[Advised]` | ~50 ns — parent-chain attribute check, then a plain instance |
 | `#[Advised]` but no advised methods | one attribute scan, then a plain instance |
 | `#[Advised]` with advised methods | generation once per (class, method) shape; thereafter an OPcache'd file or eval'd class |
 

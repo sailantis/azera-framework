@@ -20,16 +20,17 @@ The class name is DETERMINISTIC, which is what lets OPcache serve the file
 instead of recompiling it on every cold request — see `loadProxyClass()` for
 why a stable name is safe here and how a planted file is rejected.
 
-Cost when no interceptors are registered: zero (AppContext::build() never
+Cost when no interceptors are registered, or proxying is switched off with
+AppContext::setAopProxiesEnabled(false): zero (AppContext::build() never
 calls ProxyFactory).
-Cost when interceptors are registered but class has no #[Advised]: zero
-(AppContext::build() checks the class-level attribute first).
+Cost when interceptors are registered but class has no #[Advised]: one
+parent-chain attribute check (~50 ns, measured), then a plain instance.
 Cost when class has #[Advised] but no advised methods: one-time
 ReflectionMethod scan, then the raw target is returned — no proxy.
 
 ## Public methods
 
-### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L91)</small>
+### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L92)</small>
 
 `public function register(string $adviceClass, Azera\Aop\InterceptorInterface $interceptor): void`
 
@@ -52,7 +53,7 @@ resolve their precomposed chains without holding a factory reference.
 
 ---
 
-### namespace() · <small>[🗎](../../src/Aop/ProxyFactory.php#L104)</small>
+### namespace() · <small>[🗎](../../src/Aop/ProxyFactory.php#L105)</small>
 
 `public function namespace(): string`
 
@@ -69,7 +70,7 @@ sane, and so `setCacheDir()` can move a factory to its final namespace.
 
 ---
 
-### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L117)</small>
+### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L118)</small>
 
 `public function setCacheDir(string|null $dir): void`
 
@@ -91,7 +92,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L132)</small>
+### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L133)</small>
 
 `public function getCacheDir(): string|null`
 
@@ -102,7 +103,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L137)</small>
+### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L138)</small>
 
 `public function hasInterceptors(): bool`
 
@@ -113,7 +114,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### proxyPath() · <small>[🗎](../../src/Aop/ProxyFactory.php#L152)</small>
+### proxyPath() · <small>[🗎](../../src/Aop/ProxyFactory.php#L153)</small>
 
 `public function proxyPath(ReflectionClass $ref): string|null`
 
@@ -138,7 +139,7 @@ path the loader will look at.
 
 ---
 
-### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L178)</small>
+### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L179)</small>
 
 `public function buildProxyClass(ReflectionClass $ref): string|null`
 
@@ -162,7 +163,7 @@ written to disk and `require`d — OPcache caches it. In eval mode
 
 ---
 
-### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L697)</small>
+### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L698)</small>
 
 `public function getInterceptor(string $adviceClass): Azera\Aop\InterceptorInterface`
 

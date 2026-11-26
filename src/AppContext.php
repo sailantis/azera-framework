@@ -423,7 +423,8 @@ class AppContext
      *
      * Once at least one interceptor is registered, the DI container
      * will proxy classes marked with {@see Advised} that have methods
-     * carrying the corresponding advice attribute.
+     * carrying the corresponding advice attribute — unless proxying has been
+     * switched off with {@see setAopProxiesEnabled()}.
      *
      * The interceptor may also be passed as a zero-argument factory
      * (closure/invokable) returning an InterceptorInterface. Factories are
@@ -439,14 +440,10 @@ class AppContext
     {
         $this->interceptors[$adviceClass] = $interceptor;
 
-        // AppContext::get() remembers resolved objects in $serviceDefinitions, and
-        // a class resolved before this interceptor existed was stored unproxied.
-        // Forget only the classes that carry #[Advised]: they are the ones whose
-        // instance depends on the interceptor map. Plain services are untouched.
-        foreach ($this->serviceDefinitions as $id => $_) {
-            if (is_string($id) && class_exists($id) && $this->isAdvisedClass($id)) {
-                unset($this->serviceDefinitions[$id], $this->serviceInstances[$id]);
-            }
+        // Nothing can have been proxied while proxies are disabled, so the map
+        // cannot have changed the identity of an already-resolved instance.
+        if ($this->aopProxiesEnabled) {
+            $this->forgetAdvisedServices();
         }
 
         // A ProxyFactory that is already built holds its own copy of the
@@ -456,6 +453,66 @@ class AppContext
         // factory memoized for the advice class that just changed.
         \Azera\Aop\AopRuntime::clearPlans($this->proxyFactory?->namespace() ?? $this->aopNamespace());
         $this->proxyFactory = null;
+    }
+
+    /**
+     * Turn transparent AOP proxying on or off for this context.
+     *
+     * This is an escape hatch for deployments where generating and loading a
+     * subclass is undesirable — no writable cache directory, `eval()` disallowed
+     * by policy, or a package that registers interceptors during its own boot.
+     * It is NOT a performance switch: with no interceptor registered the check in
+     * {@see build()} costs ~50 ns per class construction, measured, and a
+     * `Controller` is constructed once per worker process, not once per request.
+     *
+     * While disabled, {@see build()} always returns the raw class instance, so
+     * classes marked {@see Advised} silently lose their advice. Registration is
+     * unaffected ({@see registerInterceptor()} keeps storing interceptors, and
+     * re-enabling applies them), and the explicit alternative is untouched —
+     * `$ctx->pipeline([...])->call(...)` and `Pipeline::handle()` never generated
+     * a proxy and keep working.
+     *
+     * Flipping the switch in either direction forgets already-resolved `#[Advised]`
+     * services, so the next resolution returns an instance of the right kind
+     * rather than an object memoized under the previous setting.
+     *
+     * @param bool $enabled False to return raw instances for every class.
+     */
+    public function setAopProxiesEnabled(bool $enabled): void
+    {
+        if ($this->aopProxiesEnabled === $enabled) {
+            return;
+        }
+
+        $this->aopProxiesEnabled = $enabled;
+
+        // Both directions must evict: enabling has to replace instances built raw,
+        // disabling has to drop proxies already handed out. Resolved `#[Advised]`
+        // services are the only ones whose identity this setting changes.
+        $this->forgetAdvisedServices();
+    }
+
+    /** Whether transparent AOP proxying is enabled (the default). */
+    public function aopProxiesEnabled(): bool
+    {
+        return $this->aopProxiesEnabled;
+    }
+
+    /**
+     * Forget every resolved service whose instance depends on the AOP settings.
+     *
+     * Only classes carrying `#[Advised]` are evicted: they are the ones whose
+     * identity — proxy or raw — depends on the interceptor map and the proxy
+     * switch. Plain services are untouched. Walks the parent chain because
+     * class-level attributes are not inherited by PHP.
+     */
+    private function forgetAdvisedServices(): void
+    {
+        foreach ($this->serviceDefinitions as $id => $_) {
+            if (is_string($id) && class_exists($id) && $this->isAdvisedClass($id)) {
+                unset($this->serviceDefinitions[$id], $this->serviceInstances[$id]);
+            }
+        }
     }
 
     /** Whether a class is marked `#[Advised]`, walking up the parent chain. */
@@ -564,6 +621,15 @@ class AppContext
 
     /** @var string|null AOP cache directory (stored before proxyFactory is created). */
     private ?string $aopCacheDir = null;
+
+    /**
+     * Whether transparent AOP proxying is enabled.
+     *
+     * Default true: registering an interceptor is what turns AOP on. Set false via
+     * {@see setAopProxiesEnabled()} to keep interceptors registered while every
+     * class is instantiated raw.
+     */
+    private bool $aopProxiesEnabled = true;
 
     /**
      * Whether a class carries `#[Advised]` and at least one method whose advice
@@ -888,8 +954,9 @@ class AppContext
     {
         $ref = new \ReflectionClass($class);
 
-        // AOP fast path: if no interceptors registered, instantiate directly.
-        if ($this->interceptors === []) {
+        // AOP fast path: if no interceptors registered, or proxying is switched
+        // off, instantiate directly.
+        if ($this->interceptors === [] || !$this->aopProxiesEnabled) {
             return $this->instantiate($ref, $class);
         }
 

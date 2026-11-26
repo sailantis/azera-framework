@@ -197,6 +197,112 @@ class AopProxyTest extends TestCase
         $this->assertInstanceOf(RetryService::class, $service);
     }
 
+    public function testProxiesAreEnabledByDefault(): void
+    {
+        $this->assertTrue(AppContext::instance()->aopProxiesEnabled());
+    }
+
+    /**
+     * With proxying off an #[Advised] class is still a valid service — it just
+     * runs its own body. This is the escape hatch a deployment uses when it
+     * cannot write a proxy file and will not eval().
+     */
+    public function testDisabledProxiesReturnTheRawClass(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+        $ctx->setAopProxiesEnabled(false);
+
+        $service = $ctx->get(RetryService::class);
+
+        $this->assertSame(RetryService::class, $service::class, 'must not be a proxy subclass');
+
+        // The advice must NOT run: the raw method throws on its first attempt.
+        $service->attempts = 0;
+        try {
+            $service->flakyOperation();
+            $this->fail('the retry advice must be inactive while proxies are disabled');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Attempt 1 failed', $e->getMessage());
+        }
+        $this->assertSame(1, $service->attempts, 'the body must run exactly once, unadvised');
+    }
+
+    /** Re-enabling must reach services that were resolved while it was off. */
+    public function testReEnablingProxiesEvictsRawInstances(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
+        $ctx->setAopProxiesEnabled(false);
+        $raw = $ctx->get(RetryService::class);
+        $this->assertSame(RetryService::class, $raw::class);
+
+        $ctx->setAopProxiesEnabled(true);
+        $proxied = $ctx->get(RetryService::class);
+
+        $this->assertNotSame($raw, $proxied);
+        $this->assertNotSame(RetryService::class, $proxied::class, 'the re-resolved instance must be proxied');
+
+        $proxied->attempts = 0;
+        $this->assertSame('success', $proxied->flakyOperation(), 'advice must apply again');
+    }
+
+    /** Disabling must not leave a proxy in the container. */
+    public function testDisablingProxiesEvictsProxiedInstances(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
+        $proxied = $ctx->get(RetryService::class);
+        $this->assertNotSame(RetryService::class, $proxied::class);
+
+        $ctx->setAopProxiesEnabled(false);
+        $raw = $ctx->get(RetryService::class);
+
+        $this->assertSame(RetryService::class, $raw::class);
+    }
+
+    /**
+     * An interceptor registered while proxies are disabled must not force an
+     * eviction loop: nothing was proxied, so resolved instances stay put.
+     */
+    public function testRegisteringWhileDisabledLeavesResolvedServicesAlone(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
+        $ctx->setAopProxiesEnabled(false);
+
+        $first = $ctx->get(RetryService::class);
+
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
+        $this->assertSame($first, $ctx->get(RetryService::class), 'same instance must be reused');
+    }
+
+    /** The explicit Pipeline never generated a proxy, so the switch must not affect it. */
+    public function testDisabledProxiesLeaveTheExplicitPipelineWorking(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
+        $ctx->setAopProxiesEnabled(false);
+
+        $calls = 0;
+        $result = $ctx->pipeline([new RetryInterceptor()])->call(function () use (&$calls) {
+            $calls++;
+            if ($calls < 2) {
+                throw new \RuntimeException('transient');
+            }
+            return 'done';
+        });
+
+        $this->assertSame('done', $result);
+        $this->assertSame(2, $calls);
+    }
+
     public function testRetrySucceedsAfterFailures(): void
     {
         $ctx = AppContext::instance();

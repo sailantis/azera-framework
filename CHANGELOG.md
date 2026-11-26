@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`find()`, `findOrFail()`, `findOne()`, `findAll()`) and writer helpers
   (`create()`, `upsert()`, `firstOrCreate()`, `updateOrCreate()`) through
   `Orm\Concerns\EntityFacade`, using the configured store.
+- **`AppContext::setAopProxiesEnabled()`** enables or disables transparent proxying
+  per context. Disabling it makes `build()` return raw instances, including for
+  `#[Advised]` classes; resolved advised services are evicted when the setting
+  changes. Interceptors and the explicit `Pipeline` API are unaffected.
 
 ### Fixed
 
