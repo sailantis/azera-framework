@@ -46,7 +46,13 @@ jobs:
           esac
           git rev-parse --verify "refs/tags/$TAG^{commit}" >/dev/null 2>&1 \
             || { echo "::error::tag '$TAG' does not exist in this repository"; exit 1; }
+          if [[ "$TAG" =~ ^v.+-.+$ ]]; then
+            PRERELEASE=true
+          else
+            PRERELEASE=false
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
           echo "Publishing release for $TAG"
 
       - name: Set up PHP
@@ -66,9 +72,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.tag.outputs.tag }}
+          PRERELEASE: ${{ steps.tag.outputs.prerelease }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$TAG" --notes-file /tmp/notes.md
+            if [ "$PRERELEASE" = "true" ]; then
+              gh release edit "$TAG" --title "$TAG" --notes-file /tmp/notes.md --prerelease --latest=false
+            else
+              gh release edit "$TAG" --title "$TAG" --notes-file /tmp/notes.md --prerelease=false
+            fi
           else
-            gh release create "$TAG" --title "$TAG" --notes-file /tmp/notes.md --verify-tag
+            if [ "$PRERELEASE" = "true" ]; then
+              gh release create "$TAG" --title "$TAG" --notes-file /tmp/notes.md --verify-tag --prerelease --latest=false
+            else
+              gh release create "$TAG" --title "$TAG" --notes-file /tmp/notes.md --verify-tag
+            fi
           fi

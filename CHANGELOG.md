@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Prerelease GitHub releases.** Tags with a SemVer prerelease suffix (for example,
+  `v0.7.0-alpha.1`) are now created and updated as GitHub prereleases and are
+  excluded from the repository's "Latest" release.
 - **Shared entity facade methods.** `Document` now provides the finders
   (`find()`, `findOrFail()`, `findOne()`, `findAll()`) and writer helpers
   (`create()`, `upsert()`, `firstOrCreate()`, `updateOrCreate()`) through
