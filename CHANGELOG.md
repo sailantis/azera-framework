@@ -9,79 +9,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Event dispatch caches priority-ordered listeners per event class**, refreshing
-  the cache when `listen()` is called. Class-string listeners remain lazy, and
-  cache size is bounded.
-- **AOP now uses a shared `Invocation` model.** Interceptors implement
-  `intercept(Invocation $invocation, callable $next): mixed`; pipelines compose
-  once, and generated proxies reuse per-method plans. `Pipeline::call()` accepts
-  the callable and arguments, with optional identity and advice; `Pipeline::handle()`
-  is also available. Advice on an invocation takes precedence over constructor
-  defaults. The interceptor and `Pipeline::call()` signatures changed;
-  `ProxyFactory::setCurrent()` and `current()` were removed. `Pipeline::through()`
-  remains as a deprecated immutable alias. See [docs/UPGRADING.md](docs/UPGRADING.md).
-- `DatabaseManager::peek(string $role): ?Database` returns an instantiated
-  connection without invoking its factory; the transaction interceptor uses it
-  to check transactions across roles.
-- **Cache keys use a typed, collision-resistant digest.** `CacheInterceptor`
-  hashes the serialized identity, method and arguments with `xxh128`; derived
-  keys are opaque and the change invalidates existing entries. Explicit
-  `#[Cache(key: …)]` templates encode placeholder values distinctly by type;
-  see Fixed for details.
-- **`EntityManager::remove()` on an untracked entity with a complete key deletes
-  it from storage.** Use `clear()` or `detach()` to remove an entity from identity
-  tracking without deleting it.
-- **`Orm\Concerns\EntityFacade`** consolidates finder and writer helpers for
-  `Model` and `Document`. `Document` exposes backend-agnostic entity operations;
-  SQL query-builder methods remain on `Model`. Plain classes using `#[Entity]`
-  and `#[Column]` continue to work through the EntityManager.
+- **Generated proxies embed advice arguments and parameter names.** `AopRuntime::plan()`
+  constructs advice without reflection; attribute changes alter the digest.
+  `GENERATOR_VERSION` is `7`.
+- **AOP caching uses per-class pointers and content-addressed bodies.** Pointers store the
+  advice map and source signature; timestamps are hints. Matching pointers skip generation,
+  and `cache:prune --only=aop` uses pointers to identify obsolete bodies without a class
+  list. `cache:status` reports cache state.
+- **Proxy memoization runs before reflection**, keyed by namespace and class and cleared
+  by `register()` or `setCacheDir()`. Warm lookup measured ~3 µs versus ~140 µs for
+  scanning and generation. Proxy files are backdated for immediate OPcache reuse.
+- **`setAopCacheDir(null)` selects `eval()` without disk caching.**
+- **Event dispatch caches priority-ordered listeners by event class.** `listen()` refreshes
+  the bounded cache; class-string listeners remain lazy.
+- **AOP uses a shared `Invocation` model.** Interceptors implement
+  `intercept(Invocation $invocation, callable $next): mixed`; pipelines compose once and
+  proxies reuse per-method plans. `Pipeline::call()` and `handle()` accept invocation
+  data; invocation advice overrides constructor defaults. Signatures changed,
+  `ProxyFactory::setCurrent()` and `current()` were removed, and `Pipeline::through()`
+  remains a deprecated immutable alias. See [docs/UPGRADING.md](docs/UPGRADING.md).
+- `DatabaseManager::peek(string $role): ?Database` returns an instantiated connection
+  without invoking its factory.
+- **Cache keys use typed `xxh128` digests** of serialized identity, method, and arguments;
+  existing entries are invalidated. Explicit placeholders encode values by type.
+- **Removing an untracked entity with a complete key deletes it from storage.** Use
+  `clear()` or `detach()` to remove it from identity tracking only.
+- **`Orm\Concerns\EntityFacade` shares finder and writer helpers across `Model` and
+  `Document`.** SQL query-builder methods remain on `Model`.
 
 ### Added
 
-- **Prerelease GitHub releases.** Tags with a SemVer prerelease suffix (for example,
-  `v0.7.0-alpha.1`) are now created and updated as GitHub prereleases and are
-  excluded from the repository's "Latest" release.
-- **Shared entity facade methods.** `Document` now provides the finders
-  (`find()`, `findOrFail()`, `findOne()`, `findAll()`) and writer helpers
-  (`create()`, `upsert()`, `firstOrCreate()`, `updateOrCreate()`) through
-  `Orm\Concerns\EntityFacade`, using the configured store.
-- **`AppContext::setAopProxiesEnabled()`** enables or disables transparent proxying
-  per context. Disabling it makes `build()` return raw instances, including for
-  `#[Advised]` classes; resolved advised services are evicted when the setting
-  changes. Interceptors and the explicit `Pipeline` API are unaffected.
+- **Prerelease GitHub releases.** SemVer prerelease tags create or update prereleases and
+  are excluded from "Latest".
+- **`Document` adds shared entity finders and writers** through `Orm\Concerns\EntityFacade`,
+  using its configured store.
+- **Interceptor registration enables AOP;** without interceptors, `build()` returns raw
+  instances.
+- **Container definitions remain separate from resolved instances.** Invalidation keeps
+  factory recipes; `get()` and `tryGet()` do not replace definitions.
 
 ### Fixed
 
-- **Keyless entity metadata and persistence.** `Metadata::pkFields` now includes
-  only declared key columns and is empty when a class has no key; the metadata
-  version was bumped to `v11`. Key-dependent operations validate the key and
-  report the class, while inserts of keyless entities use plain SQL inserts and
-  synthetic heap slots. Keyless `upsert()` falls back to insert. This also avoids
-  phantom SQL/Mongo identities and prevents multiple pending entities from sharing
-  one heap node.
-- **Explicit cache-key placeholders.** Values now produce distinct, typed,
-  key-safe tokens, including serialized arrays and objects; closures and resources
-  raise an error when they cannot be serialized deterministically. Placeholder
-  validation now checks the template itself, so argument values containing
-  `{name}` do not trigger false unresolved-placeholder errors.
-- **Proxy generation and AOP runtime behavior.** Proxies now support cloning,
-  serialization and by-reference variadic parameters; terminal closures are
-  created per call. Interceptor registries are scoped per `ProxyFactory`, plans
-  refresh when interceptors are registered, and `AopPlan` is PSR-4 loadable.
-- **Transaction interception.** Leak checks now run before commit and roll back
-  on failure. Existing transactions on other roles are recognized, and an
-  implicit transaction role uses the manager's default connection.
-- **Store-aware queries and entity diagnostics.** Model-backed SQL queries now
-  reject entities assigned to another store with guidance to use that store.
-  `Model::findAll()` uses the EntityManager; ID mismatch errors identify the class
-  and expected and actual counts.
-- **Entity identity and deletion.** `adopt()` and document deletion now validate
-  every required key field and identify missing fields. Untracked entities with
-  complete keys are adopted before removal, so deletion reaches the configured
-  store. Operations requiring a primary key report the class and key requirements.
-- **ORM example corrections.** `ModelLoadMethodsExample.php` now wraps raw
-  column expressions in `Sql::raw()` and seeds records with IDs used by its
-  finder examples.
+- **AOP pruning uses directory pointers without resolving interceptors.** Live proxies are
+  preserved; `cache:clear --only=aop` remains an unconditional wipe. Unused
+  `AppContext::buildableClasses()`, `aopProxyFactory()`, and `aopInterceptors()` methods
+  were removed.
+- **The default AOP cache path is shared** at `<temp>/azera_aop`; pointer mismatches
+  trigger regeneration, and `setAopCacheDir()` supports separate paths.
+- **Advice changes create new proxies, but existing services retain their plan.** Replace
+  workers after advice changes. Late `registerInterceptor()` calls rebuild proxies when
+  the advice set changes.
+- **Keyless entities are supported.** `Metadata::pkFields` contains declared keys only
+  (version `v11`); key-dependent operations validate keys, and keyless upserts insert.
+- **Explicit cache-key placeholders are typed and key-safe.** Serialization failures are
+  reported, and validation checks the template rather than argument contents.
+- **AOP proxies support cloning, serialization, and by-reference variadics.** Terminals
+  are per-call, registries factory-scoped, and plans refresh on registration;
+  `AopPlan` is PSR-4 loadable.
+- **Transaction interception checks leaks before commit and rolls back on failure.** It
+  recognizes transactions on other roles and uses the manager's default connection.
+- **Store-aware queries reject entities from another store.** `Model::findAll()` uses the
+  EntityManager; ID mismatch errors include the class and expected/actual counts.
+- **Entity identity and deletion validate required keys.** Complete-key untracked entities
+  are adopted before removal.
+- **ORM examples use `Sql::raw()` and seed IDs used by finder examples.**
 
 ## [0.6.0] - 2026-11-24
 

@@ -54,5 +54,11 @@
   },
   "config": {
     "sort-packages": true
-  }
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../clarity-engine"
+    }
+  ]
 }

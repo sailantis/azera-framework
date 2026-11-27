@@ -19,7 +19,7 @@ jobs:
         # than tolerated. It caught two real breaks the day it shipped: `#[\Attribute]`
         # became a fatal error on abstract classes, and `setAccessible()` became a
         # deprecation.
-        php: ["8.2", "8.3", "8.4", "8.5"]
+        php: ["8.2", "8.3", "8.4", "8.5", "8.6"]
 
     steps:
       - name: Checkout

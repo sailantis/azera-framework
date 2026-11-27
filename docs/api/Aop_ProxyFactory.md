@@ -2,35 +2,23 @@
 
 **Full name:** [Azera\Aop\ProxyFactory](../../src/Aop/ProxyFactory.php)
 
-Creates proxy classes that wrap advised methods with interceptor chains.
+Builds proxies that run advised methods through interceptor pipelines.
 
-The proxy is an anonymous class that extends the target class. It IS
-the instance — no separate target object, no state mismatch. Overridden
-methods call `parent::method()` to reach the original implementation.
+A proxy extends the target and is the service instance. Overridden methods
+delegate to `parent::method()`; unadvised methods remain inherited.
 
-Methods without advice attributes are NOT overridden — they call the
-parent implementation directly with zero overhead.
+`buildProxyClass()` memoizes by namespace and target class before reflection,
+then checks for a loaded class before file I/O. Disk caching uses content-addressed
+bodies and per-class pointers; a matching source signature skips generation.
+Deterministic class names allow OPcache reuse (see `loadCachedProxyClass()`).
 
-In-process caching: `buildProxyClass()` memoises per target class, and the
-proxy class is looked up with `class_exists(..., false)` before any file I/O.
-
-On-disk caching (when a cache dir is set): the proxy is written once per
-(target class, generated body, generator version) and `require`d thereafter.
-The class name is DETERMINISTIC, which is what lets OPcache serve the file
-instead of recompiling it on every cold request — see `loadProxyClass()` for
-why a stable name is safe here and how a planted file is rejected.
-
-Cost when no interceptors are registered, or proxying is switched off with
-AppContext::setAopProxiesEnabled(false): zero (AppContext::build() never
-calls ProxyFactory).
-Cost when interceptors are registered but class has no #[Advised]: one
-parent-chain attribute check (~50 ns, measured), then a plain instance.
-Cost when class has #[Advised] but no advised methods: one-time
-ReflectionMethod scan, then the raw target is returned — no proxy.
+With no interceptors registered, no proxy is built. An unadvised class
+costs one attribute check; an advised class with no advised methods costs one
+reflection scan and returns the raw target.
 
 ## Public methods
 
-### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L92)</small>
+### register() · <small>[🗎](../../src/Aop/ProxyFactory.php#L66)</small>
 
 `public function register(string $adviceClass, Azera\Aop\InterceptorInterface $interceptor): void`
 
@@ -53,7 +41,31 @@ resolve their precomposed chains without holding a factory reference.
 
 ---
 
-### namespace() · <small>[🗎](../../src/Aop/ProxyFactory.php#L105)</small>
+### namespaceFor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L87)</small>
+
+`public static function namespaceFor(string|null $dir): string`
+
+The namespace a factory publishing from `$dir` will use.
+
+Static and single-sourced: the namespace is baked into generated source and
+keys the pointer files, so a caller reasoning about a directory it has no
+factory for (a maintenance command) must derive exactly the same string.
+Normalisation lives here, not in each caller.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$dir` | string\|null | - | Cache directory, or null for `eval()`. |
+
+**Return value**
+
+- Type: `string`
+
+
+---
+
+### namespace() · <small>[🗎](../../src/Aop/ProxyFactory.php#L99)</small>
 
 `public function namespace(): string`
 
@@ -70,7 +82,7 @@ sane, and so `setCacheDir()` can move a factory to its final namespace.
 
 ---
 
-### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L118)</small>
+### setCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L112)</small>
 
 `public function setCacheDir(string|null $dir): void`
 
@@ -92,7 +104,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L133)</small>
+### getCacheDir() · <small>[🗎](../../src/Aop/ProxyFactory.php#L125)</small>
 
 `public function getCacheDir(): string|null`
 
@@ -103,7 +115,7 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L138)</small>
+### hasInterceptors() · <small>[🗎](../../src/Aop/ProxyFactory.php#L130)</small>
 
 `public function hasInterceptors(): bool`
 
@@ -114,16 +126,12 @@ allowing OPcache to cache them. When null (default), `eval()` is used.
 
 ---
 
-### proxyPath() · <small>[🗎](../../src/Aop/ProxyFactory.php#L153)</small>
+### proxyPath() · <small>[🗎](../../src/Aop/ProxyFactory.php#L141)</small>
 
 `public function proxyPath(ReflectionClass $ref): string|null`
 
-The cache file this factory would use for $ref, or null when nothing would
-be written (no cache dir, or the class has no advised methods).
-
-Public so deployment tooling can warm or prune the proxy cache without
-re-deriving the naming scheme, and so tests can plant a file at the exact
-path the loader will look at.
+Return the proxy file path, or null when disk caching is disabled or no
+methods are advised. Used by tooling to locate or warm the exact cache file.
 
 **Parameters**
 
@@ -139,16 +147,13 @@ path the loader will look at.
 
 ---
 
-### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L179)</small>
+### pointerFileFor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L162)</small>
 
-`public function buildProxyClass(ReflectionClass $ref): string|null`
+`public function pointerFileFor(ReflectionClass $ref): string|null`
 
-Build the proxy class for a target class.
+Return the target class's pointer file, or null without a cache directory.
 
-Returns the proxy class name (a class extending the target), or null
-if no methods need interception. In file-based mode, the class is
-written to disk and `require`d — OPcache caches it. In eval mode
-(development), an anonymous class is created inline.
+Each class keeps one pointer until `self::prune()` removes it.
 
 **Parameters**
 
@@ -163,14 +168,56 @@ written to disk and `require`d — OPcache caches it. In eval mode
 
 ---
 
-### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L698)</small>
+### buildProxyClass() · <small>[🗎](../../src/Aop/ProxyFactory.php#L175)</small>
+
+`public function buildProxyClass(ReflectionClass $ref): string|null`
+
+Build a proxy class, or return null if no methods need interception.
+
+Disk-backed proxies are required from file for OPcache; eval mode creates
+an anonymous class.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$ref` | ReflectionClass | - |  |
+
+**Return value**
+
+- Type: `string`|`null`
+
+
+---
+
+### prune() · <small>[🗎](../../src/Aop/ProxyFactory.php#L525)</small>
+
+`public function prune(int $olderThanSeconds = 0): array`
+
+Remove unreferenced proxy bodies and dangling pointers.
+
+All pointers in the directory define the live set, so pruning works from a
+cold CLI and across applications. Only `Proxy_<hex>.php` files are candidates;
+invalidate OPcache before deleting bodies. Keep uncertain files.
+
+**Parameters**
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `$olderThanSeconds` | int | `0` | Skip files modified more recently than this. |
+
+**Return value**
+
+- Type: `array`
+
+
+---
+
+### getInterceptor() · <small>[🗎](../../src/Aop/ProxyFactory.php#L1070)</small>
 
 `public function getInterceptor(string $adviceClass): Azera\Aop\InterceptorInterface`
 
-The interceptor registered for one advice class.
-
-Exposed for diagnostics and tests; generated proxies resolve their plan
-through [`AopRuntime`](Aop_AopRuntime.md) instead.
+Return the interceptor registered for an advice class.
 
 **Parameters**
 

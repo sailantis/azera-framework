@@ -63,7 +63,7 @@ class AppContext
             // a session-less bag for the whole request, and the one-shot age() would
             // never run. Flash::age() therefore happens the first time a session is
             // actually available, not at construction.
-            Flash::class                    => fn () =>
+            Flash::class => fn() =>
                 (new Flash())->useSessionResolver(fn(): ?Session => $this->session()),
             Heap::class                     => fn() => new Heap(),
             HttpRequest::class              => fn() => new HttpRequest(),
@@ -76,13 +76,13 @@ class AppContext
             TableResolver::class => fn() => new ModelResolver(),
             // No catalogue until configure() is called: keys echo back, so
             // controllers and validators can translate before translations exist.
-            Translator::class    => fn() => new Translator(),
+            Translator::class => fn() => new Translator(),
             // Formatting shares the translator's locale stack, so a locale scope
             // moves numbers, dates and messages together. Resolved after the
             // translator, which is why the factory takes the instance rather
             // than building its own LocaleService.
-            Intl::class          => fn() => (new Intl())->useTranslator($this->translator()),
-            ViewEngine::class    => fn() => new ClarityEngine(),
+            Intl::class       => fn() => (new Intl())->useTranslator($this->translator()),
+            ViewEngine::class => fn() => new ClarityEngine(),
         ];
     }
 
@@ -320,8 +320,7 @@ class AppContext
      */
     public function kernel(): Kernel
     {
-        return $this->serviceInstances[Kernel::class]
-            ??= new Kernel($this);
+        return $this->serviceInstances[Kernel::class] ??= new Kernel($this);
     }
 
     /**
@@ -423,8 +422,8 @@ class AppContext
      *
      * Once at least one interceptor is registered, the DI container
      * will proxy classes marked with {@see Advised} that have methods
-     * carrying the corresponding advice attribute — unless proxying has been
-     * switched off with {@see setAopProxiesEnabled()}.
+     * carrying the corresponding advice attribute. Registering an interceptor is
+     * the only thing that turns AOP on; there is no separate switch.
      *
      * The interceptor may also be passed as a zero-argument factory
      * (closure/invokable) returning an InterceptorInterface. Factories are
@@ -440,51 +439,46 @@ class AppContext
     {
         $this->interceptors[$adviceClass] = $interceptor;
 
+        // Rebuild resolved advised services so late registration takes effect.
+        // Clear cached advice checks too; at boot, no services are resolved yet.
+        $this->advisedCache = [];
+
+        foreach ($this->serviceInstances as $id => $instance) {
+            if ($this->isAdvisedClass($instance)) {
+                unset($this->serviceInstances[$id]);
+            }
+        }
+
         // A ProxyFactory that is already built holds its own copy of the
         // interceptor map, so drop it; the next advised instantiation rebuilds it.
         // The process-wide registry is cleared too: an advised proxy that is
         // invoked before the next build must not keep running the plan the old
         // factory memoized for the advice class that just changed.
-        \Azera\Aop\AopRuntime::clearPlans($this->proxyFactory?->namespace() ?? $this->aopNamespace());
+        \Azera\Aop\AopRuntime::clearPlans(
+            $this->proxyFactory?->namespace()
+                ?? ProxyFactory::namespaceFor($this->aopCacheDir())
+        );
         $this->proxyFactory = null;
     }
 
     /**
-     * Turn transparent AOP proxying on or off for this context.
+     * Whether a resolved service's class is marked `#[Advised]`, walking up the
+     * parent chain because class-level attributes are not inherited by PHP.
      *
-     * This is an escape hatch for deployments where generating and loading a
-     * subclass is undesirable — no writable cache directory, `eval()` disallowed
-     * by policy, or a package that registers interceptors during its own boot.
-     * It is NOT a performance switch: with no interceptor registered the check in
-     * {@see build()} costs ~50 ns per class construction, measured, and a
-     * `Controller` is constructed once per worker process, not once per request.
-     *
-     * While disabled, {@see build()} always returns the raw class instance, so
-     * classes marked {@see Advised} silently lose their advice. Registration is
-     * unaffected ({@see registerInterceptor()} keeps storing interceptors, and
-     * re-enabling applies them), and the explicit alternative is untouched —
-     * `$ctx->pipeline([...])->call(...)` and `Pipeline::handle()` never generated
-     * a proxy and keep working.
-     *
-     * Flipping the switch in either direction forgets already-resolved `#[Advised]`
-     * services, so the next resolution returns an instance of the right kind
-     * rather than an object memoized under the previous setting.
-     *
-     * @param bool $enabled False to return raw instances for every class.
+     * Asked of the INSTANCE rather than the registered id: the id is whatever the
+     * application chose to register under (`Psr\Log\LoggerInterface`, a role name),
+     * while the instance is the class that would actually need a proxy.
      */
-    public function setAopProxiesEnabled(bool $enabled): void
+    private function isAdvisedClass(object $instance): bool
     {
-        if ($this->aopProxiesEnabled === $enabled) {
-            return;
-        }
+        $ref = new \ReflectionClass($instance);
+        do {
+            if ($ref->getAttributes(Advised::class) !== []) {
+                return true;
+            }
+        } while ($ref = $ref->getParentClass());
 
-        $this->aopProxiesEnabled = $enabled;
-    }
-
-    /** Whether transparent AOP proxying is enabled (the default). */
-    public function aopProxiesEnabled(): bool
-    {
-        return $this->aopProxiesEnabled;
+        return false;
     }
 
     /**
@@ -498,83 +492,55 @@ class AppContext
             // Set the cache dir BEFORE registering: the factory derives its
             // AopRuntime namespace from it, and generated proxies bake that
             // namespace into their source.
-            // Default: sys_get_temp_dir()/azera_aop (OPcache-friendly).
-            // Set to null via setAopCacheDir(null) to use eval (development).
-            $this->proxyFactory->setCacheDir($this->aopCacheDir ?? $this->defaultAopCacheDir());
+            $this->proxyFactory->setCacheDir($this->aopCacheDir());
 
+            $resolved = [];
             foreach ($this->interceptors as $adviceClass => $interceptor) {
                 // Resolve lazy factories exactly once, at ProxyFactory build
                 // time (first advised-class instantiation) — not at boot.
                 // Interceptor instances are used as-is; anything else callable
                 // (a Closure is an object too) is a factory.
-                $resolved = $interceptor instanceof InterceptorInterface
-                    ? $interceptor
-                    : $interceptor();
-
-                $this->proxyFactory->register($adviceClass, $resolved);
+                if (!($interceptor instanceof InterceptorInterface)) {
+                    $interceptor = $interceptor();
+                }
+                $resolved[$adviceClass] = $interceptor;
+                $this->proxyFactory->register($adviceClass, $interceptor);
             }
 
             // Publish even when empty so a context with no interceptors clears
             // any map/plan a previous instance left under this namespace.
             \Azera\Aop\AopRuntime::setInterceptors(
                 $this->proxyFactory->namespace(),
-                $this->resolvedInterceptorMap(),
+                $resolved,
             );
         }
         return $this->proxyFactory;
     }
 
     /**
-     * The interceptor map with every lazy factory resolved, without building a
-     * factory or publishing anything.
+     * Get the effective proxy cache directory.
      *
-     * @return array<class-string<Advice>, InterceptorInterface>
+     * @return string The effective proxy cache directory.
      */
-    private function resolvedInterceptorMap(): array
+    public function aopCacheDir(): string
     {
-        $resolved = [];
-
-        foreach ($this->interceptors as $adviceClass => $interceptor) {
-            $resolved[$adviceClass] = $interceptor instanceof InterceptorInterface
-                ? $interceptor
-                : $interceptor();
-        }
-
-        return $resolved;
-    }
-
-    /** The default AOP proxy cache directory (OPcache-friendly, writable). */
-    private function defaultAopCacheDir(): string
-    {
-        return sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera_aop';
-    }
-
-    /**
-     * The namespace this context's proxies will publish under.
-     *
-     * Mirrors {@see ProxyFactory::namespace()} for the directory the factory will
-     * use, including before the factory exists.
-     */
-    private function aopNamespace(): string
-    {
-        return 'factory:' . ($this->aopCacheDir ?? $this->defaultAopCacheDir());
+        return $this->aopCacheDir ??= sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'azera_aop';
     }
 
     /**
      * Set the AOP proxy cache directory.
      *
-     * Pass a path for file-based proxy generation (OPcache-cached, production).
-     * Pass null to use eval() (development, no cache files).
+     * Pass null to use the default temporary directory with OPcache-cached proxies.
      *
      * @param string|null $dir
      * @return void
      */
-    public function setAopCacheDir(?string $dir): void
+    public function setAopCacheDir(?string $dir = null): void
     {
         $this->aopCacheDir = $dir;
 
         if ($this->proxyFactory !== null) {
-            $this->proxyFactory->setCacheDir($dir);
+            $this->proxyFactory->setCacheDir($this->aopCacheDir());
         }
     }
 
@@ -582,40 +548,50 @@ class AppContext
     private ?string $aopCacheDir = null;
 
     /**
-     * Whether transparent AOP proxying is enabled.
+     * Memoised answer to {@see hasAdvisedMethods()}, keyed by class name.
      *
-     * Default true: registering an interceptor is what turns AOP on. Set false via
-     * {@see setAopProxiesEnabled()} to keep interceptors registered while every
-     * class is instantiated raw.
+     * Safe only because {@see registerInterceptor()} clears it: the verdict
+     * depends on the interceptor map, and a class resolved before an interceptor
+     * was registered would otherwise be cached as "not advised" forever. That was
+     * a real bug when this was memoised before, and correct eviction is what makes
+     * memoising it now sound.
+     *
+     * @var array<class-string, bool>
      */
-    private bool $aopProxiesEnabled = true;
+    private array $advisedCache = [];
 
     /**
      * Whether a class carries `#[Advised]` and at least one method whose advice
      * has a registered interceptor.
      *
-     * Never memoised: the answer depends on the *current* interceptor map, and
-     * memoising it per class name cached "not advised" forever when a class was
-     * resolved before its interceptor was registered. The scan below is a handful
-     * of reflection reads on a class we are constructing right now, which is
-     * irrelevant next to instantiation.
+     * Called once per class CONSTRUCTION whenever the interceptor map is non-empty,
+     * so a typical application pays it for every auto-wired service on every boot.
+     * The parent-chain walk below is cheap and short-circuits for classes without
+     * `#[Advised]`; the `getMethods()` scan is not, which is why the verdict is
+     * memoised and merely cleared by {@see registerInterceptor()}.
      */
     private function hasAdvisedMethods(\ReflectionClass $ref): bool
     {
+        $class = $ref->getName();
+
+        if (isset($this->advisedCache[$class])) {
+            return $this->advisedCache[$class];
+        }
+
         // Fast check: class (or any parent) must have #[Advised] attribute.
         // Class-level attributes are NOT inherited by PHP, so we walk
         // up the parent chain ourselves.
         $hasAdvised = false;
-        $class      = $ref;
+        $parent     = $ref;
         do {
-            if ($class->getAttributes(Advised::class) !== []) {
+            if ($parent->getAttributes(Advised::class) !== []) {
                 $hasAdvised = true;
                 break;
             }
-        } while ($class = $class->getParentClass());
+        } while ($parent = $parent->getParentClass());
 
         if (!$hasAdvised) {
-            return false;
+            return $this->advisedCache[$class] = false;
         }
 
         // Check if any method has a registered advice attribute.
@@ -625,12 +601,12 @@ class AppContext
             foreach ($method->getAttributes() as $attr) {
                 $attrClass = $attr->getName();
                 if (isset($this->interceptors[$attrClass])) {
-                    return true;
+                    return $this->advisedCache[$class] = true;
                 }
             }
         }
 
-        return false;
+        return $this->advisedCache[$class] = false;
     }
 
     // --- Critical Services ---
@@ -694,26 +670,12 @@ class AppContext
     }
 
     /**
-     * Clear all request-scoped state on this context.
+     * Clear request-scoped state for persistent application servers.
      *
-     * Under a persistent application server (RoadRunner, Swoole, FrankenPHP,
-     * Octane, …) the AppContext survives across many requests. This method
-     * resets the per-request services so the next request starts clean:
-     *
-     *  - the request-scoped container entries (Request, Session, Cookies, Flash)
-     *    are removed so their accessors resolve fresh instances on demand;
-     *  - the current {@see ResolvedRoute} value is cleared;
-     *  - every service registered on the container that implements
-     *    {@see RequestScoped} has its {@see RequestScoped::resetState()} hook
-     *    called — this covers the ORM Heap and EntityManager, whose identity
-     *    state is wiped in place while their instances stay registered
-     *    (persistent-worker contract: handles survive, state dies).
-     *
-     * Persistent infrastructure is deliberately left untouched — database
-     * manager, cache/Redis backends, queue, logger and event dispatcher keep
-     * their handles and connections alive across requests.
-     *
-     * Safe to call repeatedly; a no-op when no request has been processed yet.
+     * Removes request, session, cookie, flash, and route instances, then calls
+     * {@see RequestScoped::resetState()} on registered services. Instances and
+     * infrastructure handles remain available; their request-specific state is reset.
+     * Safe to call repeatedly.
      */
     public function clearRequestScope(): void
     {
@@ -791,10 +753,11 @@ class AppContext
         }
 
         if (class_exists($id)) {
-            $service = $this->build($id);
-            $this->serviceDefinitions[$id] = $service;
-            $this->serviceInstances[$id]   = $service;
-            return $service;
+            // The DEFINITION stays a factory, not the instance: see
+            // resolveRegisteredService() for why the two maps must not be merged.
+            $this->serviceDefinitions[$id] = fn() => $this->build($id);
+
+            return $this->resolveRegisteredService($id, allowNull: false);
         }
 
         throw new RuntimeException("Service not found: $id");
@@ -821,10 +784,9 @@ class AppContext
         }
 
         if (class_exists($id)) {
-            $service = $this->build($id);
-            $this->serviceDefinitions[$id] = $service;
-            $this->serviceInstances[$id]   = $service;
-            return $service;
+            $this->serviceDefinitions[$id] = fn() => $this->build($id);
+
+            return $this->resolveRegisteredService($id, allowNull: true);
         }
 
         return null;
@@ -858,11 +820,12 @@ class AppContext
     }
 
     /**
-     * Resolve a registered service by its identifier.
+     * Resolve a service definition once and cache its instance.
      *
-     * If the service is registered as a callable, it will be invoked lazily once and the
-     * returned object will be cached. If the service is not registered, this method
-     * returns null or throws an exception based on the $allowNull parameter.
+     * Definitions store class strings or factories; instances store resolved objects.
+     * Keeping them separate lets invalidation rebuild services from their original
+     * definitions. Returns null or throws when the service is missing, depending on
+     * `$allowNull`.
      *
      * @param string $id The identifier of the service to resolve.
      * @param bool $allowNull Whether to allow null return if the service is not found.
@@ -882,10 +845,7 @@ class AppContext
         }
 
         if (is_string($definition) && class_exists($definition)) {
-            $service = $this->build($definition);
-            $this->serviceDefinitions[$id] = $service;
-            $this->serviceInstances[$id]   = $service;
-            return $service;
+            return $this->serviceInstances[$id] = $this->build($definition);
         }
 
         if (!is_callable($definition)) {
@@ -913,9 +873,11 @@ class AppContext
     {
         $ref = new \ReflectionClass($class);
 
-        // AOP fast path: if no interceptors registered, or proxying is switched
-        // off, instantiate directly.
-        if ($this->interceptors === [] || !$this->aopProxiesEnabled) {
+        // AOP fast path: if no interceptors registered, instantiate directly.
+        // There is no per-context switch to check here: registering an interceptor
+        // is the only thing that turns proxying on, and an unregistered map means
+        // no class needs a proxy.
+        if ($this->interceptors === []) {
             return $this->instantiate($ref, $class);
         }
 

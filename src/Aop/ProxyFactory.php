@@ -6,78 +6,52 @@ use ReflectionClass;
 use ReflectionMethod;
 
 /**
- * Creates proxy classes that wrap advised methods with interceptor chains.
+ * Builds proxies that run advised methods through interceptor pipelines.
  *
- * The proxy is an anonymous class that extends the target class. It IS
- * the instance — no separate target object, no state mismatch. Overridden
- * methods call `parent::method()` to reach the original implementation.
+ * A proxy extends the target and is the service instance. Overridden methods
+ * delegate to `parent::method()`; unadvised methods remain inherited.
  *
- * Methods without advice attributes are NOT overridden — they call the
- * parent implementation directly with zero overhead.
+ * `buildProxyClass()` memoizes by namespace and target class before reflection,
+ * then checks for a loaded class before file I/O. Disk caching uses content-addressed
+ * bodies and per-class pointers; a matching source signature skips generation.
+ * Deterministic class names allow OPcache reuse (see `loadCachedProxyClass()`).
  *
- * In-process caching: `buildProxyClass()` memoises per target class, and the
- * proxy class is looked up with `class_exists(..., false)` before any file I/O.
- *
- * On-disk caching (when a cache dir is set): the proxy is written once per
- * (target class, generated body, generator version) and `require`d thereafter.
- * The class name is DETERMINISTIC, which is what lets OPcache serve the file
- * instead of recompiling it on every cold request — see `loadProxyClass()` for
- * why a stable name is safe here and how a planted file is rejected.
- *
- * Cost when no interceptors are registered, or proxying is switched off with
- * AppContext::setAopProxiesEnabled(false): zero (AppContext::build() never
- * calls ProxyFactory).
- * Cost when interceptors are registered but class has no #[Advised]: one
- * parent-chain attribute check (~50 ns, measured), then a plain instance.
- * Cost when class has #[Advised] but no advised methods: one-time
- * ReflectionMethod scan, then the raw target is returned — no proxy.
+ * With no interceptors registered, no proxy is built. An unadvised class
+ * costs one attribute check; an advised class with no advised methods costs one
+ * reflection scan and returns the raw target.
  */
 class ProxyFactory
 {
     /**
-     * Bumped whenever the generated code changes shape.
+     * Increment when generated code or cache layout changes. The version is part
+     * of proxy identity, so new versions use distinct class names and ignore stale files.
      *
-     * It is folded into the proxy class name, so an upgrade that alters the
-     * emitted overrides produces a DIFFERENT class name. Long-running processes
-     * that already loaded the old proxy therefore cannot collide with the new
-     * one, and stale files on disk are simply never matched again.
-     *
-     * v2: the class name became deterministic (it used to be randomised).
-     * v3: the emitted body is straight-line explicit AOP — interceptors are
-     *     resolved once and invoked directly, with no per-call chain building
-     *     and no per-call ReflectionMethod. Proxy argument arrays now carry
-     *     references, so by-reference parameters are no longer silently copied.
-     * v4: the emitted body no longer resolves interceptors at all. Each advised
-     *     method builds one Invocation and runs the precomposed Pipeline that
-     *     AopRuntime memoizes per (class, method); advice attributes are read
-     *     once per process by AopRuntime, not per call.
-     * v5: per-instance terminal closures were replaced by a runtime-held, per-instance
-     *     terminal store. A closure cached on the proxy was bound to the instance that
-     *     first called the method, so a `clone` inherited a terminal bound to the
-     *     original (and the proxy stopped being serializable). Proxies now bake an
-     *     interceptor NAMESPACE into the emitted source as well, so two factories in
-     *     one process no longer overwrite each other's registry.
+     * v2: deterministic class names.
+     * v3: direct interceptor calls, reference-preserving arguments, no per-call chain
+     *     building or reflection.
+     * v4: one Invocation through a precomposed, per-method memoized Pipeline.
+     * v5: runtime-managed terminal closures for clone/serialization safety; per-factory
+     *     interceptor namespaces.
+     * v6: advice arguments embedded in source, so changes produce a new digest.
+     * v7: pre-reflection memoization, per-class pointers and source signatures, and
+     *     existence-only body reuse.
      */
-    private const GENERATOR_VERSION = 5;
+    private const GENERATOR_VERSION = 7;
 
     /** @var array<class-string<Advice>, InterceptorInterface> */
     private array $interceptors = [];
 
     /**
-     * Namespace this factory publishes its interceptors under.
+     * Interceptor namespace embedded in generated proxies.
      *
-     * Baked into every generated proxy so the proxy resolves the registry entry that
-     * belongs to THIS factory. Derived from the cache directory, so a cached proxy
-     * file keeps working in the process that loads it later (the factory there
-     * publishes under the same directory), and two factories with different cache
-     * directories never share an entry.
+     * Derived from the cache directory for stable, factory-specific lookup.
      */
     private ?string $namespace = null;
 
-    /** @var array<string, class-string|null> */
+    /** @var array<string, class-string|null> Keyed by `<namespace>\0<class>` — never by body digest. */
     private array $proxyClassCache = [];
 
-    /** @var array<string, class-string> In-process registry: target class => loaded proxy class */
+    /** @var array<string, class-string> In-process registry: `<namespace>\0<class>` => loaded proxy class */
     private static array $loadedProxies = [];
 
     /** Cache directory for file-based proxy generation. Null = use eval(). */
@@ -92,7 +66,27 @@ class ProxyFactory
     public function register(string $adviceClass, InterceptorInterface $interceptor): void
     {
         $this->interceptors[$adviceClass] = $interceptor;
+
+        // Advice changes affect generated bodies, so clear the pre-reflection memo.
+        // AppContext replaces the factory too; direct users need this reset.
+        $this->proxyClassCache = [];
+
         AopRuntime::setInterceptor($this->namespace(), $adviceClass, $interceptor);
+    }
+
+    /**
+     * The namespace a factory publishing from `$dir` will use.
+     *
+     * Static and single-sourced: the namespace is baked into generated source and
+     * keys the pointer files, so a caller reasoning about a directory it has no
+     * factory for (a maintenance command) must derive exactly the same string.
+     * Normalisation lives here, not in each caller.
+     *
+     * @param string|null $dir Cache directory, or null for `eval()`.
+     */
+    public static function namespaceFor(?string $dir): string
+    {
+        return 'factory:' . ($dir !== null ? rtrim($dir, '/\\') : 'eval');
     }
 
     /**
@@ -104,7 +98,7 @@ class ProxyFactory
      */
     public function namespace(): string
     {
-        return $this->namespace ??= 'factory:' . ($this->cacheDir ?? 'eval');
+        return $this->namespace ??= self::namespaceFor($this->cacheDir);
     }
 
     /**
@@ -119,10 +113,8 @@ class ProxyFactory
     {
         $this->cacheDir = $dir !== null ? rtrim($dir, '/\\') : null;
 
-        // The namespace is derived from the directory and baked into generated
-        // source, so a directory change must also move an already-registered map
-        // and discard any proxy cached under the old namespace.
-        $this->namespace = 'factory:' . ($this->cacheDir ?? 'eval');
+        // The namespace is embedded in source, so update it and reset the memo.
+        $this->namespace = self::namespaceFor($this->cacheDir);
         $this->proxyClassCache = [];
 
         if ($this->interceptors !== []) {
@@ -141,12 +133,8 @@ class ProxyFactory
     }
 
     /**
-     * The cache file this factory would use for $ref, or null when nothing would
-     * be written (no cache dir, or the class has no advised methods).
-     *
-     * Public so deployment tooling can warm or prune the proxy cache without
-     * re-deriving the naming scheme, and so tests can plant a file at the exact
-     * path the loader will look at.
+     * Return the proxy file path, or null when disk caching is disabled or no
+     * methods are advised. Used by tooling to locate or warm the exact cache file.
      *
      * @return string|null Absolute path, or null.
      */
@@ -167,12 +155,20 @@ class ProxyFactory
     }
 
     /**
-     * Build the proxy class for a target class.
+     * Return the target class's pointer file, or null without a cache directory.
      *
-     * Returns the proxy class name (a class extending the target), or null
-     * if no methods need interception. In file-based mode, the class is
-     * written to disk and `require`d — OPcache caches it. In eval mode
-     * (development), an anonymous class is created inline.
+     * Each class keeps one pointer until {@see self::prune()} removes it.
+     */
+    public function pointerFileFor(ReflectionClass $ref): ?string
+    {
+        return $this->cacheDir === null ? null : $this->pointerPath($this->cacheDir, $ref->getName());
+    }
+
+    /**
+     * Build a proxy class, or return null if no methods need interception.
+     *
+     * Disk-backed proxies are required from file for OPcache; eval mode creates
+     * an anonymous class.
      *
      * @return class-string|null
      */
@@ -180,103 +176,132 @@ class ProxyFactory
     {
         $className = $ref->getName();
 
-        if (array_key_exists($className, $this->proxyClassCache)) {
-            return $this->proxyClassCache[$className];
+        // Check the per-factory memo before reflection or generation. PHP does not
+        // refresh attributes for loaded classes; register() and setCacheDir() clear
+        // this cache when advice or namespace changes, so (namespace, class) suffices.
+        // The process-wide registry below uses a separate key.
+        $cacheKey = $this->namespace() . "\0" . $className;
+
+        if (array_key_exists($cacheKey, $this->proxyClassCache)) {
+            return $this->proxyClassCache[$cacheKey];
+        }
+
+        // Reuse a proxy already loaded in this process without reflection or I/O.
+        $registryKey = $this->registryKey($className);
+
+        if (isset(self::$loadedProxies[$registryKey])) {
+            return $this->proxyClassCache[$cacheKey] = self::$loadedProxies[$registryKey];
+        }
+
+        if ($this->cacheDir !== null) {
+            $proxyClass = $this->loadCachedProxyClass($ref, $cacheKey);
+        } else {
+            $advisedMethods = $this->collectAdvisedMethods($ref);
+
+            if ($advisedMethods === []) {
+                return $this->proxyClassCache[$cacheKey] = null;
+            }
+
+            // Without a cache directory, create an anonymous proxy with eval().
+            $evalCode   = $this->buildEvalCode($className, $this->generateProxyCode($ref, $advisedMethods));
+            $instance   = eval($evalCode);
+            $proxyClass = get_class($instance);
+        }
+
+        if ($proxyClass === null) {
+            return $this->proxyClassCache[$cacheKey] = null;
+        }
+
+        self::$loadedProxies[$registryKey] = $proxyClass;
+
+        return $this->proxyClassCache[$cacheKey] = $proxyClass;
+    }
+
+    /**
+     * Load the cached proxy when its pointer matches the source and advice map.
+     *
+     * Each class has a `Proxy_<key>.ptr` file keyed by generator version, namespace,
+     * and class. It records the current body, advice map, source `mtime:size`, and
+     * proxy class. Missing or invalid pointers and missing bodies trigger generation.
+     *
+     * A matching signature and advice map skip generation. The signature is a hint:
+     * source edits preserving both mtime and size may reuse the previous body.
+     * Bodies are content-addressed and reused with `is_file()`; the cache directory
+     * is the trust boundary (`0700`, checked by {@see self::assertSafeCacheDir()}).
+     *
+     * @param ReflectionClass<object> $ref
+     * @param string $cacheKey `<namespace>\0<class>` memo key.
+     * @return class-string|null
+     */
+    private function loadCachedProxyClass(ReflectionClass $ref, string $cacheKey): ?string
+    {
+        $className = $ref->getName();
+        $dir       = $this->cacheDir;
+        \assert($dir !== null);
+
+        $signature = $this->sourceSignature($ref);
+
+        // Reuse the body when the source signature and interceptor map match.
+        if ($signature !== null) {
+            $current = $this->readPointer($dir, $className);
+
+            if ($current !== null
+                && $current['sig'] === $signature
+                && $current['map'] === $this->interceptorKey()
+            ) {
+                $path = $dir . DIRECTORY_SEPARATOR . $current['body'];
+
+                // A missing body requires regeneration. Clear cached file metadata
+                // so long-lived workers see the current path.
+                clearstatcache(true, $path);
+
+                if (is_file($path)) {
+                    // The filename contains the digest used to derive the class name.
+                    $digest     = substr($current['body'], 6, -4);
+                    $proxyClass = $this->proxyClassNameFor($className, $digest);
+
+                    // Avoid requiring a class already declared in this process.
+                    if (class_exists($proxyClass, false)) {
+                        return $proxyClass;
+                    }
+
+                    /** @var class-string $loaded */
+                    $loaded = require $path;
+
+                    if ($loaded === $proxyClass) {
+                        return $loaded;
+                    }
+                }
+            }
         }
 
         $advisedMethods = $this->collectAdvisedMethods($ref);
 
         if ($advisedMethods === []) {
-            return $this->proxyClassCache[$className] = null;
-        }
-
-        // Both caches are keyed by namespace + class: the namespace is baked into
-        // the emitted source, so two factories with different cache directories
-        // produce DIFFERENT proxy classes for the same target. Keying on the class
-        // name alone would hand the second factory the first factory's proxy, and
-        // that proxy resolves plans under the first factory's namespace.
-        $cacheKey = $this->namespace() . "\0" . $className;
-
-        // In-process cache: already loaded in this PHP process?
-        if (isset(self::$loadedProxies[$cacheKey])) {
-            return $this->proxyClassCache[$className] = self::$loadedProxies[$cacheKey];
+            return null;
         }
 
         $methodsCode = $this->generateProxyCode($ref, $advisedMethods);
 
-        if ($this->cacheDir !== null) {
-            // File-based: reuse the cached file when it already describes this
-            // proxy, otherwise write it atomically and load it.
-            $proxyClass = $this->loadProxyClass($className, $methodsCode);
-        } else {
-            // Eval-based: development mode, anonymous class, no cache dir.
-            $evalCode   = $this->buildEvalCode($className, $methodsCode);
-            $instance   = eval($evalCode);
-            $proxyClass = get_class($instance);
-        }
-
-        self::$loadedProxies[$cacheKey] = $proxyClass;
-        return $this->proxyClassCache[$className] = $proxyClass;
+        return $this->emitProxyClass($ref, $methodsCode, $signature);
     }
 
     /**
-     * Load the generated proxy class for a target class, reusing the cache file
-     * when it already describes exactly this proxy.
+     * Publish and load a proxy from its generated method body.
      *
-     * WHY THE FILE IS KEYED ON THE GENERATED SOURCE, NOT THE CLASS NAME.
-     * This used to write `Proxy_<md5(class)>.php` with a class named
-     * `..._<random_bytes(8)>` and `require` it unconditionally, every process.
-     * Because the declared class name changed on every write, OPcache could
-     * never serve the file, so each cold process recompiled it instead of
-     * loading it.
-     *
-     * The measured size depends on the platform, and it is easy to overstate:
-     *
-     *   NTFS (Windows dev box)   rewrite ~18-31 ms, reuse ~0.5-1.0 ms
-     *   Linux (bench VM)         rewrite ~0.28-0.46 ms, reuse ~0.14-0.18 ms
-     *
-     * On Linux the write is a small fraction of a millisecond, so this change is
-     * NOT what makes a request slow there — the ~12 ms first-touch class-autoload
-     * floor dominates any per-request proxy work, and in a 1000-iteration mean
-     * either variant is under 0.5 us per request. The fix removes a real defect
-     * (an uncacheable file) without changing any published benchmark row.
-     *
-     * The class name is now derived from (target class, generated body,
-     * generator version), so it is stable for a given proxy and changes
-     * automatically when the generated code does. The filename carries the
-     * same digest, which makes the reuse check cheap and exact.
-     *
-     * The class name is now derived from (target class, generated body,
-     * generator version), so it is stable for a given proxy and changes
-     * automatically when the generated code does. The filename carries the
-     * same digest, which makes the reuse check cheap and exact.
-     *
-     * WHY THE CONTENT IS STILL VERIFIED. A stable, predictable filename means
-     * another local user could plant a file there (`/tmp` is world-writable).
-     * Trusting the name alone would turn that into arbitrary code execution, so
-     * every reuse compares a digest of the stored body against the body we would
-     * generate, and any mismatch falls through to the (atomic, overwriting)
-     * write path. A planted file is therefore never required: it is replaced.
-     *
-     * @param string $className   The target class FQCN.
-     * @param string $methodsCode Generated method overrides (class body only).
-     * @return class-string The loaded proxy class name.
+     * @param ReflectionClass<object> $ref
+     * @return class-string
      */
-    private function loadProxyClass(string $className, string $methodsCode): string
+    private function emitProxyClass(ReflectionClass $ref, string $methodsCode, ?string $signature): string
     {
-        $shortName      = str_replace('\\', '_', $className);
-        $proxyClassName = "AzeraAopProxy_{$shortName}_" . $this->proxyDigest($className, $methodsCode);
-
-        $fileContents = $this->buildFileCode($proxyClassName, $className, $methodsCode);
-
-        // Already declared in this process (another factory instance, or a
-        // caller that required the file itself): nothing to read or write.
-        if (class_exists($proxyClassName, false)) {
-            return $proxyClassName;
-        }
-
-        $dir = $this->cacheDir;
+        $className    = $ref->getName();
+        $dir          = $this->cacheDir;
         \assert($dir !== null);
+
+        $digest         = $this->proxyDigest($className, $methodsCode);
+        $proxyClassName = $this->proxyClassNameFor($className, $digest);
+        $fileContents   = $this->buildFileCode($proxyClassName, $className, $methodsCode);
+        $cacheFile      = $dir . DIRECTORY_SEPARATOR . "Proxy_{$digest}.php";
 
         if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
             throw new \RuntimeException("Unable to create AOP proxy cache directory: {$dir}");
@@ -284,67 +309,194 @@ class ProxyFactory
 
         $this->assertSafeCacheDir($dir);
 
-        $cacheFile = $dir . DIRECTORY_SEPARATOR . 'Proxy_' . $this->proxyDigest($className, $methodsCode) . '.php';
-
-        if ($this->isReusableProxyFile($cacheFile, $fileContents)) {
-            /** @var class-string $loaded */
-            $loaded = require $cacheFile;
-
-            if ($loaded === $proxyClassName) {
-                return $proxyClassName;
-            }
-
-            // The file verified but returned something else (corrupt tail, or a
-            // race with a concurrent rewrite). Fall through and write ours.
-        }
-
-        return $this->writeAndLoadProxyFile($cacheFile, $dir, $fileContents, $proxyClassName);
-    }
-
-    /**
-     * True when $cacheFile already holds exactly $expected and can be required.
-     *
-     * Compares the WHOLE body rather than just its shape: the file declares the
-     * class we are about to `require`, so anything else living at that path is
-     * executable code we must not run.
-     */
-    private function isReusableProxyFile(string $cacheFile, string $expected): bool
-    {
-        if (!is_file($cacheFile)) {
-            return false;
-        }
-
-        // clearstatcache first: a long-running process that already stat()ed a
-        // path (including a failed is_file) would otherwise answer from cache.
         clearstatcache(true, $cacheFile);
 
-        $stored = @file_get_contents($cacheFile);
+        if (!is_file($cacheFile)) {
+            $this->writeProxyFile($cacheFile, $dir, $fileContents);
+        }
 
-        return $stored !== false && $stored === $expected;
+        // Another factory may already have declared this identical proxy.
+        if (class_exists($proxyClassName, false)) {
+            $this->writePointer($dir, $className, "Proxy_{$digest}.php", $signature, $proxyClassName);
+
+            return $proxyClassName;
+        }
+
+        // The digest in the filename identifies the expected content; avoid rereading it.
+        /** @var class-string $loaded */
+        $loaded = require $cacheFile;
+
+        if ($loaded !== $proxyClassName) {
+            // Replace a mismatched body and invalidate its possibly shared OPcache entry.
+            $this->writeProxyFile($cacheFile, $dir, $fileContents, invalidate: true);
+
+            /** @var class-string $loaded */
+            $loaded = require $cacheFile;
+        }
+
+        // Publish only after loading succeeds.
+        $this->writePointer($dir, $className, "Proxy_{$digest}.php", $signature, $loaded);
+
+        return $loaded;
     }
 
     /**
-     * Write the proxy file atomically and load it.
+     * Return the source `mtime:size` signature, or null if it is incomplete.
      *
-     * Follows the Clarity Engine pattern: write to a temp file, rename
-     * atomically, clearstatcache + opcache_invalidate, then require.
-     * The file returns the class name as its last statement.
+     * This hint skips generation but is not a cache key. Classes without a source
+     * file or with methods from multiple files (such as traits) have no usable signature.
      */
-    private function writeAndLoadProxyFile(
-        string $cacheFile,
+    private function sourceSignature(ReflectionClass $ref): ?string
+    {
+        $file = $ref->getFileName();
+
+        if ($file === false || $file === '') {
+            return null;
+        }
+
+        // Trait methods may come from a file this class signature does not cover.
+        foreach ($ref->getMethods(ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED) as $method) {
+            if ($method->getFileName() !== $file) {
+                return null;
+            }
+        }
+
+        clearstatcache(true, $file);
+
+        $mtime = @filemtime($file);
+        $size  = @filesize($file);
+
+        if ($mtime === false || $size === false) {
+            return null;
+        }
+
+        return $mtime . ':' . $size;
+    }
+
+    /**
+     * Return the pointer path for a target class.
+     *
+     * Keep generator version in the record, not the filename, so a version bump
+     * replaces the pointer and makes its previous body eligible for pruning.
+     */
+    private function pointerPath(string $dir, string $className): string
+    {
+        $key = hash('xxh3', $this->namespace() . "\0" . $className);
+
+        return $dir . DIRECTORY_SEPARATOR . "Proxy_{$key}.ptr";
+    }
+
+    /**
+     * Read a compatible pointer, or return null to trigger regeneration.
+     *
+     * @return array{class: string, body: string, map: string, sig: string|null}|null
+     */
+    private function readPointer(string $dir, string $className): ?array
+    {
+        $path = $this->pointerPath($dir, $className);
+
+        clearstatcache(true, $path);
+        $raw = @file_get_contents($path);
+
+        if (!is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        $data = @json_decode($raw, true);
+
+        if (!is_array($data)
+            || ($data['v'] ?? null) !== self::GENERATOR_VERSION
+            || ($data['class'] ?? null) !== $className
+            || !is_string($data['body'] ?? null)
+            || $data['body'] === ''
+        ) {
+            return null;
+        }
+
+        $sig = $data['sig'] ?? null;
+        $map = $data['map'] ?? null;
+
+        return [
+            'class' => $className,
+            'body'  => $data['body'],
+            'map'   => is_string($map) ? $map : '',
+            'sig'   => is_string($sig) ? $sig : null,
+        ];
+    }
+
+    /**
+     * Atomically update a target class's pointer when its contents change.
+     *
+     * Pointers are data, not executable code. Every successful load updates the
+     * pointer to the body actually loaded.
+     *
+     * @param class-string $proxyClass The class the body declares.
+     */
+    private function writePointer(
         string $dir,
-        string $fileContents,
-        string $proxyClassName,
-    ): string {
-        // Atomic write: unique temp file in the same directory + rename, so a
-        // partially written file is never required and concurrent writers do
-        // not clobber each other.
+        string $className,
+        string $body,
+        ?string $signature,
+        string $proxyClass,
+    ): void {
+        $path = $this->pointerPath($dir, $className);
+
+        $payload = (string) json_encode([
+            'v'     => self::GENERATOR_VERSION,
+            'class' => $className,
+            'body'  => $body,
+            'map'   => $this->interceptorKey(),
+            'sig'   => $signature,
+            'proxy' => $proxyClass,
+        ]);
+
+        clearstatcache(true, $path);
+
+        if (@file_get_contents($path) === $payload) {
+            return;
+        }
+
+        $tmp = @tempnam($dir, 'azera_aop_ptr_');
+
+        if ($tmp === false || @file_put_contents($tmp, $payload, LOCK_EX) === false) {
+            if ($tmp !== false) {
+                @unlink($tmp);
+            }
+
+            // A failed pointer write only causes repeated regeneration; keep the proxy usable.
+            return;
+        }
+
+        @chmod($tmp, 0600);
+
+        if (!@rename($tmp, $path)) {
+            @unlink($tmp);
+            return;
+        }
+
+        clearstatcache(true, $path);
+    }
+
+    /**
+     * Atomically write a proxy and backdate it for immediate OPcache caching.
+     *
+     * Content-addressed paths are immutable; invalidate only when replacing a
+     * mismatched existing file.
+     */
+    private function writeProxyFile(string $cacheFile, string $dir, string $contents, bool $invalidate = false): void
+    {
+        if ($invalidate && function_exists('opcache_invalidate')) {
+            // Invalidate before replacing the bytes at this path.
+            @opcache_invalidate($cacheFile, true);
+        }
+
         $tmp = @tempnam($dir, 'azera_aop_');
+
         if ($tmp === false) {
             throw new \RuntimeException("Unable to create a temporary file in {$dir}");
         }
 
-        if (file_put_contents($tmp, $fileContents, LOCK_EX) === false) {
+        if (@file_put_contents($tmp, $contents, LOCK_EX) === false) {
             @unlink($tmp);
             throw new \RuntimeException("Unable to write AOP proxy file: {$cacheFile}");
         }
@@ -357,44 +509,164 @@ class ProxyFactory
         }
 
         clearstatcache(true, $cacheFile);
-        if (function_exists('opcache_invalidate')) {
-            @opcache_invalidate($cacheFile, true);
-        }
-
-        // Only ever load the file we just wrote successfully.
-        /** @var class-string $loaded */
-        $loaded = require $cacheFile;
-
-        return $loaded;
+        $this->backdateForOpcache($cacheFile);
     }
 
     /**
-     * Stable identity for one generated proxy.
+     * Remove unreferenced proxy bodies and dangling pointers.
      *
-     * Folds in the generator version so a code-shape change produces a new name,
-     * and the source digest so an edited attribute set does too. `sha256` rather
-     * than `md5` because a collision here would make one proxy stand in for
-     * another.
+     * All pointers in the directory define the live set, so pruning works from a
+     * cold CLI and across applications. Only `Proxy_<hex>.php` files are candidates;
+     * invalidate OPcache before deleting bodies. Keep uncertain files.
+     *
+     * @param int $olderThanSeconds Skip files modified more recently than this.
+     * @return array{removed: int, kept: int, reason?: string}
+     */
+    public function prune(int $olderThanSeconds = 0): array
+    {
+        $dir = $this->cacheDir;
+
+        if ($dir === null || !is_dir($dir)) {
+            return ['removed' => 0, 'kept' => 0, 'reason' => 'no AOP proxy cache directory'];
+        }
+
+        // Collect bodies referenced by pointers in this directory.
+        $referenced = [];
+        $pointers   = [];
+
+        foreach (glob($dir . DIRECTORY_SEPARATOR . 'Proxy_*.ptr') ?: [] as $pointerPath) {
+            $raw  = @file_get_contents($pointerPath);
+            $data = is_string($raw) && $raw !== '' ? @json_decode($raw, true) : null;
+
+            if (!is_array($data) || !is_string($data['body'] ?? null) || $data['body'] === '') {
+                // Discard malformed pointers; they cannot identify a live body.
+                $pointers[$pointerPath] = null;
+                continue;
+            }
+
+            $referenced[$data['body']] = true;
+            $pointers[$pointerPath]     = $data['body'];
+        }
+
+        $cutoff  = $olderThanSeconds > 0 ? time() - $olderThanSeconds : null;
+        $removed = 0;
+        $kept    = 0;
+
+        // Bodies nothing points at.
+        foreach (glob($dir . DIRECTORY_SEPARATOR . 'Proxy_*.php') ?: [] as $path) {
+            $file = basename($path);
+
+            if (!preg_match('/^Proxy_[0-9a-f]{8,64}\.php$/', $file)) {
+                continue; // Not a body filename generated here.
+            }
+
+            if (isset($referenced[$file])) {
+                $kept++;
+                continue;
+            }
+
+            if ($cutoff !== null) {
+                $mtime = @filemtime($path);
+
+                if ($mtime !== false && $mtime > $cutoff) {
+                    $kept++;
+                    continue;
+                }
+            }
+
+            // Invalidate before deletion so OPcache can release the shared page.
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($path, true);
+            }
+
+            if (@unlink($path)) {
+                $removed++;
+            } else {
+                $kept++;
+            }
+        }
+
+        // Remove dangling pointers; they can only trigger regeneration.
+        foreach ($pointers as $pointerPath => $body) {
+            if ($body !== null && is_file($dir . DIRECTORY_SEPARATOR . $body)) {
+                continue;
+            }
+
+            @unlink($pointerPath);
+        }
+
+        if ($removed === 0 && $kept === 0 && $referenced === []) {
+            return ['removed' => 0, 'kept' => 0, 'reason' => 'no proxies recorded in ' . $dir];
+        }
+
+        return ['removed' => $removed, 'kept' => $kept];
+    }
+
+    /**
+     * Return a stable identity for the registered advice classes.
+     *
+     * Sorting makes the key independent of registration order; generated method
+     * bodies preserve advice declaration order.
+     */
+    private function interceptorKey(): string
+    {
+        $advice = array_keys($this->interceptors);
+        sort($advice);
+
+        return implode(',', $advice);
+    }
+
+    /**
+     * Return the process-wide key, including the advice map.
+     *
+     * Different maps can generate proxies with different advised methods.
+     */
+    private function registryKey(string $className): string
+    {
+        return $this->namespace() . "\0" . $className . "\0" . $this->interceptorKey();
+    }
+
+    /**
+     * Hash the generator version, target class, and emitted method body.
      */
     private function proxyDigest(string $className, string $methodsCode): string
     {
-        return substr(
-            hash('sha256', self::GENERATOR_VERSION . "\0" . $className . "\0" . $methodsCode),
-            0,
-            16,
-        );
+        return hash('xxh3', self::GENERATOR_VERSION . "\0" . $className . "\0" . $methodsCode);
     }
 
     /**
-     * Refuse to load proxies from a directory that other users can write to.
+     * Derive the declared class name so the loader can check it without reading the file.
+     */
+    private function proxyClassNameFor(string $className, string $digest): string
+    {
+        return 'AzeraAopProxy_' . str_replace('\\', '_', $className) . '_' . $digest;
+    }
+
+    /**
+     * Backdate new files past OPcache's protection window for immediate caching.
+     */
+    private function backdateForOpcache(string $file): void
+    {
+        $window = @ini_get('opcache.file_update_protection');
+
+        // OPcache is unavailable; no backdating is needed.
+        if ($window === false) {
+            return;
+        }
+
+        @touch($file, time() - max(0, (int) $window) - 1);
+        clearstatcache(true, $file);
+    }
+
+    /**
+     * Reject cache directories writable by other users.
+     *
      * @todo Move this to a security review task
      */
     private function assertSafeCacheDir(string $dir): void
     {
         if (\DIRECTORY_SEPARATOR === '\\') {
-            // Windows has no POSIX mode bits to inspect; ACLs are not
-            // readable portably here. The unique-tempnam write below is the
-            // control that matters.
+            // POSIX mode bits are unavailable on Windows; tempnam provides the control.
             return;
         }
 
@@ -411,10 +683,11 @@ class ProxyFactory
     }
 
     /**
-     * Collect all public/protected methods declared in this class that have
-     * at least one Advice attribute with a matching interceptor.
+     * Collect advised public and protected methods declared by the target class.
      *
-     * @return array<string, array{method: ReflectionMethod, advices: array<class-string<Advice>>}>
+     * Advice arguments are read at build time and embedded in generated source.
+     *
+     * @return array<string, array{method: ReflectionMethod, advices: array<class-string<Advice>, array<string, mixed>>}>
      */
     private function collectAdvisedMethods(ReflectionClass $ref): array
     {
@@ -431,6 +704,7 @@ class ProxyFactory
                 continue;
             }
 
+            /** @var array<class-string<Advice>, array<string, mixed>> $matchingAdvices */
             $matchingAdvices = [];
 
             foreach ($method->getAttributes() as $attr) {
@@ -441,23 +715,25 @@ class ProxyFactory
                 }
 
                 if (isset($this->interceptors[$attrClass])) {
-                    $matchingAdvices[] = $attrClass;
+                    $matchingAdvices[$attrClass] = $this->adviceArguments(
+                        $attr,
+                        $attrClass,
+                        $ref->getName(),
+                        $method->getName(),
+                    );
                 }
             }
 
             if ($matchingAdvices !== []) {
                 if ($method->isFinal() && $ref->isFinal()) {
-                    // Both are final: nothing about this can be intercepted, and
-                    // saying so here beats a fatal during require().
+                    // Report this before the generated proxy fails to load.
                     throw new \RuntimeException(
                         "Cannot apply AOP advice to {$ref->getName()}::{$method->getName()}:"
                         . ' the class and the method are both final, so no proxy can override it.'
                     );
                 }
                 if ($method->isFinal()) {
-                    // A generated override of a final method is a fatal error in
-                    // the emitted file, reported with no reference to the attribute
-                    // that caused it.
+                    // Report the attributed final method before proxy generation.
                     throw new \RuntimeException(
                         "Cannot apply AOP advice to {$ref->getName()}::{$method->getName()}:"
                         . ' the method is final and cannot be overridden by a proxy.'
@@ -483,8 +759,75 @@ class ProxyFactory
     }
 
     /**
-     * Generate the proxy class body (method overrides only).
-     * Used by both eval and file-based generation.
+     * Read and validate advice arguments for generated source.
+     *
+     * Preserve named and positional forms. Values must round-trip as stable PHP
+     * literals because they affect the proxy digest; reject objects whose
+     * `var_export()` output may require an unavailable `__set_state()`.
+     *
+     * @param \ReflectionAttribute<object> $attribute The advice attribute.
+     * @param class-string<Advice>         $adviceClass The advice class it instantiates.
+     * @param string                       $class  Target class, for error messages.
+     * @param string                       $method Target method, for error messages.
+     * @return array<string|int, mixed> Constructor arguments, ready to spread.
+     */
+    private function adviceArguments(
+        \ReflectionAttribute $attribute,
+        string $adviceClass,
+        string $class,
+        string $method,
+    ): array {
+        $arguments = $attribute->getArguments();
+
+        foreach ($arguments as $name => $value) {
+            if (self::isExportable($value)) {
+                continue;
+            }
+
+            throw new \RuntimeException(sprintf(
+                'Cannot bake the arguments of advice [%s] on %s::%s() into a proxy: $%s holds %s, which '
+                . 'cannot be expressed as a stable PHP literal in the generated proxy. Attribute arguments '
+                . 'must be scalars, arrays, enum cases, class constants or null.',
+                $adviceClass,
+                $class,
+                $method,
+                (string) $name,
+                get_debug_type($value),
+            ));
+        }
+
+        return $arguments;
+    }
+
+    /**
+     * Return whether a value is a stable PHP literal supported by the proxy.
+     *
+     * Scalars, null, enums, and arrays of supported values are accepted; other
+     * objects are rejected.
+     */
+    private static function isExportable(mixed $value): bool
+    {
+        if ($value === null || is_scalar($value) || $value instanceof \UnitEnum) {
+            return true;
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $item) {
+                if (!self::isExportable($item)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate method overrides for eval or file-based proxies.
+     *
+     * Embedded advice arguments make attribute changes alter the body digest.
      */
     private function generateProxyCode(ReflectionClass $ref, array $advisedMethods): string
     {
@@ -493,15 +836,10 @@ class ProxyFactory
             $methods[] = $this->generateMethodOverride($info['method'], $info['advices']);
         }
 
-        // Per-(class, method) process-global plan: precomposed pipeline plus
-        // the baked advice map. Built on first call by AopRuntime, memoized
-        // thereafter — nothing is derived per call.
         return implode("\n\n", $methods);
     }
 
-    /**
-     * Build the eval-ready code string for an anonymous proxy class.
-     */
+    /** Build the source for an anonymous eval-based proxy. */
     private function buildEvalCode(string $parentClass, string $methodsCode): string
     {
         return "return new class extends \\{$parentClass} {\n{$methodsCode}\n};";
@@ -517,9 +855,7 @@ class ProxyFactory
      */
     private function buildFileCode(string $proxyClassName, string $parentClass, string $methodsCode): string
     {
-        // $parentClass already contains single backslashes for namespaces
-        // (e.g. "Azera\Tests\Aop\RetryService"). Prefix with \ for the
-        // global namespace — no addslashes needed.
+        // Prefix the fully qualified parent name for global namespace resolution.
         return "<?php\n"
             . "class {$proxyClassName} extends \\{$parentClass}\n"
             . "{\n{$methodsCode}\n}\n"
@@ -527,42 +863,13 @@ class ProxyFactory
     }
 
     /**
-     * Generate the override for a single advised method.
+     * Generate an advised override that uses the memoized per-method plan.
      *
-     * The emitted body builds one {@see Invocation} per call and hands it to the
-     * process-wide precomposed {@see AopPlan} for this (class, method) — the
-     * interceptors, the advice map, the parameter names and the registry namespace
-     * are resolved once per process by {@see AopRuntime::plan()}, never per call.
-     *
-     * The terminal (`parent::method(...)`) is allocated per call, deliberately.
-     * Caching it on the proxy instance was a defect with three faces:
-     *
-     * - **`clone`.** The cached closure was bound to the instance that first called
-     *   the method, so a clone inherited a terminal bound to the ORIGINAL. An advised
-     *   method on the clone then ran `parent::method` against the original object.
-     * - **Serialization.** After the first advised call the property held a Closure,
-     *   so the proxy could no longer be serialized (session, queue, cache payloads) —
-     *   a regression against the closure-free object it used to be.
-     * - **Property collisions.** The generated property name was derived from the
-     *   method name, so a target class that already declared it produced a fatal
-     *   "access level must not be reduced" error in the emitted file.
-     *
-     * The proxy therefore declares no properties at all, which makes it clone-safe,
-     * serializable, and immune to name collisions without generating `__clone` /
-     * `__serialize` hooks — hooks that cannot be emitted correctly in general,
-     * because a parent class may already define them with its own payload shape.
-     *
-     * Two details that are easy to get wrong and were both wrong before:
-     *
-     * - **By-reference parameters.** The old body collected arguments as values
-     *   (`[$x, $arr]`), so a `&$array` parameter arrived as a copy and mutations
-     *   were silently lost. References are now carried explicitly
-     *   (`[$x, &$arr]`, `...$rest`), and PHP preserves reference elements when the
-     *   array is spread into the by-reference variadic terminal.
-     * - **`void` methods.** A `return expr;` in a void function is a fatal
-     *   error, so void overrides invoke the chain as a statement.
+     * Create the parent-call terminal per invocation and declare no proxy
+     * properties, preserving clone, serialization, and property-collision safety.
+     * Preserve argument references; invoke void pipelines without `return`.
      */
-    private function generateMethodOverride(ReflectionMethod $method, array $adviceClasses): string
+    private function generateMethodOverride(ReflectionMethod $method, array $advices): string
     {
         $methodName    = $method->getName();
         $targetClass   = $method->getDeclaringClass()->getName();
@@ -570,14 +877,17 @@ class ProxyFactory
         $argsArray     = $this->generateArgsArray($method);
         $returnType    = $this->generateReturnType($method);
         $isVoid        = $this->isVoidMethod($method);
-        $adviceList    = implode(', ', array_map(
-            static fn(string $advice): string => var_export($advice, true),
-            array_values($adviceClasses),
-        ));
         $namespace     = var_export($this->namespace(), true);
+        $adviceMap     = $this->generateAdviceMap($advices);
+        $parameterList = $this->generateParameterNameList($method);
 
-        $handle = "        \$__plan = \\Azera\\Aop\\AopRuntime::plan({$namespace}, " . var_export($targetClass, true) . ", "
-            . var_export($methodName, true) . ", [{$adviceList}]);\n"
+        $handle = "        \$__plan = \\Azera\\Aop\\AopRuntime::plan(\n"
+            . "            namespace: {$namespace},\n"
+            . "            class: " . var_export($targetClass, true) . ",\n"
+            . "            method: " . var_export($methodName, true) . ",\n"
+            . "            advice: {$adviceMap},\n"
+            . "            parameterNames: {$parameterList},\n"
+            . "        );\n"
             . "        \$__invocation = new \\Azera\\Aop\\Invocation(\n"
             . "            target: \$this,\n"
             . "            method: " . var_export($methodName, true) . ",\n"
@@ -598,6 +908,82 @@ class ProxyFactory
 {$body}
     }
 PHP;
+    }
+
+    /**
+     * Emit advice classes and arguments in declaration order.
+     *
+     * Order determines pipeline nesting (the first advice is outermost).
+     *
+     * @param array<class-string<Advice>, array<string|int, mixed>> $advices
+     */
+    private function generateAdviceMap(array $advices): string
+    {
+        $entries = [];
+
+        foreach ($advices as $adviceClass => $arguments) {
+            $entries[] = var_export($adviceClass, true) . ' => ' . $this->exportArguments($arguments);
+        }
+
+        return '[' . implode(', ', $entries) . ']';
+    }
+
+    /**
+     * Render constructor arguments, preserving named keys and positional order.
+     *
+     * @param array<string|int, mixed> $arguments
+     */
+    private function exportArguments(array $arguments): string
+    {
+        $parts = [];
+
+        foreach ($arguments as $name => $value) {
+            $parts[] = is_int($name)
+                ? $this->exportValue($value)
+                : var_export((string) $name, true) . ' => ' . $this->exportValue($value);
+        }
+
+        return '[' . implode(', ', $parts) . ']';
+    }
+
+    /**
+     * Render a stable, single-line PHP literal.
+     *
+     * Compose arrays directly and use `var_export()` for scalar escaping; do not
+     * normalize its output, which could alter whitespace inside strings.
+     * Values must pass {@see self::isExportable()}.
+     */
+    private function exportValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                return '[' . implode(', ', array_map($this->exportValue(...), $value)) . ']';
+            }
+
+            $parts = [];
+
+            foreach ($value as $key => $item) {
+                $parts[] = (is_int($key) ? (string) $key : var_export((string) $key, true))
+                    . ' => ' . $this->exportValue($item);
+            }
+
+            return '[' . implode(', ', $parts) . ']';
+        }
+
+        // var_export() emits scalars, null, and enum cases as stable literals.
+        return var_export($value, true);
+    }
+
+    /** Return declared parameter names for cache-key placeholders. */
+    private function generateParameterNameList(ReflectionMethod $method): string
+    {
+        $names = [];
+
+        foreach ($method->getParameters() as $parameter) {
+            $names[] = var_export($parameter->getName(), true);
+        }
+
+        return '[' . implode(', ', $names) . ']';
     }
 
     private function isVoidMethod(ReflectionMethod $method): bool
@@ -641,19 +1027,10 @@ PHP;
         foreach ($method->getParameters() as $param) {
             $name = $param->getName();
             if ($param->isVariadic()) {
-                // A by-reference variadic (`&...$refs`) IS legal PHP, and each
-                // element of the variadic array is a live reference to the caller's
-                // variable. Spreading it into the args array literal keeps those
-                // references, so mutations reach the caller exactly as for a single
-                // `&$x` parameter. (The old comment claimed variadics could not be
-                // by-reference and dropped the reference; spreading an empty
-                // variadic is a no-op, so this is also the correct shape for a
-                // by-value variadic.)
+                // Spreading the variadic preserves references for the terminal call.
                 $args[] = '...$' . $name;
             } elseif ($param->isPassedByReference()) {
-                // Carry the reference, not a copy. The old generator emitted
-                // "$arr", so a &$array parameter reached the parent method as a
-                // value and every mutation was silently discarded.
+                // Preserve the reference so mutations reach the caller.
                 $args[] = '&$' . $name;
             } else {
                 $args[] = '$' . $name;
@@ -689,12 +1066,7 @@ PHP;
         return '';
     }
 
-    /**
-     * The interceptor registered for one advice class.
-     *
-     * Exposed for diagnostics and tests; generated proxies resolve their plan
-     * through {@see AopRuntime} instead.
-     */
+    /** Return the interceptor registered for an advice class. */
     public function getInterceptor(string $adviceClass): InterceptorInterface
     {
         return $this->interceptors[$adviceClass];

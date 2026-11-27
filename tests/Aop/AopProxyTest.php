@@ -156,6 +156,27 @@ class TestLogger implements LoggerInterface
     }
 }
 
+#[Advised]
+class AdviceVariants
+{
+    public int $flaky = 0;
+
+    #[Retry(times: 2, backoff: 0)]
+    public function flakyOperation(): string
+    {
+        $this->flaky++;
+        if ($this->flaky < 2) {
+            throw new \RuntimeException('first attempt fails');
+        }
+        return 'ok';
+    }
+
+    #[Log]
+    public function logOperation(): string
+    {
+        return 'logged';
+    }
+}
 class AopProxyTest extends TestCase
 {
     protected function setUp(): void
@@ -197,98 +218,175 @@ class AopProxyTest extends TestCase
         $this->assertInstanceOf(RetryService::class, $service);
     }
 
-    public function testProxiesAreEnabledByDefault(): void
-    {
-        $this->assertTrue(AppContext::instance()->aopProxiesEnabled());
-    }
-
     /**
-     * With proxying off an #[Advised] class is still a valid service — it just
-     * runs its own body. This is the escape hatch a deployment uses when it
-     * cannot write a proxy file and will not eval().
+     * A late registration must reach a service that was resolved BEFORE it.
+     *
+     * This is the guarantee docs/16-AOP.md states ("Late registration is
+     * tolerated — resolved #[Advised] definitions are evicted and rebuilt on the
+     * next resolve"). It broke once when the eviction was removed as "unused";
+     * the service kept running its raw body forever.
      */
-    public function testDisabledProxiesReturnTheRawClass(): void
+    public function testLateRegistrationEvictsAnAlreadyResolvedAdvisedService(): void
     {
         $ctx = AppContext::instance();
         $ctx->setAopCacheDir(null);
-        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
-        $ctx->setAopProxiesEnabled(false);
 
-        $service = $ctx->get(RetryService::class);
-
-        $this->assertSame(RetryService::class, $service::class, 'must not be a proxy subclass');
-
-        // The advice must NOT run: the raw method throws on its first attempt.
-        $service->attempts = 0;
-        try {
-            $service->flakyOperation();
-            $this->fail('the retry advice must be inactive while proxies are disabled');
-        } catch (\RuntimeException $e) {
-            $this->assertStringContainsString('Attempt 1 failed', $e->getMessage());
-        }
-        $this->assertSame(1, $service->attempts, 'the body must run exactly once, unadvised');
-    }
-
-    /** Re-enabling must reach services that were resolved while it was off. */
-    public function testReEnablingProxiesEvictsRawInstances(): void
-    {
-        $ctx = AppContext::instance();
-        $ctx->setAopCacheDir(null);
-        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
-
-        $ctx->setAopProxiesEnabled(false);
+        // Resolve with NO matching interceptor: stored raw, and the #[Advised]
+        // verdict is memoised as "not advised".
         $raw = $ctx->get(RetryService::class);
         $this->assertSame(RetryService::class, $raw::class);
 
-        $ctx->setAopProxiesEnabled(true);
+        // Now register — after resolution.
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
         $proxied = $ctx->get(RetryService::class);
 
-        $this->assertNotSame($raw, $proxied);
-        $this->assertNotSame(RetryService::class, $proxied::class, 'the re-resolved instance must be proxied');
+        $this->assertNotSame($raw, $proxied, 'the raw instance must be forgotten');
+        $this->assertNotSame(RetryService::class, $proxied::class, 'the new instance must be proxied');
 
         $proxied->attempts = 0;
-        $this->assertSame('success', $proxied->flakyOperation(), 'advice must apply again');
-    }
-
-    /** Disabling must not leave a proxy in the container. */
-    public function testDisablingProxiesEvictsProxiedInstances(): void
-    {
-        $ctx = AppContext::instance();
-        $ctx->setAopCacheDir(null);
-        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
-
-        $proxied = $ctx->get(RetryService::class);
-        $this->assertNotSame(RetryService::class, $proxied::class);
-
-        $ctx->setAopProxiesEnabled(false);
-        $raw = $ctx->get(RetryService::class);
-
-        $this->assertSame(RetryService::class, $raw::class);
+        $this->assertSame('success', $proxied->flakyOperation(), 'the advice must now run');
     }
 
     /**
-     * An interceptor registered while proxies are disabled must not force an
-     * eviction loop: nothing was proxied, so resolved instances stay put.
+/**
+     * Eviction drops the INSTANCE, never the recipe.
+     *
+     * The container keeps `$serviceDefinitions[$id]` (how to build) apart from
+     * `$serviceInstances[$id]` (what was built). Eviction used to unset both, so a
+     * factory-registered service lost its factory and the next get() fell through
+     * to autowiring — a different object than the application had registered.
+     *
+     * A factory's return value is used as-is (it is not proxied), so the only
+     * observable guarantee here is WHICH mechanism rebuilt the instance. The
+     * counter is the discriminator: if the recipe survived, the factory runs
+     * again; if it was destroyed, reflection does the rebuild and the counter
+     * stays at 1.
      */
-    public function testRegisteringWhileDisabledLeavesResolvedServicesAlone(): void
+    public function testEvictionKeepsAFactoryRegistrationIntact(): void
     {
         $ctx = AppContext::instance();
         $ctx->setAopCacheDir(null);
-        $ctx->setAopProxiesEnabled(false);
+
+        $calls = 0;
+        $ctx->set(RetryService::class, function () use (&$calls) {
+            $calls++;
+            return new RetryService();
+        });
 
         $first = $ctx->get(RetryService::class);
+        $this->assertSame(1, $calls, 'the factory builds the first instance');
+
+        // RetryService is #[Advised], so this evicts the instance above.
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+
+        $second = $ctx->get(RetryService::class);
+
+        $this->assertInstanceOf(RetryService::class, $second);
+        $this->assertNotSame($first, $second, 'the resolved instance must have been evicted');
+        $this->assertSame(2, $calls, 'the FACTORY must be the recipe that rebuilt it, not autowiring');
+    }
+
+    /**
+     * A service the container did not build must not be evicted by registration.
+     *
+     * Only `#[Advised]` instances depend on the interceptor map, so everything
+     * else — loggers, caches, connections — has to survive. A walk that evicted
+     * indiscriminately would quietly rebuild stateful services (a logger that had
+     * buffered entries, a connection pool) on every registration.
+     */
+    public function testRegistrationLeavesNonAdvisedServicesAlone(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
 
         $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
 
-        $this->assertSame($first, $ctx->get(RetryService::class), 'same instance must be reused');
+        $plain = $ctx->get(NonAdvisedService::class);
+        $this->assertSame(NonAdvisedService::class, $plain::class);
+
+        $ctx->registerInterceptor(Azera\Aop\Log::class, new LogInterceptor(new TestLogger()));
+
+        $this->assertSame($plain, $ctx->get(NonAdvisedService::class), 'a non-advised service must not be evicted');
     }
 
-    /** The explicit Pipeline never generated a proxy, so the switch must not affect it. */
-    public function testDisabledProxiesLeaveTheExplicitPipelineWorking(): void
+    
+    /**
+     * Registering a second interceptor must reach a class the first one already
+     * covered partly.
+     *
+     * This is the memo-staleness case, and it is subtle enough to have been the
+     * original reason hasAdvisedMethods() was un-memoised. The verdict is per
+     * CLASS, not per method: once ANY method has a matching advice, the class is
+     * advisory and the proxy is built. Registering a second interceptor therefore
+     * has to change which METHODS the proxy overrides — which means the verdict
+     * and the proxy both have to be recomputed, not reused.
+     */
+    public function testASecondRegistrationRebuildsAPartlyCoveredProxy(): void
     {
         $ctx = AppContext::instance();
         $ctx->setAopCacheDir(null);
-        $ctx->setAopProxiesEnabled(false);
+
+        // Only Retry: the proxy overrides flakyOperation, not logOperation.
+        $ctx->registerInterceptor(Retry::class, new RetryInterceptor());
+        $first = $ctx->get(AdviceVariants::class);
+
+        $firstOverride = (new ReflectionMethod($first, 'flakyOperation'))->getDeclaringClass()->getName();
+        $this->assertNotSame(AdviceVariants::class, $firstOverride, 'Retry must be intercepted');
+
+        // Adding Log covers the second method: the proxy must be rebuilt.
+        $ctx->registerInterceptor(Log::class, new LogInterceptor(new TestLogger()));
+        $second = $ctx->get(AdviceVariants::class);
+
+        $this->assertNotSame($first, $second, 'a second registration must evict, even when the class was already advisory');
+
+        $secondOverride = (new ReflectionMethod($second, 'logOperation'))->getDeclaringClass()->getName();
+        $this->assertNotSame(
+            AdviceVariants::class,
+            $secondOverride,
+            'the rebuilt proxy must now override the #[Log] method as well — a memoised verdict would have skipped it'
+        );
+    }
+    /**
+     * Registering before resolving must produce the same result as registering after.
+     *
+     * The eviction is gated on something having been resolved, so a boot-time
+     * registration skips the walk entirely. That gate is only sound if it changes
+     * nothing observable — and it does not: the verdict was never memoised for this
+     * class, nothing had been constructed, so there was nothing to invalidate.
+     */
+    public function testBootTimeRegistrationMatchesLateRegistration(): void
+    {
+        // Sequence A: register, then resolve.
+        $ctxA = new AppContext();
+        AppContext::setInstance($ctxA);
+        $ctxA->setAopCacheDir(null);
+        $ctxA->registerInterceptor(Retry::class, new RetryInterceptor());
+        $early = $ctxA->get(RetryService::class);
+        $earlyClass = $early::class;
+
+        // Sequence B: resolve, then register.
+        $ctxB = new AppContext();
+        AppContext::setInstance($ctxB);
+        $ctxB->setAopCacheDir(null);
+        $ctxB->get(RetryService::class);
+        $ctxB->registerInterceptor(Retry::class, new RetryInterceptor());
+        $late = $ctxB->get(RetryService::class);
+        $lateClass = $late::class;
+
+        $this->assertSame($earlyClass, $lateClass, 'the two orderings must yield the same proxy class');
+        $this->assertNotSame(RetryService::class, $earlyClass, 'and it must be a proxy');
+
+        foreach ([$early, $late] as $svc) {
+            $svc->attempts = 0;
+            $this->assertSame('success', $svc->flakyOperation(), 'advice must run in both orderings');
+        }
+    }
+    /** The explicit Pipeline never generated a proxy, so it is unaffected. */
+    public function testTheExplicitPipelineIsIndependentOfRegistration(): void
+    {
+        $ctx = AppContext::instance();
+        $ctx->setAopCacheDir(null);
 
         $calls = 0;
         $result = $ctx->pipeline([new RetryInterceptor()])->call(function () use (&$calls) {
@@ -302,7 +400,6 @@ class AopProxyTest extends TestCase
         $this->assertSame('done', $result);
         $this->assertSame(2, $calls);
     }
-
     public function testRetrySucceedsAfterFailures(): void
     {
         $ctx = AppContext::instance();

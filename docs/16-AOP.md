@@ -170,24 +170,109 @@ path, give the pipeline its own interceptor (the `$billing` above) and pass no a
 3. Register the matching interceptors (`AppContext::registerInterceptor`).
 4. Register the service by class-string so `AppContext::build()` proxies it.
 
-When `build()` instantiates the class it:
+`build()` checks in-process memos and the class pointer first. On a miss, it reads advice
+arguments and generates a subclass overriding only advised methods. The proxy is written
+under a content-addressed name, or created with `eval()` when disk caching is disabled.
 
-- scans the class once for advice attributes,
-- generates a subclass overriding **only** the advised methods,
-- writes it to the proxy cache dir (or `eval()`s it in development),
-- instantiates it as a normal object.
+Each override gets its memoized plan from `AopRuntime`, creates an `Invocation`, and calls
+the pipeline. The runtime constructs advice from arguments embedded in the proxy; it does
+not reflect on attributes. The terminal calls `parent::method(...)` through a per-call
+by-reference variadic closure.
 
-Each overridden method:
+Proxies declare no properties, so clones call methods on themselves, instances remain
+serializable, and target properties cannot collide. The embedded namespace derives from
+the cache directory, keeping interceptor maps separate across factories and stable across
+processes.
 
-1. resolves the process-wide plan via `AopRuntime::plan(<namespace>, static::class, 'method', [...])` — built once per (class, method), memoized;
-2. builds one `Invocation` (`target: $this`, baked advice map, baked parameter names);
-3. calls `$plan->pipeline->handle($invocation)`.
+With disk caching (the `AppContext` default), proxies use the named class
+`AzeraAopProxy_<Class>_<digest>`, based on the target, emitted body, and generator version.
+Files are atomic and reusable by OPcache. `setAopCacheDir(null)` uses anonymous `eval()`
+classes without disk caching.
 
-The chain's innermost frame calls `parent::method(...)` through a by-reference variadic closure, allocated per call. The proxy declares **no properties**, so it is clone-safe (a clone's advised methods run against the clone, never the original), serializable, and immune to colliding with a property the target class already declares.
+#### Advice arguments are generated
 
-`<namespace>` is the factory's interceptor namespace, baked into the emitted source. It is derived from the proxy cache directory, so a cached proxy file keeps resolving in the process that loads it later, and two `ProxyFactory`/`AppContext` instances in one process each resolve their **own** interceptors instead of overwriting each other.
+Generated methods embed advice constructor arguments:
 
-With a cache directory set (the default in `AppContext`), the proxy is a named class `AzeraAopProxy_<Class>_<digest>`, where the digest covers the target class, the emitted body and `GENERATOR_VERSION`. Because it is content-addressed, unchanged source keeps its filename and OPcache can serve the file; the write is atomic (temp file + rename), and a planted file at the expected path fails a whole-body comparison and is overwritten rather than executed. With `setAopCacheDir(null)` the proxy is an **anonymous** class produced by `eval()` — no filename, no class name, and no disk cache.
+```php
+$__plan = \Azera\Aop\AopRuntime::plan(
+    namespace: 'factory:/app/temp/aop',
+    class: 'App\OrderService',
+    method: 'getOrder',
+    advice: ['Azera\Aop\Cache' => ['ttl' => 60, 'key' => 'order_{id}']],
+    parameterNames: ['id'],
+);
+```
+
+Attribute changes alter the generated body and digest. Already-loaded classes retain
+their metadata.
+
+Named and positional forms are preserved. Values must be stable PHP literals: scalars,
+arrays, enum cases, class constants, or `null`. Object arguments are rejected because
+`var_export()` may require `__set_state()`.
+
+#### Writes and OPcache
+
+Atomic writes are backdated past `opcache.file_update_protection` for immediate caching.
+Changed bodies get new digest paths; only a mismatched file is replaced and invalidated.
+Reuse checks `is_file()`. Cache directories use mode `0700`; group/world-writable ones are
+rejected.
+
+#### The pointer file
+
+Each class has a `Proxy_<key>.ptr` recording its current body, advice map, and source
+signature (`mtime:size`). The signature is a reuse hint, not a key. Missing or invalid
+pointers trigger regeneration; pointers also identify live bodies for pruning.
+
+#### Writes are content-addressed; timestamps are only a hint
+
+A body filename is `xxh3(GENERATOR_VERSION, class, emitted body)`. A worker with stale
+metadata keeps its digest; a fresh process derives a new one. Classes without a usable
+source signature (traits, internal, or `eval`'d classes) always regenerate.
+
+#### What a deploy must do
+
+Source changes are visible only to processes that have not memoised the previous version:
+
+| Memo | Scope | Cleared by |
+| --- | --- | --- |
+| `ProxyFactory::$proxyClassCache` | factory | `register()`, `setCacheDir()`; context registration replaces the factory |
+| `ProxyFactory::$loadedProxies` | process | process restart |
+| `AopRuntime::$plans` | process | `clearPlans()` (`registerInterceptor()` calls it) |
+| Loaded bytecode | OPcache | `opcache_reset()` / reload when timestamp validation is disabled |
+
+The first two checks precede reflection: ~3 µs for two lookups versus ~140 µs for scanning,
+generation, and hashing in the measured setup.
+
+Attribute edits generate a new proxy and plan, but existing services retain their plan.
+Replace workers after advice changes. Method-body edits take effect on the next load
+through `parent::method(...)`:
+
+```bash
+systemctl reload php8.5-fpm     # keeps workers: still holding the old instances
+systemctl restart php8.5-fpm    # new workers construct from the new proxy files
+php -r 'opcache_reset();'       # or drop opcache.validate_timestamps=0 reloads
+```
+
+#### Reclaiming superseded files
+
+Inspect or remove superseded bodies and OPcache entries:
+
+```bash
+php azera cache:status                   # counts bodies no pointer names
+php azera cache:prune --only=aop         # delete them
+php azera cache:prune --older-than=3600  # keep files newer than an hour
+php azera cache:clear --only=aop         # wipe the directory unconditionally
+```
+
+**Pruning follows pointer files**, removing unreferenced bodies and dangling pointers.
+It works from a cold CLI and leaves non-`Proxy_<hex>.php` files untouched. Use
+`cache:clear --only=aop` to remove everything, including files for deleted classes.
+
+By default, proxies are stored under `<temp>/azera_aop` — one directory for the whole
+host, like PHP's own session files. Two applications sharing it is safe: bodies are
+content-addressed and each pointer records the interceptor map and source signature, so
+a process that meets another application's pointer regenerates instead of serving the
+wrong advice. Pass `setAopCacheDir()` if you would rather keep a deployment separate.
 
 ### Enabling AOP
 
@@ -195,30 +280,14 @@ With a cache directory set (the default in `AppContext`), the proxy is a named c
 use Azera\Aop\Transactional;
 use Azera\Aop\TransactionalInterceptor;
 
-$ctx->setAopCacheDir(BASE_DIR . '/temp/aop');   // null = eval() for development
+$ctx->setAopCacheDir(dirname(__DIR__) . '/temp/aop');   // null = eval() for development
 $ctx->registerInterceptor(Transactional::class, new TransactionalInterceptor($ctx->dbManager()));
 ```
 
-Register interceptors **before** resolving advised services. Late registration is tolerated — resolved `#[Advised]` definitions are evicted and rebuilt on the next resolve — but nothing already executing can be retrofitted.
-
-### Switching proxying off
-
-`setAopProxiesEnabled(false)` makes `build()` return raw instances. Interceptor
-registration and the explicit `Pipeline` API remain available:
-
-```php
-$ctx->registerInterceptor(Cache::class, new CacheInterceptor($ctx->cache()));
-$ctx->setAopProxiesEnabled(false);   // keep interceptors registered, generate no proxies
-```
-
-Use this setting when deployments cannot generate or load proxy subclasses, or
-when transparent advice needs to be disabled at runtime.
-
-- While disabled, `#[Advised]` classes run without interceptor advice.
-- Interceptors remain registered and apply again when proxying is re-enabled;
-  explicit `Pipeline` calls are unaffected.
-- Changing the setting evicts resolved advised services so the next resolution
-  reflects the current setting.
+Register interceptors **before** resolving advised services. Late registration is tolerated —
+already-resolved `#[Advised]` instances are evicted and rebuilt on the next resolve, keeping
+the registered recipe (class string or factory) so the service comes back the way the
+application wired it — but nothing already executing can be retrofitted.
 
 ### Using AOP
 
@@ -435,8 +504,7 @@ Registration-state costs:
 | State | Cost |
 | --- | --- |
 | No interceptors registered | zero — `build()` returns a plain instance |
-| Proxying switched off (`setAopProxiesEnabled(false)`) | zero — `build()` returns a plain instance |
-| Interceptors registered, class not `#[Advised]` | ~50 ns — parent-chain attribute check, then a plain instance |
+| Interceptors registered, class not `#[Advised]` | one memoised lookup after the first construction — the parent-chain check runs once per class, not once per instance |
 | `#[Advised]` but no advised methods | one attribute scan, then a plain instance |
 | `#[Advised]` with advised methods | generation once per (class, method) shape; thereafter an OPcache'd file or eval'd class |
 

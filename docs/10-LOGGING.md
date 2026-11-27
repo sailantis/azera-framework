@@ -26,7 +26,7 @@ use Psr\Log\LoggerInterface;
 
 $ctx->set(LoggerInterface::class, function () {
     $logger = new Logger('app');
-    $logger->pushHandler(new StreamHandler(BASE_DIR . '/logs/app.log', Logger::DEBUG));
+    $logger->pushHandler(new StreamHandler(dirname(__DIR__) . '/logs/app.log', Logger::DEBUG));
     return $logger;
 });
 ```

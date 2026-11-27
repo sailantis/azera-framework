@@ -60,7 +60,7 @@ class RoutesTask extends Task
             $this->muted('');
             $this->muted('  The compiled table goes to a derived temp path unless you choose one:');
             $this->muted('');
-            $this->muted("    \$router->setCachePath(BASE_DIR . '/temp/routes.php');");
+            $this->muted("    \$router->setCachePath(dirname(__DIR__) . '/temp/routes.php');");
             exit(1);
         }
 

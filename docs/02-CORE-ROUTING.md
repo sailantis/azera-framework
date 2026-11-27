@@ -558,7 +558,7 @@ The router can compile the table to a PHP file and `require` it instead.
 ```php
 // Optional: choose where the table lives. Without this it is derived from the
 // declared sources and written under the system temp directory.
-$router->setCachePath(BASE_DIR . '/temp/routes.php');
+$router->setCachePath(dirname(__DIR__) . '/temp/routes.php');
 $router->setRevalidateFreq(60);          // optional
 
 // Declare the routes as one or more units. This is what turns the cache on, and
@@ -611,7 +611,7 @@ resolution happens at the first read rather than when `cached()` is called.
 The default is convenient, not durable: `/tmp` is swept by the OS, some service
 managers give a unit a private `/tmp`, and a container may not preserve it between
 deploys. Production deployments that warm the table in a deploy hook should pass an
-explicit path inside the application, e.g. `BASE_DIR . '/temp/routes.php'`.
+explicit path inside the application, e.g. `dirname(__DIR__) . '/temp/routes.php'`.
 
 The directory is created `0700` and the table `0600`. A directory that is group- or
 world-writable is refused — the file is `require`d, so loading from one would be
