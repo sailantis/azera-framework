@@ -1190,7 +1190,7 @@ class Condition
 
 			// Protect RHS if it looks like an identifier (not a literal, not empty for IS NULL)
 			if (
-				!empty($rhs) &&
+				$rhs !== '' &&
 					!is_numeric($rhs) &&
 					$rhs[0] !== "'" &&
 					$rhs[0] !== '"' &&
@@ -1200,7 +1200,7 @@ class Condition
 				$rhs = $this->protectIdentifier($rhs);
 			}
 
-			return $lhs . ' ' . $op . (!empty($rhs) ? ' ' . $rhs : '');
+			return $lhs . ' ' . $op . ($rhs !== '' ? ' ' . $rhs : '');
 		}
 
 		// No operator found - return as-is

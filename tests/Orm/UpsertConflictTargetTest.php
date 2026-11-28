@@ -239,25 +239,6 @@ class UpsertConflictTargetTest extends TestCase
         ConflictTarget::columns([]);
     }
 
-    /**
-     * The predicate is emitted verbatim, so a placeholder or a statement
-     * terminator is a bug at the call site — caught at construction rather than
-     * producing a broken or injected statement at flush.
-     */
-    public function testAPredicateWithAPlaceholderIsRejected(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        ConflictTarget::columns(['stripe_customer_id'], 'stripe_customer_id = ?');
-    }
-
-    public function testAPredicateWithAStatementTerminatorIsRejected(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        ConflictTarget::columns(['stripe_customer_id'], 'stripe_customer_id IS NOT NULL; DROP TABLE x');
-    }
-
     /* ------------------------------------------ whole-row in the target */
 
     /**

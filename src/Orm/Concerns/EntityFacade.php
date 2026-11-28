@@ -3,6 +3,7 @@
 namespace Azera\Orm\Concerns;
 
 use Azera\AppContext;
+use Azera\Orm\ConflictTarget;
 use Azera\Orm\Metadata;
 
 /**
@@ -154,14 +155,14 @@ trait EntityFacade
      * With an incomplete key (and no target) this degrades to a plain insert
      * (there is no conflict target to promise).
      *
-     * @param array<string, mixed>            $values        field => value (must include all ID fields when $on is null)
-     * @param \Azera\Orm\ConflictTarget|null  $on            key to conflict on; null = the ID fields
-     * @param list<string>|null               $updateColumns fields the conflict action may write;
+     * @param array<string, mixed>     $values        field => value (must include all ID fields when $on is null)
+     * @param ConflictTarget|null      $on            key to conflict on; null = the ID fields
+     * @param list<string>|null        $updateColumns fields the conflict action may write;
      *                                                       null = all non-target, [] = none
      */
     public static function upsert(
         array $values,
-        ?\Azera\Orm\ConflictTarget $on = null,
+        ?ConflictTarget $on = null,
         ?array $updateColumns = null,
     ): static {
         $instance = new static();

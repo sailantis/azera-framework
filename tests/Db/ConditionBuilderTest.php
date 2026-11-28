@@ -6,6 +6,7 @@ require_once __DIR__ . '/TestDatabase.php';
 
 use Azera\Db\Sql;
 use Azera\Db\Condition;
+use Azera\Db\Query;
 use PHPUnit\Framework\TestCase;
 
 class ConditionBuilderTest extends TestCase
@@ -234,5 +235,45 @@ class ConditionBuilderTest extends TestCase
         );
 
         $this->assertEquals('(HAVING COUNT("o"."id") > 5)', $cb->toSql());
+    }
+
+    /**
+     * A literal zero on the right-hand side must survive.
+     *
+     * The identifier guard used `!empty($rhs)`, which is false for the STRING
+     * '0' and true for every other non-empty string — so `x = 0` and
+     * `tenant_id > 0` compiled to `("x" =)` / `("tenant_id" >)`, silently
+     * dropping the value and leaving a statement the driver rejects.
+     */
+    public function testAZeroRightHandSideIsNotDropped(): void
+    {
+        $db = new TestPgDatabase();
+
+        foreach (['x = 0', 'tenant_id > 0', 'a <> 0', 'amount >= 6'] as $condition) {
+            $sql = Query::raw($db)->returnSql()->table('items')->where($condition)->select();
+
+            $this->assertStringNotContainsString('=)', $sql, $condition);
+            $this->assertStringNotContainsString('>)', $sql, $condition);
+        }
+
+        $this->assertStringContainsString(
+            '("tenant_id" > 0)',
+            Query::raw($db)->returnSql()->table('items')->where('tenant_id > 0')->select(),
+        );
+        $this->assertStringContainsString(
+            '("x" = 0)',
+            Query::raw($db)->returnSql()->table('items')->where('x = 0')->select(),
+        );
+    }
+
+    /** IS NULL has no right-hand side; the zero fix must not add a space+dash. */
+    public function testANullTestKeepsItsShape(): void
+    {
+        $db = new TestPgDatabase();
+
+        $this->assertStringContainsString(
+            '("deleted_at" IS NULL)',
+            Query::raw($db)->returnSql()->table('items')->where('deleted_at IS NULL')->select(),
+        );
     }
 }

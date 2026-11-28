@@ -295,7 +295,7 @@ primary key—is not written in the `SET` clause.
 
 ```php
 // SQLite: INSERT INTO "users" ("id","email") VALUES (1, 'john@example.com')
-//         ON CONFLICT DO UPDATE SET "email"=EXCLUDED."email"
+//         ON CONFLICT ("id") DO UPDATE SET "email"=EXCLUDED."email"
 User::query()->upsert(['id' => 1, 'email' => 'john@example.com']);
 ```
 
@@ -304,6 +304,53 @@ User::query()->upsert(['id' => 1, 'email' => 'john@example.com']);
 > internal DELETE+INSERT, which is fsync-bound (~1.2–5.7 ms vs ~8 µs per
 > statement on WAL SQLite). The derived EXCLUDED shape compiles as an in-place
 > update — use explicit `updateValues()` only for custom expressions.
+
+#### Using a conflict target other than the primary key
+
+`conflict()` selects the unique key used by the upsert. It accepts an array or a
+comma-separated column list.
+
+**A string is always a column list.** For example, `conflict('email')` could
+refer to a column or a constraint. Use `conflictConstraint()` to target a
+constraint by name.
+
+```php
+use Azera\Db\ConflictTarget;
+
+// ON CONFLICT ("email") DO UPDATE SET ...
+User::query()
+    ->conflict(['email'])
+    ->upsert(['email' => 'a@example.com', 'name' => 'A']);
+
+// Include the predicate when targeting a partial unique index.
+// ON CONFLICT ("email") WHERE deleted_at IS NULL DO UPDATE SET ...
+User::query()
+    ->conflict(['email'])
+    ->conflictWhere('deleted_at IS NULL')
+    ->upsert(['email' => 'a@example.com', 'name' => 'A']);
+
+// Target an exclusion constraint by name.
+Booking::query()
+    ->conflictConstraint('bookings_no_overlap')
+    ->ignore()
+    ->insert([...]);
+```
+
+Chain `conflict()` and `conflictWhere()` in either order. A predicate set first
+is held until a target is supplied. `conflictWhere()` validates its input
+immediately, even before a target exists.
+
+| | column list | `conflictWhere()` | `conflictOnConstraint()` |
+|---|---|---|---|
+| PostgreSQL | ✅ | ✅ (needs a target) | ✅ |
+| SQLite | ✅ | ✅ | ❌ (no `ON CONSTRAINT` form) |
+| MySQL | ignored — `ON DUPLICATE KEY UPDATE` has no target | ❌ | ❌ |
+
+> **Why the predicate matters:** PostgreSQL and SQLite need the partial-index
+> predicate in the `ON CONFLICT` target to infer the unique index. Otherwise,
+> the statement fails with *"there is no unique or exclusion constraint
+> matching the ON CONFLICT specification"*. Use `conflictConstraint()` for
+> exclusion constraints, which have no column-list target.
 
 ### Bulk INSERT
 

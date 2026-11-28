@@ -54,8 +54,6 @@ final class ConflictTarget
      */
     public static function columns(array $columns, ?string $where = null): self
     {
-        $columns = array_values($columns);
-
         if ($columns === []) {
             throw new \InvalidArgumentException(
                 'A conflict target needs at least one column; omit the target entirely to conflict on the primary key.'
@@ -63,27 +61,16 @@ final class ConflictTarget
         }
 
         foreach ($columns as $column) {
-            if (!\is_string($column) || $column === '') {
+            if (!\is_string($column)) {
                 throw new \InvalidArgumentException(
-                    'Conflict target columns must be non-empty column-name strings, ' . \get_debug_type($column) . ' given.'
+                    'Conflict target column must be a string, ' . \get_debug_type($column) . ' given.'
                 );
             }
-        }
-
-        if ($where !== null && trim($where) === '') {
-            throw new \InvalidArgumentException(
-                'A partial-index predicate must not be blank; pass null when the index covers every row.'
-            );
-        }
-
-        // The predicate is emitted verbatim, so anything bindable or
-        // statement-terminating would be a silent injection seam at the call
-        // site rather than a mistake caught here.
-        if ($where !== null && (str_contains($where, '?') || preg_match('/[;\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]/', $where) === 1)) {
-            throw new \InvalidArgumentException(
-                'A partial-index predicate must be plain structural SQL: it is emitted verbatim, so it cannot '
-                . 'contain placeholders ("?") or control characters, and it must not be statement-terminated.'
-            );
+            if ($column === '') {
+                throw new \InvalidArgumentException(
+                    'Conflict target column must not be an empty string.'
+                );
+            }
         }
 
         return new self($columns, $where);

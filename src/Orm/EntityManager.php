@@ -5,8 +5,6 @@ namespace Azera\Orm;
 use Azera\AppContext;
 use Azera\Lifecycle\RequestScoped;
 use Azera\Orm\Casting\Casts;
-use Azera\Orm\FastHydrator;
-use Azera\Orm\Metadata;
 use Azera\Orm\Storage\Store;
 use Azera\Orm\Storage\Stores;
 
@@ -461,8 +459,8 @@ final class EntityManager implements RequestScoped
      */
     private function ownerClasses(string $class): array
     {
-        $found  = [];
-        $queue  = [$class];
+        $found = [];
+        $queue = [$class];
 
         while ($queue !== []) {
             $current = array_shift($queue);
@@ -480,7 +478,7 @@ final class EntityManager implements RequestScoped
                 }
 
                 $found[$owner] = true;
-                $queue[]       = $owner;
+                $queue[] = $owner;
             }
         }
 
@@ -700,9 +698,9 @@ final class EntityManager implements RequestScoped
         if ($meta['pkFields'] === []) {
             throw new \LogicException(
                 "Cannot adopt {$meta['class']}: no primary key is defined. "
-                . 'adopt() asserts the row already exists, which requires a key — '
-                . 'declare one with #[Column(pk: true)] or an idFields() override, '
-                . 'or use persist() for an entity that is not in storage yet.'
+                    . 'adopt() asserts the row already exists, which requires a key — '
+                    . 'declare one with #[Column(pk: true)] or an idFields() override, '
+                    . 'or use persist() for an entity that is not in storage yet.'
             );
         }
 
@@ -725,8 +723,8 @@ final class EntityManager implements RequestScoped
             if ($value === null) {
                 throw new \LogicException(sprintf(
                     "Cannot adopt %s: identity is incomplete (missing '%s'; key fields: %s). "
-                    . 'adopt() asserts the row already exists, so every key field must be set — '
-                    . 'use persist() for an entity that is not in storage yet.',
+                        . 'adopt() asserts the row already exists, so every key field must be set — '
+                        . 'use persist() for an entity that is not in storage yet.',
                     $meta['class'],
                     $field,
                     implode(', ', $meta['pkFields'])

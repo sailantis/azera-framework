@@ -5,7 +5,7 @@ namespace Azera\Tests\Orm\Fixtures;
 use Azera\Orm\Model;
 
 /**
- * The shape {@see \Azera\Orm\ConflictTarget} exists for: a DATABASE-GENERATED
+ * The shape {@see \Azera\Db\ConflictTarget} exists for: a DATABASE-GENERATED
  * primary key (so the caller has no PK to name before the row exists) plus a
  * natural unique key that carries the real identity.
  *

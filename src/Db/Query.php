@@ -134,8 +134,24 @@ class Query extends Condition
      */
     protected bool $freshRead = false;
 
-    protected array|string $conflictTarget = '';
+    /**
+     * The columns that form the conflict target for an upsert.
+     */
+    protected ?array $conflictColumns = null;
 
+    /**
+     * The name of the unique constraint for an upsert conflict target.
+     */
+    protected ?string $conflictConstraint = null;
+
+    /**
+     * The partial-index predicate for an upsert conflict target.
+     */
+    protected ?string $conflictWhere = null;
+
+    /**
+     * The columns or expressions to return after an INSERT/UPDATE operation.
+     */
     protected array|string|null $returning = null;
 
     /* -------------------------------------------------------------
@@ -247,10 +263,10 @@ class Query extends Condition
 
         throw new \LogicException(
             "Query builds SQL, but {$class} is routed to the '{$store}' store. "
-            . 'Use the EntityManager instead: '
-            . '$em->find(' . $class . '::class, $id), $em->findBy(' . $class . '::class, $where), '
-            . '$em->persist(...)->flush(). The ' . $class . ' facade offers find()/findOrFail()/'
-            . 'findOne()/findAll() for the same reads.'
+                . 'Use the EntityManager instead: '
+                . '$em->find(' . $class . '::class, $id), $em->findBy(' . $class . '::class, $where), '
+                . '$em->persist(...)->flush(). The ' . $class . ' facade offers find()/findOrFail()/'
+                . 'findOne()/findAll() for the same reads.'
         );
     }
 
@@ -358,10 +374,10 @@ class Query extends Condition
      * request-derived expression cannot smuggle sub-selects or raw SQL into
      * the column list. Arbitrary SQL expressions belong in {@see Sql::raw()}.
      *
-     * @param string|array $columns
+     * @param string|array|null $columns
      * @return $this
      */
-    public function columns(string|array $columns): static
+    public function columns(string|array|null $columns): static
     {
         if (!empty($columns)) {
             $list = \is_array($columns)
@@ -852,15 +868,85 @@ class Query extends Condition
     }
 
     /**
-     * Set conflict target for ON CONFLICT clause (PostgreSQL). Can be either:
-     * - Array with column names
-     * - String with column names or constraint name
-     * @param array|string $columnsOrConstraint
+     * Set the conflict target for the ON CONFLICT clause
+     * (PostgreSQL / SQLite): `ON CONFLICT ("a","b") [WHERE <predicate>]`.
+     *
+     * Takes an array of column names, or a comma-separated string of them
+     * (`'email, tenant_id'`).
+     *
+     * @param array|string|null $target column name, comma-separated
+     *                                           list, array of names, or a
+     *                                           prepared ConflictTarget
      * @return $this
      */
-    public function conflict(array|string $columnsOrConstraint): static
+    public function conflict(array|string|null $target): static
     {
-        $this->conflictTarget = $columnsOrConstraint;
+        if (!empty($target)) {
+            $target = \is_array($target)
+                ? $target
+                : explode(',', $target);
+
+            foreach ($target as $column) {
+                // Sql nodes are explicit, developer-authored expressions.
+                if ($column instanceof Sql) {
+                    continue;
+                }
+                $this->validateColumnTerm((string) $column);
+            }
+        }
+
+        if (empty($target)) {
+            $this->conflictColumns = null;
+            return $this;
+        }
+
+        if ($this->conflictConstraint !== null) {
+            throw new \LogicException('Cannot set conflict columns when a conflict constraint is already set');
+        }
+
+        $this->conflictColumns = $target;
+        return $this;
+    }
+
+    /**
+     * Set the conflict constraint for the ON CONFLICT clause
+     * (PostgreSQL / SQLite): `ON CONFLICT ON CONSTRAINT <constraint>`.
+     *
+     * @param ?string $constraint
+     * @return $this
+     */
+    public function conflictConstraint(?string $constraint): static
+    {
+        if (empty($constraint)) {
+            $this->conflictConstraint = null;
+            return $this;
+        }
+
+        if ($this->conflictColumns !== null) {
+            throw new \LogicException('Cannot set a conflict constraint when conflict columns are already set');
+        }
+
+        if ($this->conflictWhere !== null) {
+            throw new \LogicException('Cannot set a conflict constraint when a conflict WHERE clause is already set');
+        }
+
+        $this->conflictConstraint = $constraint;
+        return $this;
+    }
+
+    /**
+     * Set the partial-index predicate for the ON CONFLICT clause
+     * (PostgreSQL / SQLite): `ON CONFLICT ("a","b") WHERE <predicate>`.
+     *
+     * @param string $predicate
+     * @return $this
+     */
+    public function conflictWhere(string $predicate): static
+    {
+        if ($this->conflictConstraint !== null) {
+            throw new \LogicException('Conflict constraint does not allow setting a conflict WHERE clause');
+        }
+        $this->conflictWhere = $predicate;
         return $this;
     }
 
@@ -1532,7 +1618,14 @@ class Query extends Condition
                     break;
                 case 'pgsql':
                     $statement      = 'INSERT INTO ';
-                    $conflictClause = ' ON CONFLICT DO NOTHING ';
+                    $conflictClause = ' ON CONFLICT';
+                    // DO NOTHING takes a target too, and a partial index needs
+                    // its predicate here just as much: without it PostgreSQL
+                    // finds no matching constraint and rejects the statement.
+                    if ($this->conflictColumns || $this->conflictConstraint) {
+                        $conflictClause .= ' ' . $this->compileConflictTarget($db);
+                    }
+                    $conflictClause .= ' DO NOTHING ';
                     break;
                 default:
                     throw new LogicException("INSERT IGNORE is not implemented for this driver");
@@ -1579,24 +1672,17 @@ class Query extends Condition
                     $statement .= ' ON DUPLICATE KEY UPDATE ';
                     break;
                 case 'sqlite':
-                    $statement .= ' ON CONFLICT DO UPDATE SET ';
+                    // Same shape as pgsql: SQLite accepts an ON CONFLICT target,
+                    // and a PARTIAL index needs it too — verified on SQLite
+                    // 3.53.4, where a target that matches only the partial index
+                    // fails with "ON CONFLICT clause does not match any PRIMARY
+                    // KEY or UNIQUE constraint" unless the predicate is repeated.
+                    // The target is OPTIONAL there, so an empty one is left out.
+                    $target = $this->compileConflictTarget($db, required: false);
+                    $statement .= ' ON CONFLICT' . ($target === '' ? '' : ' ' . $target) . ' DO UPDATE SET ';
                     break;
                 case 'pgsql':
-                    if (empty($this->conflictTarget)) {
-                        $idFields = $this->resolvedSource['idFields'] ?? null;
-                        if (!empty($idFields)) {
-                            $this->conflictTarget = $idFields;
-                        } else {
-                            throw new LogicException(
-                                "PostgreSQL requires a conflict target for UPSERT. No conflict target set and the resolved source does not define any ID fields."
-                            );
-                        }
-                    }
-                    if (is_array($this->conflictTarget)) {
-                        $statement .= ' ON CONFLICT (' . implode(',', $this->protectColumns($db, $this->conflictTarget)) . ') DO UPDATE SET ';
-                    } else {
-                        $statement .= ' ON CONFLICT ON CONSTRAINT ' . $this->protectIdentifier($this->conflictTarget) . ' DO UPDATE SET ';
-                    }
+                    $statement .= ' ON CONFLICT ' . $this->compileConflictTarget($db) . ' DO UPDATE SET ';
                     break;
                 default:
                     throw new LogicException("Upsert not implemented for this driver");
@@ -1729,14 +1815,21 @@ class Query extends Condition
 
     /**
      * Resolve the effective conflict-target COLUMNS for a derived-shape
-     * upsert SET clause (explicit updateValues() bypasses this entirely).
+     * upsert SET clause (explicit updateValues() bypasses this entirely):
+     * `"col"=EXCLUDED."col"` must never include a column that is part of the
+     * key the statement resolved on.
+     *
+     * A constraint-named target answers []: the constraint name does not say
+     * which columns it covers, and guessing would risk reassigning the key.
+     * The SET clause is then emitted for every non-PK column, which is the same
+     * shape as an untargeted upsert.
      *
      * @return list<string> Column names forming the conflict target
      */
     private function upsertTargetColumns(): array
     {
-        if (is_array($this->conflictTarget) && $this->conflictTarget !== []) {
-            return $this->conflictTarget;
+        if ($this->conflictColumns !== null) {
+            return $this->conflictColumns;
         }
 
         $idFields = $this->resolvedSource['idFields'] ?? null;
@@ -1746,6 +1839,57 @@ class Query extends Condition
 
         $columns = array_keys($this->values[0] ?? []);
         return $columns === [] ? [] : [$columns[0]];
+    }
+
+    /**
+     * Compile the ON CONFLICT target — everything between `ON CONFLICT ` and
+     * ` DO …`: `("a", "b")`, `ON CONSTRAINT name`, or the column form followed
+     * by ` WHERE <predicate>`.
+     *
+     * The predicate is passed through VERBATIM, exactly as {@see ConflictTarget}
+     * documents it: it is DDL-equivalent structure, and PostgreSQL matches it
+     * semantically, so `"deleted_at" IS NULL` and `deleted_at IS NULL` address
+     * the same index. Rendering it through the where()-condition quoter was a
+     * mistake — that helper is a heuristic that mangles a predicate it does not
+     * recognise (`x > 0` loses the `0`), so it has no business touching SQL the
+     * caller copied out of `CREATE INDEX`.
+     *
+     * @param bool $required whether a target is mandatory (PostgreSQL: yes;
+     *                       SQLite: no — leaving it out is legal)
+     * @throws LogicException when the target is missing and $required
+     */
+    private function compileConflictTarget(Database $db, bool $required = true): string
+    {
+        if ($this->conflictConstraint !== null) {
+            return 'ON CONSTRAINT ' . $this->protectIdentifier($this->conflictConstraint);
+        }
+        if ($this->conflictColumns !== null) {
+            $columns = implode(',',
+                $this->protectColumns($db, $this->conflictColumns)
+            );
+
+            if ($this->conflictWhere === null) {
+                return "({$columns})";
+            }
+            return "({$columns}) WHERE " . $this->protectConditionString($this->conflictWhere);
+        }
+
+        $columns = $this->upsertTargetColumns();
+
+        if ($columns === []) {
+            if (!$required) {
+                return '';
+            }
+
+            throw new LogicException(
+                'PostgreSQL requires a conflict target for UPSERT, and none could be resolved from conflict() '
+                    . 'or the source\'s ID fields.'
+            );
+        }
+
+        // Derived target: no predicate to carry, so no ConflictTarget object
+        // is needed (and building one would re-validate an empty predicate).
+        return '(' . implode(',', $this->protectColumns($db, $columns)) . ')';
     }
 
     /**

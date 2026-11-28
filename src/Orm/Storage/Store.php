@@ -2,6 +2,8 @@
 
 namespace Azera\Orm\Storage;
 
+use Azera\Orm\ConflictTarget;
+
 /**
  * Persistence-level seam between the ORM and any storage backend.
  *
@@ -62,14 +64,14 @@ interface Store
      * (RETURNING * when unset non-PK columns should refresh DB defaults).
      *
      * @param array<string, mixed>                    $data          column-name-keyed raw values (PK included)
-     * @param \Azera\Orm\ConflictTarget|null          $on            key to conflict on; null = the PK
+     * @param ConflictTarget|null          $on            key to conflict on; null = the PK
      * @param list<string>|null                       $updateColumns columns the conflict action may write; null = all non-target
      * @return array{row: ?array, id: int|string|null}
      */
     public function upsertOne(
         string $class,
         array $data,
-        ?\Azera\Orm\ConflictTarget $on = null,
+        ?ConflictTarget $on = null,
         ?array $updateColumns = null,
     ): array;
 
