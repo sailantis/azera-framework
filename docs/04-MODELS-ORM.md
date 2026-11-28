@@ -693,16 +693,11 @@ DELETE+INSERT.
 
 The model lands in the identity map (`User::find(7)` returns the same instance afterwards) and the statement joins any open flush transaction.
 
-#### Conflicting on something other than the primary key
+#### Conflicting on another key
 
-The default target is the PK, which only works when the caller already knows it.
-That is not true for the two shapes that most need an atomic upsert:
-
-- a **database-generated** PK (`uuid DEFAULT gen_random_uuid()`, `SERIAL`) — the
-  caller has no key to name before the row exists, so a PK-only upsert degrades
-  to a plain INSERT and is not idempotent at all;
-- a **natural key**, where the PK is incidental and the uniqueness the caller
-  cares about is a separate index.
+By default, upsert targets the primary key. Specify another target when the key is
+database-generated (for example, `SERIAL` or `uuid DEFAULT gen_random_uuid()`) or when
+uniqueness is defined by a natural key.
 
 Pass a `ConflictTarget` to name it:
 
@@ -718,15 +713,12 @@ BillingCustomer::upsert(
 // DO UPDATE SET "email" = EXCLUDED."email"
 ```
 
-**The predicate is not cosmetic.** When the unique index is PARTIAL, PostgreSQL
-infers it from the conflict target only if the statement repeats the predicate;
-otherwise the statement fails with *"there is no unique or exclusion constraint
-matching the ON CONFLICT specification"*. Both halves belong together, which is
-why the target carries them as one value.
+For a partial unique index, PostgreSQL requires the conflict target to repeat the
+predicate; otherwise it cannot match the index. The target therefore groups columns and
+predicate together.
 
-An explicit target is a promise, so an unset target column **throws** instead of
-inserting: `NULL` never equals `NULL`, so no conflict could be detected and the
-statement would silently create a duplicate row.
+An unset target column **throws** instead of inserting. Since `NULL` does not conflict
+with `NULL`, the upsert could otherwise create a duplicate.
 
 Dialect support:
 
@@ -739,9 +731,8 @@ Dialect support:
 
 #### Narrowing what the conflict action writes
 
-By default the conflict action assigns **every** non-target column present in
-the payload. On a wide row that clobbers state the caller does not own — a
-credential revision, a counter, a workspace binding:
+By default, a conflict updates every payload column except the target. On wide rows,
+this may overwrite state the caller does not own:
 
 ```php
 BillingCustomer::upsert(
@@ -751,10 +742,8 @@ BillingCustomer::upsert(
 );
 ```
 
-`[]` means *insert if absent, change nothing otherwise* (rendered as
-`DO NOTHING` / `$setOnInsert`). Prefer this whenever the row is wider than the
-data you actually own — it is the difference between an idempotent retry and a
-silent data loss.
+Pass `[]` to insert only when absent (`DO NOTHING` / `$setOnInsert`). Limit updates to
+fields the caller owns to keep retries from overwriting unrelated state.
 
 ### `firstOrCreate()` / `updateOrCreate()`
 
