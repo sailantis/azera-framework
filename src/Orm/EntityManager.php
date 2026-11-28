@@ -273,6 +273,12 @@ final class EntityManager implements RequestScoped
      * Execute all scheduled writes in ONE transaction
      * (diff -> order -> execute -> backfill).
      *
+     * This is a UNIT-OF-WORK flush: everything queued runs, in dependency
+     * order. Facade `save()` does NOT use it — it uses
+     * {@see flushEntity()}, which writes only what the entity needs. Reach
+     * for flush() when you have deliberately batched several entities and
+     * want them atomic together.
+     *
      * Transaction control follows the SCHEDULED WORK's (store, txTarget)
      * grouping: all scheduled classes must resolve to ONE store instance
      * AND one connection target on it - otherwise the flush spans two
@@ -289,11 +295,127 @@ final class EntityManager implements RequestScoped
             return; // fast path: nothing to do
         }
 
+        $this->executeWriteSet($scheduled);
+    }
+
+    /**
+     * Execute ONLY the work scheduled for $entity, leaving every other
+     * pending write alone.
+     *
+     * This is what `save()` uses, and the distinction from `flush()` is
+     * load-bearing. A facade `save()` means "make THIS row durable". With
+     * a whole-heap flush, one entity's save is silently coupled to every
+     * other entity that happens to be scheduled in the same request, and
+     * a failure in one poisons the other:
+     *
+     *   $customer->save();            // INSERT customers  -> pending
+     *   $session->save();             // ALSO flushes the customers INSERT
+     *
+     * That coupling turned a recoverable duplicate-key write into a
+     * webhook 500: saving the checkout session retried an unrelated
+     * customer INSERT that had already failed, so the save that was
+     * supposed to RECORD the failure threw the same unique violation and
+     * the original cause was discarded.
+     *
+     * Writes the target cannot proceed without are still honoured: a
+     * `belongsTo` owner whose generated PK feeds this entity's FK is part
+     * of the same unit of work, so those nodes flush alongside it rather
+     * than being deferred.
+     *
+     * @return bool True when this entity actually had something to write
+     */
+    public function flushEntity(object $entity): bool
+    {
+        $node = $this->heap->find($entity);
+
+        if ($node === null || !$node->isScheduled()) {
+            return false; // clean: nothing to write
+        }
+
+        $this->executeWriteSet($this->writeSetFor($node));
+
+        return true;
+    }
+
+    /**
+     * The nodes an entity's write depends on: itself, plus any scheduled
+     * `belongsTo` OWNER whose key it references (owner PKs backfill into
+     * dependents' FKs, so the owner's INSERT must run first — see
+     * {@see order()}).
+     *
+     * Only the entity's own class-level ancestors are pulled in. Siblings
+     * and unrelated entities deliberately stay out: flushing them is what
+     * made an unrelated failure able to abort this save.
+     *
+     * @return list<Node>
+     */
+    private function writeSetFor(Node $node): array
+    {
+        $owners = $this->ownerClasses($node->class);
+
+        if ($owners === []) {
+            return [$node];
+        }
+
+        $set = [$node];
+        foreach ($this->heap->scheduled() as $candidate) {
+            if ($candidate === $node) {
+                continue;
+            }
+            if (isset($owners[$candidate->class])) {
+                $set[] = $candidate;
+            }
+        }
+
+        return $set;
+    }
+
+    /**
+     * Class => true for every `belongsTo` target reachable from $class
+     * (transitively, so a chain of owners is included).
+     *
+     * @return array<string, true>
+     */
+    private function ownerClasses(string $class): array
+    {
+        $found  = [];
+        $queue  = [$class];
+
+        while ($queue !== []) {
+            $current = array_shift($queue);
+            $meta    = Metadata::for($current);
+
+            foreach ($meta['relations'] ?? [] as $relation) {
+                if (($relation['type'] ?? '') !== 'belongsTo') {
+                    continue;
+                }
+
+                $owner = (string) $relation['target'];
+
+                if (isset($found[$owner]) || $owner === $class) {
+                    continue;
+                }
+
+                $found[$owner] = true;
+                $queue[]       = $owner;
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * Run a concrete write set in one transaction, with the same
+     * fail-fast store resolution and rollback semantics as {@see flush()}.
+     *
+     * @param list<Node> $scheduled
+     */
+    private function executeWriteSet(array $scheduled): void
+    {
         // Resolve every scheduled class's store UP FRONT - a missing or
         // misconfigured store must fail the flush before ANY write runs,
         // not mid-flush after earlier nodes already executed.
         $groups = $this->partitionScheduled($scheduled);
-
         if (\count($groups) > 1) {
             $targetList = implode(', ', array_column($groups, 'target'));
             throw new \RuntimeException(
@@ -326,6 +448,7 @@ final class EntityManager implements RequestScoped
             if ($startedTx) {
                 $store->rollback($meta);
             }
+            $this->discardAbortedWrites($scheduled);
             throw $e;
         }
     }
@@ -377,7 +500,43 @@ final class EntityManager implements RequestScoped
             foreach ($begun as [$store, $meta]) {
                 $store->rollback($meta);
             }
+            $this->discardAbortedWrites($scheduled);
             throw $e;
+        }
+    }
+
+    /**
+     * Roll the heap back to its pre-flush shape after a failed write.
+     *
+     * A node only leaves SCHEDULED_* once its statement succeeded
+     * ({@see executeInsert()} flips it to MANAGED after the INSERT
+     * returns), so a failure leaves the offending node queued. Without
+     * this, that node is re-executed by the NEXT flush on the same
+     * EntityManager - including a flush triggered by a completely
+     * unrelated save():
+     *
+     *   $session->save();            // INSERT checkout_sessions  ok
+     *   $customer->save();           // INSERT customers -> 23505
+     *   markPurchaseFailed($purchase);
+     *   $purchase->save();           // retries the doomed customers INSERT
+     *
+     * That is the production webhook failure: the error handler that was
+     * supposed to RECORD the failure threw the same unique violation, so
+     * nothing was recorded and the original cause was lost.
+     *
+     * Every node in the failed write set is dropped on purpose, not just
+     * the one that threw: the transaction is rolled back, so none of the
+     * batch reached storage. Replaying a partially-applied batch later
+     * would be worse than making the caller re-persist - and the caller
+     * still holds its entity, so persist() + flush() retries cleanly.
+     */
+    private function discardAbortedWrites(array $scheduled): void
+    {
+        foreach ($scheduled as $node) {
+            $entity = $this->heap->entityFor($node);
+            if ($entity !== null) {
+                $this->heap->detach($entity);
+            }
         }
     }
 

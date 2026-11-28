@@ -236,13 +236,7 @@ abstract class Model
 
         $em->persist($this);
 
-        if (!$em->isScheduled($this)) {
-            return false; // clean: nothing to write
-        }
-
-        $em->flush();
-
-        return true;
+        return $em->flushEntity($this);
     }
 
     /**

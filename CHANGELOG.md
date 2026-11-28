@@ -12,13 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Generated proxies embed advice arguments and parameter names.** `AopRuntime::plan()`
   constructs advice without reflection; attribute changes alter the digest.
   `GENERATOR_VERSION` is `7`.
-- **AOP caching uses per-class pointers and content-addressed bodies.** Pointers store the
-  advice map and source signature; timestamps are hints. Matching pointers skip generation,
-  and `cache:prune --only=aop` uses pointers to identify obsolete bodies without a class
-  list. `cache:status` reports cache state.
-- **Proxy memoization runs before reflection**, keyed by namespace and class and cleared
-  by `register()` or `setCacheDir()`. Warm lookup measured ~3 µs versus ~140 µs for
-  scanning and generation. Proxy files are backdated for immediate OPcache reuse.
+- **AOP caching uses per-class pointers and content-addressed bodies.** Matching pointers
+  skip generation; timestamps are hints. Memoization precedes reflection (~3 µs warm
+  lookup versus ~140 µs for scanning and generation). Files are backdated for OPcache.
+- **AOP cache tools** `cache:prune --only=aop` and `cache:status` use pointers to identify
+  obsolete bodies without a class list.
 - **`setAopCacheDir(null)` selects `eval()` without disk caching.**
 - **Event dispatch caches priority-ordered listeners by event class.** `listen()` refreshes
   the bounded cache; class-string listeners remain lazy.
@@ -30,8 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   remains a deprecated immutable alias. See [docs/UPGRADING.md](docs/UPGRADING.md).
 - `DatabaseManager::peek(string $role): ?Database` returns an instantiated connection
   without invoking its factory.
-- **Cache keys use typed `xxh128` digests** of serialized identity, method, and arguments;
-  existing entries are invalidated. Explicit placeholders encode values by type.
+- **Cache keys use typed `xxh128` digests** of identity, method, and arguments; existing
+  entries are invalidated. Explicit placeholders encode values by type.
 - **Removing an untracked entity with a complete key deletes it from storage.** Use
   `clear()` or `detach()` to remove it from identity tracking only.
 - **`Orm\Concerns\EntityFacade` shares finder and writer helpers across `Model` and
@@ -50,22 +48,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **AOP pruning uses directory pointers without resolving interceptors.** Live proxies are
-  preserved; `cache:clear --only=aop` remains an unconditional wipe. Unused
-  `AppContext::buildableClasses()`, `aopProxyFactory()`, and `aopInterceptors()` methods
-  were removed.
+- **Facade saves write only the requested entity and its `belongsTo` owners.**
+  `EntityManager::flush()` retains unit-of-work behavior; `flushEntity()` prevents unrelated
+  pending writes from masking save errors.
+- **Failed transactions no longer leave scheduled nodes for later flushes.**
+- **`composer install` works outside the monorepo.** The lock file uses the released
+  Clarity Engine archive by default; local development can explicitly link `dev-main`.
+- **AOP pruning uses directory pointers without resolving interceptors.** It preserves live
+  proxies; `cache:clear --only=aop` remains an unconditional wipe. Unused
+  `AppContext::buildableClasses()`, `aopProxyFactory()`, and `aopInterceptors()` were removed.
 - **The default AOP cache path is shared** at `<temp>/azera_aop`; pointer mismatches
-  trigger regeneration, and `setAopCacheDir()` supports separate paths.
-- **Advice changes create new proxies, but existing services retain their plan.** Replace
-  workers after advice changes. Late `registerInterceptor()` calls rebuild proxies when
-  the advice set changes.
+  regenerate proxies, and `setAopCacheDir()` supports separate paths.
+- **Advice changes generate new proxies, while existing services retain their plan.**
+  Replace workers after advice changes; late interceptor registration rebuilds proxies.
 - **Keyless entities are supported.** `Metadata::pkFields` contains declared keys only
   (version `v11`); key-dependent operations validate keys, and keyless upserts insert.
 - **Explicit cache-key placeholders are typed and key-safe.** Serialization failures are
-  reported, and validation checks the template rather than argument contents.
+  reported; validation checks the template rather than argument contents.
 - **AOP proxies support cloning, serialization, and by-reference variadics.** Terminals
-  are per-call, registries factory-scoped, and plans refresh on registration;
-  `AopPlan` is PSR-4 loadable.
+  are per-call, registries factory-scoped, and plans refresh on registration.
 - **Transaction interception checks leaks before commit and rolls back on failure.** It
   recognizes transactions on other roles and uses the manager's default connection.
 - **Store-aware queries reject entities from another store.** `Model::findAll()` uses the

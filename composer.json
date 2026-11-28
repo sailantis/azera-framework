@@ -58,7 +58,8 @@
   "repositories": [
     {
       "type": "path",
-      "url": "../clarity-engine"
+      "url": "../clarity-engine",
+      "canonical": false
     }
   ]
 }

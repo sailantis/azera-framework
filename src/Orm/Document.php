@@ -56,14 +56,8 @@ abstract class Document
         $em = AppContext::instance()->entityManager();
 
         $em->persist($this);
-        $node      = $em->heap()->find($this);
-        $scheduled = $node !== null && $node->isScheduled();
 
-        if ($scheduled) {
-            $em->flush();
-        }
-
-        return $scheduled;
+        return $em->flushEntity($this);
     }
 
     /**

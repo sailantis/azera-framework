@@ -4,7 +4,7 @@
     "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
     "This file is @generated automatically"
   ],
-  "content-hash": "295c15cd9b158ec7389a9f1d939769fe",
+  "content-hash": "e0725b7fb03f88ba92a8fe3a5fb2c9b2",
   "packages": [
     {
       "name": "psr/event-dispatcher",
@@ -159,11 +159,17 @@
     },
     {
       "name": "sailantis/clarity-engine",
-      "version": "dev-main",
+      "version": "v0.6.0",
+      "source": {
+        "type": "git",
+        "url": "https://github.com/sailantis/clarity-engine.git",
+        "reference": "46da0d6ff8f207fc501c65d5aed5d8c54c720c00"
+      },
       "dist": {
-        "type": "path",
-        "url": "../clarity-engine",
-        "reference": "886308770be3653960fdf32c4f9351a83ec7d7d2"
+        "type": "zip",
+        "url": "https://api.github.com/repos/sailantis/clarity-engine/zipball/46da0d6ff8f207fc501c65d5aed5d8c54c720c00",
+        "reference": "46da0d6ff8f207fc501c65d5aed5d8c54c720c00",
+        "shasum": ""
       },
       "require": {
         "ext-mbstring": "*",
@@ -183,16 +189,7 @@
           "Clarity\\": "src/"
         }
       },
-      "autoload-dev": {
-        "psr-4": {
-          "Clarity\\Tests\\": "tests/"
-        }
-      },
-      "scripts": {
-        "test": [
-          "phpunit"
-        ]
-      },
+      "notification-url": "https://packagist.org/downloads/",
       "license": [
         "MIT"
       ],
@@ -215,9 +212,7 @@
         "issues": "https://github.com/sailantis/clarity-engine/issues",
         "source": "https://github.com/sailantis/clarity-engine"
       },
-      "transport-options": {
-        "relative": true
-      }
+      "time": "2026-11-24T13:54:55+00:00"
     }
   ],
   "packages-dev": [

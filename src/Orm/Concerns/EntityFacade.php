@@ -153,7 +153,7 @@ trait EntityFacade
 
         $em = AppContext::instance()->entityManager();
         $em->upsert($instance);
-        $em->flush();
+        $em->flushEntity($instance);
 
         return $instance;
     }
