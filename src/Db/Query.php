@@ -1828,6 +1828,10 @@ class Query extends Condition
      */
     private function upsertTargetColumns(): array
     {
+        if ($this->conflictConstraint !== null) {
+            return [];
+        }
+
         if ($this->conflictColumns !== null) {
             return $this->conflictColumns;
         }
