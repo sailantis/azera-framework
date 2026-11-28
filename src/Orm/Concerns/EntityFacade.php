@@ -134,17 +134,36 @@ trait EntityFacade
      * Atomic UPSERT (INSERT ... ON CONFLICT DO UPDATE on SQL, `updateOne` with
      * `upsert: true` on documents): one statement, no prior SELECT — the
      * database resolves insert-vs-update, so there is no unique-violation
-     * race. Every ID field must be present in $values, since the key is the
-     * conflict target; on conflict, all non-ID fields from $values are
-     * written.
+     * race.
      *
-     * With an incomplete key this degrades to a plain insert (there is no
-     * conflict target to promise).
+     * By default every ID field must be present in $values, since the key is
+     * the conflict target. Pass $on to conflict on a DIFFERENT unique key —
+     * the form you need when the PK is database-generated or the real
+     * uniqueness lives in a separate index:
      *
-     * @param array<string, mixed> $values field => value (must include all ID fields)
+     *     BillingCustomer::upsert(
+     *         ['stripe_customer_id' => $id, 'email' => $email],
+     *         ConflictTarget::columns(['stripe_customer_id'], 'stripe_customer_id IS NOT NULL'),
+     *     );
+     *
+     * On conflict, the non-target fields from $values are written — pass
+     * $updateColumns to narrow that on a wide row. With an explicit target, a
+     * null target value throws instead of inserting: it could never match, so
+     * the upsert would silently duplicate the row.
+     *
+     * With an incomplete key (and no target) this degrades to a plain insert
+     * (there is no conflict target to promise).
+     *
+     * @param array<string, mixed>            $values        field => value (must include all ID fields when $on is null)
+     * @param \Azera\Orm\ConflictTarget|null  $on            key to conflict on; null = the ID fields
+     * @param list<string>|null               $updateColumns fields the conflict action may write;
+     *                                                       null = all non-target, [] = none
      */
-    public static function upsert(array $values): static
-    {
+    public static function upsert(
+        array $values,
+        ?\Azera\Orm\ConflictTarget $on = null,
+        ?array $updateColumns = null,
+    ): static {
         $instance = new static();
 
         foreach ($values as $key => $value) {
@@ -152,7 +171,7 @@ trait EntityFacade
         }
 
         $em = AppContext::instance()->entityManager();
-        $em->upsert($instance);
+        $em->upsert($instance, $on, $updateColumns);
         $em->flushEntity($instance);
 
         return $instance;

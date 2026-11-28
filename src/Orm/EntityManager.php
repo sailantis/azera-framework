@@ -198,15 +198,45 @@ final class EntityManager implements RequestScoped
      * mongo updateOne upsert:true): the DATABASE resolves insert-vs-update
      * at write time - no prior SELECT, no insert-or-update guess, no
      * unique-violation race. Deliberately intent-based like persist(): the
-     * caller asserts "row with this PK should exist afterwards", and the
+     * caller asserts "a row with this key should exist afterwards", and the
      * store makes it so atomically.
      *
-     * Requires a full identity (every PK field set) - the PK is the
-     * conflict target. Anything less is an ordinary insert.
+     * The conflict target is the PK by default - which requires a full
+     * identity (every PK field set); anything less degrades to an ordinary
+     * insert. Pass $on to conflict on a DIFFERENT unique key instead:
+     *
+     *     $em->upsert($customer, ConflictTarget::columns(
+     *         ['stripe_customer_id'],
+     *         'stripe_customer_id IS NOT NULL',   // partial index predicate
+     *     ));
+     *
+     * That form is what makes the call idempotent for a table whose PK is
+     * database-generated (a uuid the caller has not got yet) and whose real
+     * uniqueness lives in a separate index. An explicit target IS a promise,
+     * so an unset target column throws rather than quietly inserting.
+     *
+     * On a WIDE row the conflict action must be narrowed: writing every
+     * non-target column from the payload would clobber state the caller does
+     * not own (a credential revision, a counter, a workspace binding). Pass
+     * $updateColumns to name exactly what the upsert may change; [] means
+     * insert-if-absent and leave an existing row untouched.
+     *
+     * @param ?ConflictTarget            $on            the key to conflict on; null = the PK
+     * @param list<string>|null          $updateColumns columns the conflict action may write;
+     *                                                  null = every non-target column in the
+     *                                                  payload, [] = change nothing
      */
-    public function upsert(object $entity): static
-    {
+    public function upsert(
+        object $entity,
+        ?ConflictTarget $on = null,
+        ?array $updateColumns = null,
+    ): static {
         $meta = Metadata::for($entity::class);
+        $data = $this->extractData($entity, $meta);
+
+        if ($on !== null) {
+            $this->assertConflictTargetSet($entity::class, $on, $data);
+        }
 
         $id = [];
         foreach ($meta['columns'] as $field => $col) {
@@ -215,18 +245,71 @@ final class EntityManager implements RequestScoped
             }
         }
 
-        if (in_array(null, $id, true)) {
+        // PK completeness only guards the PK path. With an explicit target a
+        // null PK is legitimate (database-generated on insert), so the
+        // degrade-to-insert rule must not fire there.
+        if ($on === null && in_array(null, $id, true)) {
             // Incomplete identity: no conflict target to promise. Degrade
             // to a plain insert (the pre-EM Model::upsert() semantic).
             return $this->persist($entity);
         }
 
-        $data = $this->extractData($entity, $meta);
-
-        $node = new Node($entity::class, $id, $data, Node::SCHEDULED_UPSERT);
+        $node = new Node(
+            $entity::class,
+            $id,
+            $data,
+            Node::SCHEDULED_UPSERT,
+            conflict: $on,
+            upsertColumns: $updateColumns,
+        );
         $this->heap->attach($entity, $node);
 
         return $this;
+    }
+
+    /**
+     * An explicit conflict target promises "the row with THIS key becomes
+     * current". A null in a target column breaks that promise in the worst
+     * way: the INSERT succeeds, no conflict is detected (NULL never equals
+     * NULL), and the caller gets a second row instead of the update it
+     * asked for. Fail before any statement runs, naming the property.
+     *
+     * @param class-string         $class
+     * @param array<string, mixed> $data  column name => raw value
+     */
+    private function assertConflictTargetSet(string $class, ConflictTarget $on, array $data): void
+    {
+        $columns = Metadata::for($class)['columns'];
+
+        foreach ($on->columns as $column) {
+            // An unknown column is a different mistake (a typo, or a target that
+            // names something the model does not persist) - say so plainly
+            // instead of reporting it as "unset".
+            if (!array_key_exists($column, $data)) {
+                throw new \LogicException(
+                    "Cannot upsert {$class} on '" . implode(', ', $on->columns) . "': "
+                        . "the model has no persisted column named '{$column}'."
+                );
+            }
+
+            if ($data[$column] !== null) {
+                continue;
+            }
+
+            $field = $column;
+            foreach ($columns as $prop => $col) {
+                if ($col['name'] === $column) {
+                    $field = $prop;
+                    break;
+                }
+            }
+
+            throw new \LogicException(
+                "Cannot upsert {$class} on '" . implode(', ', $on->columns) . "': "
+                    . "column '{$column}' (property \${$field}) is null, so no conflict could ever be detected "
+                    . 'and the statement would insert a duplicate row. Set the value, or use persist() to insert.'
+            );
+        }
     }
 
     /**
@@ -1019,11 +1102,17 @@ final class EntityManager implements RequestScoped
         $entity = $this->entityFor($node);
 
         // Full caller payload (nulls dropped upstream so DB defaults
-        // survive); the PK doubles as the conflict target.
+        // survive); the conflict target is the PK unless the caller named
+        // another key.
         $data = $this->extractData($entity, $meta);
         $set  = array_filter($data, fn($v) => $v !== null);
 
-        $result = $this->storeFor($node->class)->upsertOne($node->class, $set);
+        $result = $this->storeFor($node->class)->upsertOne(
+            $node->class,
+            $set,
+            $node->conflict,
+            $node->upsertColumns,
+        );
 
         $node->state = Node::MANAGED;
 

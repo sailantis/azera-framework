@@ -42,16 +42,36 @@ interface Store
 
     /**
      * Atomic UPSERT: INSERT ... ON CONFLICT DO UPDATE (SQL) / updateOne
-     * with upsert:true (Mongo). The caller-set PK is the conflict target —
-     * $data must carry every PK column. Existence is resolved BY THE
-     * DATABASE at write time: no prior SELECT, no insert-or-update guess.
+     * with upsert:true (Mongo). Existence is resolved BY THE DATABASE at
+     * write time: no prior SELECT, no insert-or-update guess.
+     *
+     * $on selects the uniqueness key the statement conflicts on:
+     *
+     * - null: the caller-set PK — $data must carry every PK column.
+     * - a {@see \Azera\Orm\ConflictTarget}: that column list (plus its
+     *   predicate, when the index is partial). Required whenever the PK is
+     *   database-generated or the real uniqueness lives elsewhere.
+     *
+     * $updateColumns restricts what the CONFLICT ACTION may write; null
+     * writes every non-target column present in $data. Needed on wide rows
+     * where a full-payload update would clobber state the caller does not
+     * own (a credential revision, a counter, a workspace binding). An empty
+     * list means "insert if absent, change nothing on conflict".
+     *
      * Returns raw row(s) for backfill, same contract as insertOne
      * (RETURNING * when unset non-PK columns should refresh DB defaults).
      *
-     * @param array<string, mixed> $data column-name-keyed raw values (PK included)
+     * @param array<string, mixed>                    $data          column-name-keyed raw values (PK included)
+     * @param \Azera\Orm\ConflictTarget|null          $on            key to conflict on; null = the PK
+     * @param list<string>|null                       $updateColumns columns the conflict action may write; null = all non-target
      * @return array{row: ?array, id: int|string|null}
      */
-    public function upsertOne(string $class, array $data): array;
+    public function upsertOne(
+        string $class,
+        array $data,
+        ?\Azera\Orm\ConflictTarget $on = null,
+        ?array $updateColumns = null,
+    ): array;
 
     /**
      * Delete one entity by PK values.

@@ -5,6 +5,7 @@ namespace Azera\Orm\Storage;
 use Azera\AppContext;
 use Azera\Db\Database;
 use Azera\Db\DatabaseManager;
+use Azera\Orm\ConflictTarget;
 use Azera\Orm\Metadata;
 
 /**
@@ -151,32 +152,45 @@ final class PdoStore implements Store
         return ['row' => null, 'id' => null];
     }
 
-    public function upsertOne(string $class, array $data): array
-    {
+    public function upsertOne(
+        string $class,
+        array $data,
+        ?ConflictTarget $on = null,
+        ?array $updateColumns = null,
+    ): array {
         $meta = Metadata::for($class);
         $db   = $this->writeDb($meta);
 
-        // The PK is the CONFLICT TARGET — always caller-set on an upsert,
-        // so strategy()'s matrix can't be reused here (it short-circuits
-        // to pk_set before ever looking at non-PK columns). The only
-        // interesting question: are non-PK columns missing? Their DB
-        // defaults round-trip via RETURNING * (mirrors insertOne's
-        // returning_all); with everything set, a plain statement is the
-        // fastest shape. Non-RETURNING drivers: no backfill, same as
-        // insertOne's last_insert_id fallback minus the id (upsert keeps
-        // the caller's PK).
-        $nonPkMissing = false;
+        // Identity columns: the explicit target, else the PK. Either way the
+        // DO UPDATE SET clause never reassigns them (see upsertSql()).
+        $targetColumns = $on?->columns ?? $this->pkColumnNames($meta);
+        $isTarget = array_flip($targetColumns);
+
+        // The only interesting question left: are columns OUTSIDE the target
+        // missing? Their DB defaults round-trip via RETURNING * (mirrors
+        // insertOne's returning_all); with everything set, a plain statement
+        // is the fastest shape. Non-RETURNING drivers: no backfill, same as
+        // insertOne's last_insert_id fallback minus the id (an upsert keeps
+        // the caller's key).
+        $backfill = false;
         foreach ($meta['columns'] as $col) {
-            if (!$col['pk'] && ($data[$col['name']] ?? null) === null) {
-                $nonPkMissing = true;
+            if (!isset($isTarget[$col['name']]) && ($data[$col['name']] ?? null) === null) {
+                $backfill = true;
                 break;
             }
         }
 
         $set = array_filter($data, fn($v) => $v !== null);
-        [$sql, $params] = $this->upsertSql($meta, $set, $db);
 
-        if ($nonPkMissing && $db->supportsReturning()) {
+        if ($updateColumns !== null) {
+            // Restrict the UPDATE payload. An empty list keeps the row
+            // untouched on conflict, which upsertSql() renders as DO NOTHING.
+            $set = array_intersect_key($set, array_flip($updateColumns));
+        }
+
+        [$sql, $params] = $this->upsertSql($meta, $set, $db, $on);
+
+        if ($backfill && $db->supportsReturning()) {
             $row = $db->selectRow($sql . ' RETURNING *', $params, \PDO::FETCH_ASSOC);
             return ['row' => $row, 'id' => null];
         }
@@ -386,32 +400,50 @@ final class PdoStore implements Store
     }
 
     /**
-     * Single-statement UPSERT. The conflict target is the metadata PK.
-     * The DO UPDATE SET writes NON-PK columns only, via excluded refs
-     * ("col" = EXCLUDED."col") — the fast shape. Including the PK in SET
-     * (or rebinding values instead of referencing EXCLUDED) forces SQLite
-     * to compile the statement as an internal DELETE+INSERT, which is
-     * fsync-bound (~1.2-5.7ms vs ~8µs per statement on WAL SQLite).
+     * Single-statement UPSERT. The conflict target is the caller's
+     * {@see ConflictTarget}, or the metadata PK when none was given.
+     * The DO UPDATE SET writes NON-TARGET columns only, via excluded refs
+     * ("col" = EXCLUDED."col") — the fast shape. Naming a TARGET column in
+     * SET (or rebinding values instead of referencing EXCLUDED) forces
+     * SQLite to compile the statement as an internal DELETE+INSERT, which
+     * is fsync-bound (~1.2-5.7ms vs ~8µs per statement on WAL SQLite), and a
+     * partial index's target column cannot be reassigned meaningfully
+     * anyway.
      *
-     * Driver dialects: pgsql/sqlite use ON CONFLICT (target) DO UPDATE;
-     * mysql/maria use ON DUPLICATE KEY UPDATE with VALUES() refs (their
-     * only form; no conflict target). Null values in $set are dropped
-     * upstream (same as insertOne) so DB defaults survive.
+     * Driver dialects: pgsql/sqlite use ON CONFLICT (target) [WHERE pred]
+     * DO UPDATE; mysql/maria use ON DUPLICATE KEY UPDATE with VALUES() refs
+     * (their only form; no conflict target). Null values in $set are
+     * dropped upstream (same as insertOne) so DB defaults survive.
      */
-    private function upsertSql(array $meta, array $set, Database $db): array
+    private function upsertSql(array $meta, array $set, Database $db, ?ConflictTarget $on = null): array
     {
         [$insertSql, $params] = $this->insertSql($meta, $set);
 
         // No key = no conflict target. There is nothing to be "on conflict"
         // about, so the statement degrades to a plain INSERT rather than
         // emitting the invalid `ON CONFLICT ()`.
-        if ($meta['pkFields'] === []) {
+        $targetColumns = $on?->columns ?? $this->pkColumnNames($meta);
+        if ($targetColumns === []) {
             return [$insertSql, $params];
         }
 
         $driver = $db->getDriver();
 
         if ($driver === 'mysql') {
+            // ON DUPLICATE KEY UPDATE has no target clause: it fires on ANY
+            // violated unique index. An explicit target therefore cannot be
+            // honoured — and silently updating whichever row happened to
+            // collide is worse than failing, because the caller asked for a
+            // specific key.
+            if ($on !== null) {
+                throw new \LogicException(
+                    "Cannot upsert on '" . implode(', ', $on->columns) . "' with MySQL: "
+                        . 'ON DUPLICATE KEY UPDATE has no conflict target, so it fires on any violated '
+                        . 'unique index. Use a database with ON CONFLICT (PostgreSQL or SQLite), '
+                        . 'or leave the target unset to conflict on the primary key.'
+                );
+            }
+
             // MySQL has no conflict target and no EXCLUDED — VALUES(col) refs.
             $sets = [];
             foreach ($set as $col => $value) {
@@ -424,24 +456,48 @@ final class PdoStore implements Store
         }
 
         // pgsql / sqlite: explicit conflict target + EXCLUDED refs.
-        $pkCols = [];
-        foreach ($meta['columns'] as $col) {
-            if ($col['pk']) {
-                $pkCols[] = $col['name'];
-            }
-        }
-
-        $target = implode(', ', array_map(fn($c) => $db->quoteIdentifier($c), $pkCols));
+        $isTarget = array_flip($targetColumns);
 
         $sets = [];
         foreach ($set as $col => $value) {
-            if ($this->isPkColumn($meta, $col)) {
+            if (isset($isTarget[$col]) || $this->isPkColumn($meta, $col)) {
                 continue;
             }
             $sets[] = $db->quoteIdentifier($col) . ' = EXCLUDED.' . $db->quoteIdentifier($col);
         }
 
-        return [$insertSql . ' ON CONFLICT (' . $target . ') DO UPDATE SET ' . implode(', ', $sets), $params];
+        $target = implode(', ', array_map(fn($c) => $db->quoteIdentifier($c), $targetColumns));
+
+        // A PARTIAL unique index is only inferred when the statement repeats
+        // its predicate — the predicate is part of the index's identity, not
+        // a filter on the action.
+        $clause = ' (' . $target . ')' . ($on?->where !== null ? ' WHERE ' . $on->where : '');
+
+        // Every INSERT column belongs to the target: there is nothing left to
+        // assign, and `DO UPDATE SET` with an empty list is a syntax error.
+        // The honest statement is "the row already exists, leave it".
+        if ($sets === []) {
+            return [$insertSql . ' ON CONFLICT' . $clause . ' DO NOTHING', $params];
+        }
+
+        return [$insertSql . ' ON CONFLICT' . $clause . ' DO UPDATE SET ' . implode(', ', $sets), $params];
+    }
+
+    /**
+     * Column names of the metadata PKs, in declaration order.
+     *
+     * @return list<string>
+     */
+    private function pkColumnNames(array $meta): array
+    {
+        $names = [];
+        foreach ($meta['columns'] as $col) {
+            if ($col['pk']) {
+                $names[] = $col['name'];
+            }
+        }
+
+        return $names;
     }
 
     private function isPkColumn(array $meta, string $colName): bool

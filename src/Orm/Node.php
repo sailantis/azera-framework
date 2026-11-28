@@ -42,6 +42,19 @@ final class Node
         public array $data,
         public int $state = self::NEW,
         public array $changedFields = [],
+        /**
+         * The key a SCHEDULED_UPSERT conflicts on. Null = the primary key
+         * (the default identity assertion). See {@see ConflictTarget}.
+         */
+        public ?ConflictTarget $conflict = null,
+        /**
+         * Columns a SCHEDULED_UPSERT's conflict action may write. Null = every
+         * non-target column present in the payload; [] = change nothing on
+         * conflict (insert-only). See {@see ConflictTarget}.
+         *
+         * @var ?list<string>
+         */
+        public ?array $upsertColumns = null,
     ) {}
 
     public function isScheduled(): bool

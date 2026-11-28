@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Azera\Orm\Storage;
 
 use Azera\Db\ModelMapping;
+use Azera\Orm\ConflictTarget;
 use Azera\Orm\Metadata;
 use MongoDB\Client;
 use MongoDB\Collection as MongoCollection;
@@ -125,30 +126,73 @@ final class MongoStore implements Store
         return ['row' => null, 'id' => null];
     }
 
-    public function upsertOne(string $class, array $data): array
-    {
+    public function upsertOne(
+        string $class,
+        array $data,
+        ?ConflictTarget $on = null,
+        ?array $updateColumns = null,
+    ): array {
         $meta = Metadata::for($class);
+        $pk   = self::pkName($meta);
 
-        // No key = no conflict target: degrade to a plain insert instead of
-        // filtering on `_id => null` (which would match every doc without an
-        // _id and overwrite one of them).
-        if ($meta['pkFields'] === []) {
-            return $this->insertOne($class, $data);
+        // The filter IS the conflict target — mongo resolves insert-vs-update
+        // against it atomically (upsert:true), the same role ON CONFLICT plays
+        // on SQL. With no explicit target it is the PK; with one it is that
+        // key instead, which is what lets a document upsert on a natural key
+        // rather than on a driver-generated _id.
+        if ($on !== null) {
+            $filter = array_intersect_key($data, array_flip($on->columns));
+
+            // An omitted target column cannot be addressed (mongo would treat
+            // the missing field as a match on anything), so refuse loudly —
+            // the EM normally rejects this first.
+            if (array_diff($on->columns, array_keys($filter)) !== []) {
+                throw new \LogicException(
+                    "Cannot upsert {$class} on '" . implode(', ', $on->columns) . "': the payload is missing a target column."
+                );
+            }
+
+            // $set minus the target (identity is not reassigned).
+            $set = array_diff_key($data, $filter);
+        } else {
+            // No key = no conflict target: degrade to a plain insert instead
+            // of filtering on `_id => null` (which would match every doc
+            // without an _id and overwrite one of them).
+            if ($meta['pkFields'] === []) {
+                return $this->insertOne($class, $data);
+            }
+
+            $filter = self::prepareFilter([$pk => $data[$pk] ?? null]);
+
+            $set = $data;
+            unset($set[$pk]);
         }
 
-        $pk = self::pkName($meta);
+        if ($updateColumns !== null) {
+            $set = array_intersect_key($set, array_flip($updateColumns));
+        }
 
-        // Filter = the PK (the conflict target); $set = the full caller
-        // payload minus the PK. upsert:true makes the SERVER resolve
-        // insert-vs-update atomically — the mongo twin of ON CONFLICT.
-        $set = $data;
-        unset($set[$pk]);
+        // Nulls are dropped from the assignment payload, exactly as the SQL
+        // store does upstream: "not set" must mean "keep whatever the insert
+        // wrote", not "overwrite with null".
+        $set = array_filter($set, fn($v) => $v !== null);
 
-        $result = $this->collection($meta)->updateOne(
-            self::prepareFilter([$pk => $data[$pk] ?? null]),
-            ['$set' => $set],
-            ['upsert' => true],
-        );
+        // A target-only conflict has nothing left to assign; $setOnInsert
+        // keeps the intent ("insert if absent, change nothing otherwise")
+        // without emitting an empty $set.
+        if ($set === []) {
+            $insert = $data;
+            // Same rule as insertOne(): an unset _id means "let the driver
+            // mint the ObjectId", so a null must not reach the document.
+            if ($pk === '_id' && ($insert[$pk] ?? null) === null) {
+                unset($insert[$pk]);
+            }
+            $update = ['$setOnInsert' => $insert];
+        } else {
+            $update = ['$set' => $set];
+        }
+
+        $result = $this->collection($meta)->updateOne($filter, $update, ['upsert' => true]);
 
         // Backfill: server-generated ids on the upsert-miss path land in
         // getUpsertedId() (the driver mints the ObjectId server-side); the

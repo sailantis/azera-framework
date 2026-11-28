@@ -37,6 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`Orm\ConflictTarget` upserts on a key other than the primary key.**
+  `Model::upsert($values, $on = null, $updateColumns = null)` and
+  `EntityManager::upsert($entity, $on = null, $updateColumns = null)` accept a target
+  column list plus, for a PARTIAL unique index, its predicate — PostgreSQL infers a
+  partial index only when the statement repeats the predicate. This is what makes an
+  upsert idempotent when the PK is database-generated (a PK-only upsert degrades to a
+  plain INSERT) or when the real uniqueness lives in a separate index.
+  `$updateColumns` restricts the conflict action; `[]` means insert-only. An unset
+  target column throws instead of inserting a row no conflict could ever match, and
+  MySQL rejects an explicit target because `ON DUPLICATE KEY UPDATE` has none.
 - **Prerelease GitHub releases.** SemVer prerelease tags create or update prereleases and
   are excluded from "Latest".
 - **`Document` adds shared entity finders and writers** through `Orm\Concerns\EntityFacade`,

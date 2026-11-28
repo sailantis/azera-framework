@@ -693,6 +693,69 @@ DELETE+INSERT.
 
 The model lands in the identity map (`User::find(7)` returns the same instance afterwards) and the statement joins any open flush transaction.
 
+#### Conflicting on something other than the primary key
+
+The default target is the PK, which only works when the caller already knows it.
+That is not true for the two shapes that most need an atomic upsert:
+
+- a **database-generated** PK (`uuid DEFAULT gen_random_uuid()`, `SERIAL`) — the
+  caller has no key to name before the row exists, so a PK-only upsert degrades
+  to a plain INSERT and is not idempotent at all;
+- a **natural key**, where the PK is incidental and the uniqueness the caller
+  cares about is a separate index.
+
+Pass a `ConflictTarget` to name it:
+
+```php
+use Azera\Orm\ConflictTarget;
+
+BillingCustomer::upsert(
+    ['stripe_customer_id' => 'cus_123', 'email' => 'a@example.com'],
+    ConflictTarget::columns(['stripe_customer_id'], 'stripe_customer_id IS NOT NULL'),
+);
+// INSERT INTO "billing"."customers" (...) VALUES (...)
+// ON CONFLICT ("stripe_customer_id") WHERE stripe_customer_id IS NOT NULL
+// DO UPDATE SET "email" = EXCLUDED."email"
+```
+
+**The predicate is not cosmetic.** When the unique index is PARTIAL, PostgreSQL
+infers it from the conflict target only if the statement repeats the predicate;
+otherwise the statement fails with *"there is no unique or exclusion constraint
+matching the ON CONFLICT specification"*. Both halves belong together, which is
+why the target carries them as one value.
+
+An explicit target is a promise, so an unset target column **throws** instead of
+inserting: `NULL` never equals `NULL`, so no conflict could be detected and the
+statement would silently create a duplicate row.
+
+Dialect support:
+
+| | PK target | explicit columns | partial predicate |
+|---|---|---|---|
+| pgsql | ✅ | ✅ | ✅ |
+| sqlite | ✅ | ✅ | ✅ |
+| mysql | ✅ | ❌ throws — `ON DUPLICATE KEY UPDATE` has no target clause | ❌ |
+| mongo | ✅ | ✅ (the filter *is* the target) | n/a |
+
+#### Narrowing what the conflict action writes
+
+By default the conflict action assigns **every** non-target column present in
+the payload. On a wide row that clobbers state the caller does not own — a
+credential revision, a counter, a workspace binding:
+
+```php
+BillingCustomer::upsert(
+    ['stripe_customer_id' => $id, 'email' => $email, 'auth_revision' => 0],
+    ConflictTarget::columns(['stripe_customer_id'], 'stripe_customer_id IS NOT NULL'),
+    ['email'],        // only these may change on conflict
+);
+```
+
+`[]` means *insert if absent, change nothing otherwise* (rendered as
+`DO NOTHING` / `$setOnInsert`). Prefer this whenever the row is wider than the
+data you actually own — it is the difference between an idempotent retry and a
+silent data loss.
+
 ### `firstOrCreate()` / `updateOrCreate()`
 
 ```php
@@ -855,6 +918,16 @@ $em->remove($session)->flush();
 
 // Atomic create-or-update (same statement Model::upsert() emits; full PK required)
 $em->upsert($new)->flush();
+
+// …or conflict on another unique key (predicate for a PARTIAL index), and
+// restrict what the conflict action may write. flushEntity() writes ONLY this
+// entity and its belongsTo owners — see the note below on why that matters.
+$em->upsert(
+    $customer,
+    ConflictTarget::columns(['stripe_customer_id'], 'stripe_customer_id IS NOT NULL'),
+    ['email', 'name'],
+);
+$em->flushEntity($customer);
 
 // Manually built entity with a full identity, loaded OUTSIDE the EM:
 // adopt() registers it as managed with an EMPTY baseline — the next
